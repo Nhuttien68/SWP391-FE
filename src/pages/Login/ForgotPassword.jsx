@@ -20,15 +20,16 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div class="container">
-            <div class="form">
+        <div className="container">
+            <div className="form">
                 <Title level={3} style={{ textAlign: "center", marginBottom: "20px" }}>Quên mật khẩu</Title>
                 <Form layout="vertical" onFinish={onFinish}>
                     <Form.Item name="email" rules={[{ required: true, message: "Nhập email của bạn" }]}>
-                        <Input placeholder="Nhập email" />
+                        <Input placeholder="Nhập email" style={{ padding: '10px', fontSize: '18px' }} />
                     </Form.Item>
                     <Form.Item>
-                        <Button type="primary" htmlType="submit" block>Gửi link đặt lại</Button>
+                        <Button type="primary" htmlType="submit" block
+                            style={{ padding: '12px 24px', fontSize: '16px', height: '48px' }} >Gửi link đặt lại</Button>
                     </Form.Item>
                 </Form>
             </div>
