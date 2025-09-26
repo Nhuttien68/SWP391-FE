@@ -24,7 +24,6 @@
     color: blue;
 }
 
-/* Divider styles */
 .divider-container {
     display: flex;
     align-items: center;
@@ -46,7 +45,7 @@
     font-weight: 600;
 }
 
-/* Google Login Container */
+
 .google-login-container {
     display: flex;
     justify-content: center;
@@ -55,7 +54,7 @@
     margin-top: 16px;
 }
 
-/* Override Google button styles */
+
 .google-login-container div[role="button"] {
     width: 100% !important;
     max-width: none !important;
@@ -73,7 +72,7 @@
     transform: translateY(-1px);
 }
 
-/* Custom Google button if needed */
+
 .custom-google-button {
     width: 100%;
     height: 52px;
