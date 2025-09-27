@@ -22,13 +22,31 @@ const Login = () => {
             message.error("Lỗi kết nối server!");
         }
     };
-    const handleGoogleSuccess = (credentialResponse) => {
-        console.log("Google Token:", credentialResponse.credential);
-        // Gửi token này về backend để xác thực / tạo JWT của hệ thống bạn
+    const handleGoogleSuccess = async (credentialResponse) => {
+        try {
+            console.log("Google Token:", credentialResponse.credential);
+
+            // Gửi Google token về backend để xác thực
+            const res = await axios.post("http://localhost:5000/api/google-login", {
+                googleToken: credentialResponse.credential
+            });
+
+            if (res.data.success) {
+                localStorage.setItem("token", res.data.token);
+                message.success("Đăng nhập Google thành công!");
+                // chuyển hướng sang dashboard
+            } else {
+                message.error(res.data.message || "Đăng nhập Google thất bại!");
+            }
+        } catch (err) {
+            console.error("Google Login Error:", err);
+            message.error("Lỗi đăng nhập Google!");
+        }
     };
 
     const handleGoogleError = () => {
         console.log("Google Login Failed");
+        message.error("Đăng nhập Google thất bại!");
     };
 
     return (
@@ -51,7 +69,7 @@ const Login = () => {
                         <Input
                             prefix={<UserOutlined />}
                             placeholder="Tên đăng nhập"
-                            style={{ padding: '13px', fontSize: "18px", }}
+                            style={{ fontSize: "18px", }}
                         />
                     </Form.Item>
 
@@ -61,13 +79,13 @@ const Login = () => {
                         <Input.Password
                             prefix={<LockOutlined />}
                             placeholder="Mật khẩu"
-                            style={{ padding: '13px', fontSize: "18px", }}
+                            style={{ fontSize: "18px", }}
                         />
                     </Form.Item>
 
                     <Form.Item>
                         <Button type="primary" htmlType="submit" block
-                            style={{ padding: '15px', fontSize: "18px", height: '52px' }}
+                            style={{ fontSize: "18px" }}
                         >Đăng nhập
                         </Button>
                         <div style={{ textAlign: "right", marginTop: "10px" }}>
@@ -87,7 +105,7 @@ const Login = () => {
                     <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
-                        width="100%"
+                        width={400}
                         size="large"
                         text="signin_with"
                         shape="rectangular"
