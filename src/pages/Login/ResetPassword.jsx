@@ -27,25 +27,30 @@ const ResetPassword = () => {
     };
 
     return (
-        <div
-            style={{ width: "100vw", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "#f0f2f5" }
-            }>
-            <div
-                style={{ width: "400px", background: "#fff", padding: "40px", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}
-            >
-                <Title level={3} style={{ textAlign: "center", marginBottom: "20px" }}>Đặt lại mật khẩu</Title>
+        <div className="w-screen h-screen flex justify-center items-center bg-gray-100">
+            <div className="w-96 bg-white p-10 rounded-xl shadow-2xl">
+                <Title level={3} className="text-center mb-5">
+                    Đặt lại mật khẩu
+                </Title>
                 <Form layout="vertical" onFinish={onFinish}>
                     <Form.Item
                         name="password"
                         rules={[{ required: true, message: "Nhập mật khẩu mới" }]}
-
                     >
-                        <Input.Password placeholder="Mật khẩu mới"
-                            style={{ padding: '10px', fontSize: '18px' }} />
+                        <Input.Password
+                            placeholder="Mật khẩu mới"
+                            className="p-2.5 text-lg"
+                        />
                     </Form.Item>
                     <Form.Item>
-                        <Button type="primary" htmlType="submit" block
-                            style={{ padding: '10px', fontSize: '18px', height: '48px' }}>Đặt lại</Button>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            block
+                            className="p-2.5 text-lg h-12"
+                        >
+                            Đặt lại
+                        </Button>
                     </Form.Item>
                 </Form>
             </div>

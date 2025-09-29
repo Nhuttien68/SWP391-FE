@@ -2,4 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Tailwind utilities có thể thêm ở đây */
+/* Custom base styles để thay thế index.css */
+@layer base {
+    html {
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+        @apply antialiased;
+    }
+}
+
+/* Custom components */
+@layer components {
+    /* Ant Design + Tailwind compatibility styles có thể thêm ở đây */
+}

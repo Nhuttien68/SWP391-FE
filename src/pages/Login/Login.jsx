@@ -1,4 +1,3 @@
-import "./Login.css"
 import { Form, Input, Button, Typography, message } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
@@ -50,9 +49,9 @@ const Login = () => {
     };
 
     return (
-        <div className="wrapper">
-            <div className="form-login">
-                <Title level={2} style={{ textAlign: "center", marginBottom: "30px", fontSize: "28px", }}>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-400 to-blue-600">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-12">
+                <Title level={2} className="text-center mb-8 text-[28px]">
                     Đăng Nhập
                 </Title>
                 <Form
@@ -69,7 +68,7 @@ const Login = () => {
                         <Input
                             prefix={<UserOutlined />}
                             placeholder="Tên đăng nhập"
-                            style={{ fontSize: "18px", }}
+                            className="text-lg"
                         />
                     </Form.Item>
 
@@ -79,29 +78,35 @@ const Login = () => {
                         <Input.Password
                             prefix={<LockOutlined />}
                             placeholder="Mật khẩu"
-                            style={{ fontSize: "18px", }}
+                            className="text-lg"
                         />
                     </Form.Item>
 
                     <Form.Item>
-                        <Button type="primary" htmlType="submit" block
-                            style={{ fontSize: "18px" }}
-                        >Đăng nhập
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            block
+                            className="text-lg"
+                        >
+                            Đăng nhập
                         </Button>
-                        <div style={{ textAlign: "right", marginTop: "10px" }}>
+                        <div className="text-right mt-2.5">
                             <Link to="/forgot-password">Quên mật khẩu?</Link>
                         </div>
                     </Form.Item>
                 </Form>
 
                 {/* Divider với text */}
-                <div className="divider-container">
-                    <div className="divider-line"></div>
-                    <span className="divider-text">Hoặc đăng nhập bằng</span>
-                    <div className="divider-line"></div>
+                <div className="flex items-center my-6">
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <span className="mx-4 text-gray-500 text-sm font-medium">
+                        Hoặc đăng nhập bằng
+                    </span>
+                    <div className="flex-1 h-px bg-gray-300"></div>
                 </div>
 
-                <div className="google-login-container">
+                <div className="flex justify-center">
                     <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
@@ -110,6 +115,19 @@ const Login = () => {
                         text="signin_with"
                         shape="rectangular"
                     />
+                </div>
+
+                {/* Sign up link */}
+                <div className="text-center mt-6">
+                    <p className="text-gray-600">
+                        Chưa có tài khoản?
+                        <Link
+                            to="/signup"
+                            className="text-blue-400 hover:text-blue-800 font-medium ml-1 transition-colors"
+                        >
+                            Đăng ký ngay
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>
