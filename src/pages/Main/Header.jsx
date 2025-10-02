@@ -20,7 +20,7 @@ const HeaderApp = () => {
                 defaultSelectedKeys={["1"]}
                 items={[
                     { key: "1", label: <Link to="/">Home</Link> },
-                    { key: "2", label: <Link to="/signup">About</Link> },
+                    { key: "2", label: <Link to="/about">About</Link> },
                     { key: "3", label: <Link to="/services">Services</Link> },
                     { key: "4", label: <Link to="/contact">Contact</Link> },
                 ]}
