@@ -1,17 +1,42 @@
-import React from "react";
-import { Form, Input, Button, Typography } from "antd";
+import React, { useState } from "react";
+import { Form, Input, Button, Typography, message } from "antd";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const { Title } = Typography;
 
 const Signup = () => {
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { register } = useAuth();
 
-    const onFinish = (values) => {
-        console.log("Dữ liệu đăng ký:", values);
-        // TODO: Gọi API đăng ký ở đây
-        navigate("/otp");
+    const onFinish = async (values) => {
+        setLoading(true);
+        try {
+            // Chuẩn bị data theo format API backend
+            const registerData = {
+                fullName: values.fullname,
+                email: values.email,
+                phone: values.phone,
+                password: values.password
+            };
+
+            const result = await register(registerData);
+
+            if (result.success) {
+                message.success(result.message);
+                // Lưu email để dùng cho trang OTP
+                localStorage.setItem('registerEmail', values.email);
+                navigate("/otp");
+            } else {
+                message.error(result.message);
+            }
+        } catch (err) {
+            message.error("Có lỗi xảy ra khi đăng ký!");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -38,12 +63,26 @@ const Signup = () => {
                         />
                     </Form.Item>
 
+                    {/* Email */}
+                    <Form.Item
+                        label="Email"
+                        name="email"
+                        rules={[
+                            { required: true, message: "Vui lòng nhập email!" },
+                            { type: 'email', message: "Email không hợp lệ!" },
+                        ]}
+                    >
+                        <Input
+                            placeholder="Nhập email của bạn"
+                            className="text-lg"
+                        />
+                    </Form.Item>
+
                     {/* Số điện thoại */}
                     <Form.Item
-                        label="Số điện thoại"
+                        label="Số điện thoại (tùy chọn)"
                         name="phone"
                         rules={[
-                            { required: true, message: "Vui lòng nhập số điện thoại!" },
                             { pattern: /^[0-9]{10}$/, message: "Số điện thoại không hợp lệ!" },
                         ]}
                     >
@@ -75,8 +114,10 @@ const Signup = () => {
                             htmlType="submit"
                             block
                             className="text-lg"
+                            loading={loading}
+                            disabled={loading}
                         >
-                            Đăng ký
+                            {loading ? "Đang đăng ký..." : "Đăng ký"}
                         </Button>
                     </Form.Item>
                 </Form>

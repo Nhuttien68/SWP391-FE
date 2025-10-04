@@ -11,7 +11,7 @@ const HeaderApp = () => {
         >
             {/* Logo */}
             <div className="text-xl font-bold text-blue-600">
-                <Link to="/">EV_MarketPlace</Link>
+                <Link to="/">EV_Exchange</Link>
             </div>
 
             {/* Navigation Menu */}
