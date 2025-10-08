@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Steps } from 'antd';
+import { Form, Input, Button, Card, Typography, Steps } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
 const { Title, Text } = Typography;
@@ -23,14 +24,14 @@ const Register = () => {
             const result = await register(values);
 
             if (result.success) {
-                message.success(result.message);
+                toast.success(result.message);
                 setRegisteredEmail(values.email);
                 setCurrentStep(1); // Chuyển sang bước xác thực OTP
             } else {
-                message.error(result.message);
+                toast.error(result.message);
             }
         } catch (error) {
-            message.error('Có lỗi xảy ra khi đăng ký');
+            toast.error('Có lỗi xảy ra khi đăng ký');
         } finally {
             setLoading(false);
         }
@@ -43,13 +44,13 @@ const Register = () => {
             const result = await verifyOTP(registeredEmail, values.otp);
 
             if (result.success) {
-                message.success(result.message);
+                toast.success(result.message);
                 navigate('/login'); // Chuyển về trang đăng nhập
             } else {
-                message.error(result.message);
+                toast.error(result.message);
             }
         } catch (error) {
-            message.error('Có lỗi xảy ra khi xác thực OTP');
+            toast.error('Có lỗi xảy ra khi xác thực OTP');
         } finally {
             setLoading(false);
         }

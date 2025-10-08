@@ -1,6 +1,7 @@
-import { Table, Tag, Button, Space, Select, message, Card, Statistic, Row, Col } from "antd";
+import { Table, Tag, Button, Space, Select, Card, Statistic, Row, Col } from "antd";
 import { useState } from "react";
 import { UserOutlined, TeamOutlined, CrownOutlined } from "@ant-design/icons";
+import { toast } from "react-toastify";
 import "./UserPage.css";
 
 const { Option } = Select;
@@ -23,7 +24,7 @@ export default function UsersPage() {
         setUsers(users.map(u =>
             u.id === id ? { ...u, is_active: u.is_active ? 0 : 1 } : u
         ));
-        message.success("Cập nhật trạng thái thành công");
+        toast.success("Cập nhật trạng thái thành công");
     };
 
     // Cập nhật role
@@ -31,7 +32,7 @@ export default function UsersPage() {
         setUsers(users.map(u =>
             u.id === id ? { ...u, role } : u
         ));
-        message.success("Cập nhật vai trò thành công");
+        toast.success("Cập nhật vai trò thành công");
     };
 
     const columns = [

@@ -88,7 +88,12 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
     };
 
-    // Hàm gửi lại OTP
+    // Hàm gửi OTP cho forgot password  
+    const forgotPassword = async (email) => {
+        return await authAPI.forgotPassword(email);
+    };
+
+    // Hàm gửi lại OTP (cho activate account)
     const resendOTP = async (email) => {
         return await authAPI.resendOTP(email);
     };
@@ -96,6 +101,11 @@ export const AuthProvider = ({ children }) => {
     // Hàm đổi mật khẩu
     const changePassword = async (changePasswordData) => {
         return await authAPI.changePassword(changePasswordData);
+    };
+
+    // Hàm tạo ví
+    const createWallet = async () => {
+        return await authAPI.createWallet();
     };
 
     const value = {
@@ -106,8 +116,10 @@ export const AuthProvider = ({ children }) => {
         verifyOTP,
         login,
         logout,
+        forgotPassword,
         resendOTP,
-        changePassword
+        changePassword,
+        createWallet
     };
 
     return (

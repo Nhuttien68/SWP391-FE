@@ -1,6 +1,7 @@
-import { Form, Input, Button, message, Typography, Steps } from "antd";
+import { Form, Input, Button, Typography, Steps } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 const { Title, Text } = Typography;
@@ -11,23 +12,23 @@ const ResetPassword = () => {
     const [loading, setLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [email, setEmail] = useState('');
-    const { resendOTP, changePassword } = useAuth();
+    const { forgotPassword, changePassword } = useAuth();
 
     // Bước 1: Gửi OTP để reset password
     const onSendOTP = async (values) => {
         setLoading(true);
         try {
-            const result = await resendOTP(values.email);
+            const result = await forgotPassword(values.email);
 
             if (result.success) {
-                message.success("Mã OTP đã được gửi đến email của bạn!");
+                toast.success("Mã OTP đã được gửi đến email của bạn!");
                 setEmail(values.email);
                 setCurrentStep(1);
             } else {
-                message.error(result.message);
+                toast.error(result.message);
             }
         } catch (err) {
-            message.error("Có lỗi xảy ra khi gửi OTP!");
+            toast.error("Có lỗi xảy ra khi gửi OTP!");
         } finally {
             setLoading(false);
         }
@@ -46,13 +47,13 @@ const ResetPassword = () => {
             const result = await changePassword(changePasswordData);
 
             if (result.success) {
-                message.success("Đặt lại mật khẩu thành công!");
+                toast.success("Đặt lại mật khẩu thành công!");
                 navigate("/login");
             } else {
-                message.error(result.message);
+                toast.error(result.message);
             }
         } catch (err) {
-            message.error("Có lỗi xảy ra khi đặt lại mật khẩu!");
+            toast.error("Có lỗi xảy ra khi đặt lại mật khẩu!");
         } finally {
             setLoading(false);
         }

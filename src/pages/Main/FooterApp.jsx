@@ -9,7 +9,7 @@ const FooterApp = () => {
         <Col xs={24} sm={12} md={6} className="mb-6 md:mb-0">
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-white mb-4 border-b border-green-500 pb-2 inline-block">
-              ⚡ EV Exchange
+              ⚡ EV Marketplace
             </h3>
             <p className="text-gray-300 leading-relaxed">
               Nền tảng trao đổi xe điện và pin thông minh, kết nối người mua bán

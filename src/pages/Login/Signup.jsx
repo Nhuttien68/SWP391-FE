@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Form, Input, Button, Typography, message } from "antd";
+import { Form, Input, Button, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 const { Title } = Typography;
@@ -16,24 +17,23 @@ const Signup = () => {
         try {
             // Chuẩn bị data theo format API backend
             const registerData = {
-                fullName: values.fullname,
-                email: values.email,
-                phone: values.phone,
-                password: values.password
+                FullName: values.fullname,
+                Email: values.email,
+                Phone: values.phone,
+                Password: values.password
             };
 
             const result = await register(registerData);
 
             if (result.success) {
-                message.success(result.message);
-                // Lưu email để dùng cho trang OTP
-                localStorage.setItem('registerEmail', values.email);
-                navigate("/otp");
+                toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
+                // Chuyển thẳng về trang đăng nhập
+                navigate("/login");
             } else {
-                message.error(result.message);
+                toast.error(result.message);
             }
         } catch (err) {
-            message.error("Có lỗi xảy ra khi đăng ký!");
+            toast.error("Có lỗi xảy ra khi đăng ký!");
         } finally {
             setLoading(false);
         }
@@ -98,7 +98,7 @@ const Signup = () => {
                         name="password"
                         rules={[
                             { required: true, message: "Vui lòng nhập mật khẩu!" },
-                            { min: 8, message: "Mật khẩu phải ít nhất 8 ký tự!" },
+                            { min: 6, message: "Mật khẩu phải ít nhất 6 ký tự!" },
                         ]}
                     >
                         <Input.Password

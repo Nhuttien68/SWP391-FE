@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Spin } from 'antd';
+import { Form, Input, Button, Card, Typography, Spin } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
 const { Title, Text } = Typography;
@@ -18,13 +19,12 @@ const Login = () => {
             const result = await login(values);
 
             if (result.success) {
-                message.success(result.message);
-                navigate('/dashboard'); // Redirect sau khi đăng nhập thành công
-            } else {
-                message.error(result.message);
+                toast.success(result.message);
+                navigate('/');
+                toast.error(result.message);
             }
         } catch (error) {
-            message.error('Có lỗi xảy ra khi đăng nhập');
+            toast.error('Có lỗi xảy ra khi đăng nhập');
         } finally {
             setLoading(false);
         }

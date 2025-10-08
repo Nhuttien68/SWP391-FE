@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Form, Input, Button, Typography, message, Card } from "antd";
+import { Form, Input, Button, Typography, Card } from "antd";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 const { Title } = Typography;
@@ -9,18 +10,39 @@ const Otp = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
-    const { verifyOTP, resendOTP } = useAuth();
+    const [countdown, setCountdown] = useState(0);
+    const [canResend, setCanResend] = useState(true);
+    const { verifyOTP, resendOTP, createWallet, login } = useAuth();
 
     useEffect(() => {
         // Lấy email từ localStorage (đã lưu ở trang đăng ký)
         const registeredEmail = localStorage.getItem('registerEmail');
         if (!registeredEmail) {
-            message.error('Không tìm thấy thông tin email. Vui lòng đăng ký lại.');
+            toast.error('Không tìm thấy thông tin email. Vui lòng đăng ký lại.');
             navigate('/signup');
             return;
         }
         setEmail(registeredEmail);
+
+
     }, [navigate]);
+
+    useEffect(() => {
+        let interval = null;
+        if (countdown > 0) {
+            interval = setInterval(() => {
+                setCountdown(countdown => countdown - 1);
+            }, 1000);
+        } else if (countdown === 0) {
+            setCanResend(true);
+        }
+        return () => clearInterval(interval);
+    }, [countdown]);
+
+    const startCountdown = () => {
+        setCountdown(30);
+        setCanResend(false);
+    };
 
     const onFinish = async (values) => {
         setLoading(true);
@@ -28,51 +50,96 @@ const Otp = () => {
             const result = await verifyOTP(email, values.otp);
 
             if (result.success) {
-                message.success(result.message);
-                localStorage.removeItem('registerEmail'); // Xóa email đã lưu
-                setTimeout(() => {
-                    navigate("/login");
-                }, 1000);
+                toast.success(result.message);
+
+
+                const password = localStorage.getItem('registerPassword');
+                if (password) {
+                    try {
+                        const loginResult = await login({ email, password });
+                        if (loginResult.success) {
+                            try {
+                                const walletResult = await createWallet();
+                                if (walletResult.success) {
+                                    toast.success("Tài khoản và ví của bạn đã được tạo thành công!");
+                                } else {
+                                    toast.warning("Tài khoản được tạo thành công nhưng không thể tạo ví. Bạn có thể tạo ví sau trong trang profile.");
+                                }
+                            } catch (walletError) {
+                                console.error("Lỗi tạo ví:", walletError);
+                                toast.warning("Tài khoản được tạo thành công nhưng không thể tạo ví. Bạn có thể tạo ví sau trong trang profile.");
+                            }
+
+                            // Xóa thông tin tạm thời
+                            localStorage.removeItem('registerEmail');
+                            localStorage.removeItem('registerPassword');
+
+                            // Chuyển hướng đến trang chủ sau khi hoàn thành
+                            setTimeout(() => {
+                                navigate("/");
+                            }, 2000);
+                        } else {
+                            // Nếu không thể đăng nhập tự động, chuyển về trang login
+                            localStorage.removeItem('registerEmail');
+                            localStorage.removeItem('registerPassword');
+                            setTimeout(() => {
+                                navigate("/login");
+                            }, 1000);
+                        }
+                    } catch (loginError) {
+                        console.error("Lỗi đăng nhập tự động:", loginError);
+                        localStorage.removeItem('registerEmail');
+                        localStorage.removeItem('registerPassword');
+                        setTimeout(() => {
+                            navigate("/login");
+                        }, 1000);
+                    }
+                } else {
+                    // Không có mật khẩu đã lưu, chuyển về trang login
+                    localStorage.removeItem('registerEmail');
+                    setTimeout(() => {
+                        navigate("/login");
+                    }, 1000);
+                }
             } else {
-                message.error(result.message);
+                toast.error(result.message);
             }
         } catch (err) {
-            message.error("Có lỗi xảy ra khi xác thực OTP!");
+            toast.error("Có lỗi xảy ra khi xác thực OTP!");
         } finally {
             setLoading(false);
         }
     };
 
     const handleResendOTP = async () => {
+        if (!canResend) {
+            toast.warning(`Vui lòng đợi ${countdown} giây trước khi gửi lại OTP!`);
+            return;
+        }
+
         setLoading(true);
         try {
             const result = await resendOTP(email);
 
             if (result.success) {
-                message.success(result.message);
+                toast.success(result.message);
+                // Bắt đầu đếm ngược sau khi gửi thành công
+                startCountdown();
             } else {
-                message.error(result.message);
+                toast.error(result.message);
             }
         } catch (err) {
-            message.error("Không thể gửi lại OTP!");
+            toast.error("Không thể gửi lại OTP!");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div
-            style={{
-                minHeight: "100vh",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                background: "#f0f2f5",
-            }}
-        >
-            <Card title="Nhập mã OTP" style={{ width: 400 }}>
+        <div className="min-h-screen flex justify-center items-center bg-gray-100">
+            <Card title="Nhập mã OTP" className="w-96">
                 {email && (
-                    <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                    <div className="mb-4 text-center">
                         <Typography.Text type="secondary">
                             Mã OTP đã được gửi đến: <strong>{email}</strong>
                         </Typography.Text>
@@ -107,17 +174,23 @@ const Otp = () => {
                         </Button>
                     </Form.Item>
 
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <Typography.Text type="secondary">
                             Không nhận được mã?{' '}
-                            <Button
-                                type="link"
-                                onClick={handleResendOTP}
-                                disabled={loading}
-                                style={{ padding: 0 }}
-                            >
-                                Gửi lại OTP
-                            </Button>
+                            {canResend ? (
+                                <Button
+                                    type="link"
+                                    onClick={handleResendOTP}
+                                    disabled={loading}
+                                    className="p-0"
+                                >
+                                    Gửi lại OTP
+                                </Button>
+                            ) : (
+                                <span className="text-gray-500">
+                                    Gửi lại sau {countdown}s
+                                </span>
+                            )}
                         </Typography.Text>
                     </div>
                 </Form>
