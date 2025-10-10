@@ -41,7 +41,7 @@ const WalletManagement = () => {
     const [isWithdrawModalVisible, setIsWithdrawModalVisible] = useState(false);
     const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
     const [isOtpModalVisible, setIsOtpModalVisible] = useState(false);
-    const [isAccountActive, setIsAccountActive] = useState(true); // Sẽ check từ user data
+    const [isAccountActive, setIsAccountActive] = useState(true);
     const [countdown, setCountdown] = useState(0);
     const [canResend, setCanResend] = useState(true);
     const [depositForm] = Form.useForm();
@@ -103,9 +103,8 @@ const WalletManagement = () => {
     // useEffect để kiểm tra trạng thái active của user
     useEffect(() => {
         if (user) {
-            // Giả sử user object có field active (0 hoặc 1)
-            // Bạn có thể thay đổi logic này tùy theo cấu trúc user data của bạn
-            setIsAccountActive(user.active === 1 || user.active === true);
+            // Kiểm tra trạng thái isActive từ thông tin user đã đăng nhập
+            setIsAccountActive(user.isActive === true);
         }
     }, [user]);
 
@@ -124,7 +123,7 @@ const WalletManagement = () => {
 
     // Hàm bắt đầu đếm ngược
     const startCountdown = () => {
-        setCountdown(30);
+        setCountdown(300);
         setCanResend(false);
     };
 
@@ -137,6 +136,15 @@ const WalletManagement = () => {
             if (result.success) {
                 toast.success("Xác thực tài khoản thành công!");
 
+                // Cập nhật user state để phản ánh trạng thái active
+                const updatedUser = { ...user, isActive: true };
+                localStorage.setItem('user', JSON.stringify({
+                    id: updatedUser.id,
+                    fullName: updatedUser.fullName,
+                    email: updatedUser.email,
+                    isActive: true
+                }));
+
                 // Tự động tạo ví sau khi xác thực thành công
                 try {
                     const walletResult = await createWallet();
@@ -144,17 +152,22 @@ const WalletManagement = () => {
                         toast.success("Ví của bạn đã được tạo thành công!");
                         setIsAccountActive(true);
                         setIsOtpModalVisible(false);
-                        // Reload user data hoặc cập nhật state
+                        // Reload page để cập nhật giao diện
+                        window.location.reload();
                     } else {
                         toast.warning("Tài khoản đã được kích hoạt nhưng không thể tạo ví. Vui lòng thử lại.");
                         setIsAccountActive(true);
                         setIsOtpModalVisible(false);
+                        // Reload page để cập nhật giao diện
+                        window.location.reload();
                     }
                 } catch (walletError) {
                     console.error("Lỗi tạo ví:", walletError);
                     toast.warning("Tài khoản đã được kích hoạt nhưng không thể tạo ví. Vui lòng thử lại.");
                     setIsAccountActive(true);
                     setIsOtpModalVisible(false);
+                    // Reload page để cập nhật giao diện
+                    window.location.reload();
                 }
             } else {
                 toast.error(result.message);
@@ -190,10 +203,31 @@ const WalletManagement = () => {
         }
     };
 
-    // Hàm mở modal OTP
-    const showOtpModal = () => {
+    // Hàm mở modal OTP và gửi OTP
+    const showOtpModal = async () => {
         setIsOtpModalVisible(true);
-        startCountdown(); // Bắt đầu đếm ngược khi mở modal
+
+        // Gửi OTP khi mở modal (vì đây là lần đầu tiên gửi OTP sau khi đăng ký)
+        setLoading(true);
+        try {
+            const result = await resendOTP(user.email);
+
+            if (result.success) {
+                toast.success("Mã OTP đã được gửi đến email của bạn!");
+                startCountdown(); // Bắt đầu đếm ngược sau khi gửi thành công
+            } else {
+                toast.error(result.message);
+                // Vẫn cho phép nhập OTP nếu có OTP từ trước
+                startCountdown();
+            }
+        } catch (err) {
+            toast.error("Không thể gửi OTP! Vui lòng thử lại.");
+            console.error("Error sending OTP:", err);
+            // Vẫn cho phép nhập OTP nếu có OTP từ trước
+            startCountdown();
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getTransactionTypeColor = (type) => {
@@ -376,7 +410,7 @@ const WalletManagement = () => {
                         </Text>
                         <Alert
                             message="Lưu ý"
-                            description="Một mã OTP đã được gửi đến email của bạn khi đăng ký. Vui lòng kiểm tra email và nhập mã xác thực."
+                            description="Bạn cần xác thực tài khoản để sử dụng tính năng ví điện tử. Click nút bên dưới để nhận mã OTP qua email."
                             type="info"
                             showIcon
                             className="mb-6 max-w-md mx-auto"
@@ -658,9 +692,15 @@ const WalletManagement = () => {
                 >
                     <div className="text-center mb-4">
                         <WarningOutlined className="text-4xl text-orange-500 mb-2" />
-                        <Text type="secondary" className="block">
+                        <Text type="secondary" className="block mb-2">
                             Nhập mã OTP đã được gửi đến email: <strong>{user?.email}</strong>
                         </Text>
+                        <Alert
+                            message="Mã OTP đã được gửi đến email của bạn để xác thực tài khoản"
+                            type="info"
+                            showIcon
+                            className="text-left"
+                        />
                     </div>
 
                     <Form

@@ -100,7 +100,7 @@ const HeaderApp = () => {
                         <Link to="/login">
                             <Button type="default">Đăng nhập</Button>
                         </Link>
-                        <Link to="/signup">
+                        <Link to="/register">
                             <Button type="primary">Đăng ký</Button>
                         </Link>
                     </>

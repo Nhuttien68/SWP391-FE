@@ -2,7 +2,6 @@ import { Table, Tag, Button, Space, Select, Card, Statistic, Row, Col } from "an
 import { useState } from "react";
 import { UserOutlined, TeamOutlined, CrownOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
-import "./UserPage.css";
 
 const { Option } = Select;
 

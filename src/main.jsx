@@ -4,17 +4,11 @@ import './tailwind.css'
 import App from './App.jsx'
 import { BrowserRouter } from 'react-router-dom'
 import 'antd/dist/reset.css';
-import { GoogleOAuthProvider } from "@react-oauth/google";
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 createRoot(document.getElementById('root')).render(
-
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </GoogleOAuthProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </StrictMode>,
 )

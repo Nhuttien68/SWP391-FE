@@ -69,6 +69,10 @@ export const AuthProvider = ({ children }) => {
 
             if (result.success) {
                 const userData = authAPI.getCurrentUser();
+                // Thêm thông tin IsActive vào user data
+                if (result.data?.IsActive !== undefined) {
+                    userData.isActive = result.data.IsActive;
+                }
                 setUser(userData);
                 setIsAuthenticated(true);
             }

@@ -1,0 +1,246 @@
+import apiClient from './apiClient';
+
+// Posts API endpoints
+export const postAPI = {
+    // Lấy tất cả posts
+    getAllPosts: async (params = {}) => {
+        try {
+            const queryParams = new URLSearchParams();
+
+            // Add pagination
+            if (params.page) queryParams.append('page', params.page);
+            if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+            // Add filters
+            if (params.search) queryParams.append('search', params.search);
+            if (params.brand) queryParams.append('brand', params.brand);
+            if (params.minPrice) queryParams.append('minPrice', params.minPrice);
+            if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice);
+            if (params.year) queryParams.append('year', params.year);
+            if (params.location) queryParams.append('location', params.location);
+
+            const response = await apiClient.get(`/Posts?${queryParams.toString()}`);
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Lấy danh sách bài đăng thành công'
+            };
+        } catch (error) {
+            console.error('Get posts error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể tải danh sách xe điện',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Lấy chi tiết post
+    getPostById: async (postId) => {
+        try {
+            const response = await apiClient.get(`/Posts/${postId}`);
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Lấy thông tin xe thành công'
+            };
+        } catch (error) {
+            console.error('Get post detail error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể tải thông tin xe',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Tìm kiếm posts
+    searchPosts: async (searchParams) => {
+        try {
+            const queryParams = new URLSearchParams();
+
+            if (searchParams.keyword) queryParams.append('keyword', searchParams.keyword);
+            if (searchParams.category) queryParams.append('category', searchParams.category);
+            if (searchParams.location) queryParams.append('location', searchParams.location);
+            if (searchParams.priceMin) queryParams.append('priceMin', searchParams.priceMin);
+            if (searchParams.priceMax) queryParams.append('priceMax', searchParams.priceMax);
+
+            const response = await apiClient.get(`/Posts/search?${queryParams.toString()}`);
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Tìm kiếm thành công'
+            };
+        } catch (error) {
+            console.error('Search posts error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Tìm kiếm thất bại',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Lấy posts theo danh mục
+    getPostsByCategory: async (categoryId, params = {}) => {
+        try {
+            const queryParams = new URLSearchParams();
+            if (params.page) queryParams.append('page', params.page);
+            if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+            const response = await apiClient.get(`/Posts/category/${categoryId}?${queryParams.toString()}`);
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Lấy danh sách theo danh mục thành công'
+            };
+        } catch (error) {
+            console.error('Get posts by category error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể tải danh sách theo danh mục',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Tạo post mới (cho seller)
+    createPost: async (postData) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Chưa đăng nhập'
+                };
+            }
+
+            const response = await apiClient.post('/Posts', postData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Đăng bài thành công!'
+            };
+        } catch (error) {
+            console.error('Create post error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Đăng bài thất bại',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Cập nhật post
+    updatePost: async (postId, postData) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Chưa đăng nhập'
+                };
+            }
+
+            const response = await apiClient.put(`/Posts/${postId}`, postData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Cập nhật bài đăng thành công!'
+            };
+        } catch (error) {
+            console.error('Update post error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Cập nhật thất bại',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Xóa post
+    deletePost: async (postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Chưa đăng nhập'
+                };
+            }
+
+            const response = await apiClient.delete(`/Posts/${postId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Xóa bài đăng thành công!'
+            };
+        } catch (error) {
+            console.error('Delete post error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Xóa bài đăng thất bại',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Lấy posts của user hiện tại
+    getMyPosts: async (params = {}) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Chưa đăng nhập'
+                };
+            }
+
+            const queryParams = new URLSearchParams();
+            if (params.page) queryParams.append('page', params.page);
+            if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+            const response = await apiClient.get(`/Posts/my-posts?${queryParams.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Lấy danh sách bài đăng của bạn thành công'
+            };
+        } catch (error) {
+            console.error('Get my posts error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể tải bài đăng của bạn',
+                error: error.response?.data
+            };
+        }
+    }
+};
+
+export default postAPI;

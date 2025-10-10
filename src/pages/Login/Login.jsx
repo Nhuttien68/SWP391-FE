@@ -1,8 +1,8 @@
-import { Form, Input, Button, Typography } from "antd";
-import { UserOutlined, LockOutlined } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
+import { Form, Input, Button, Typography, Modal } from "antd";
+import { UserOutlined, LockOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { GoogleLogin } from "@react-oauth/google";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 const { Title } = Typography;
@@ -10,6 +10,24 @@ const { Title } = Typography;
 const Login = () => {
     const { login, isLoading } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [form] = Form.useForm();
+    const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+    // Kiểm tra xem có phải từ trang đăng ký không
+    const isFromRegister = searchParams.get('registered') === 'true';
+    const registeredEmail = searchParams.get('email');
+
+    // Tự động điền email nếu có từ trang đăng ký
+    useEffect(() => {
+        if (isFromRegister && registeredEmail) {
+            form.setFieldsValue({
+                email: registeredEmail
+            });
+            // Hiển thị welcome modal
+            setShowWelcomeModal(true);
+        }
+    }, [isFromRegister, registeredEmail, form]);
 
     const onFinish = async (values) => {
         try {
@@ -19,23 +37,25 @@ const Login = () => {
                 toast.success('Đăng nhập thành công!');
                 navigate("/home");
             } else {
-                toast.error(result.message);
+                // Kiểm tra nếu tài khoản chưa kích hoạt
+                if (result.message && result.message.includes("chưa được kích hoạt")) {
+                    toast.warning("Tài khoản chưa được kích hoạt. Chuyển đến trang kích hoạt...");
+
+                    // Lưu email để sử dụng ở trang kích hoạt
+                    localStorage.setItem('pendingActivationEmail', values.email);
+
+                    setTimeout(() => {
+                        navigate("/activate-account", {
+                            state: { email: values.email }
+                        });
+                    }, 1500);
+                } else {
+                    toast.error(result.message);
+                }
             }
         } catch (err) {
             toast.error("Có lỗi xảy ra khi đăng nhập!");
         }
-    };
-    const handleGoogleSuccess = async (credentialResponse) => {
-        try {
-            // TODO: Implement Google OAuth backend endpoint
-            toast.info("Tính năng đăng nhập Google đang được phát triển!");
-        } catch (err) {
-            toast.error("Lỗi đăng nhập Google!");
-        }
-    };
-
-    const handleGoogleError = () => {
-        toast.error("Đăng nhập Google thất bại!");
     };
 
     return (
@@ -44,7 +64,9 @@ const Login = () => {
                 <Title level={2} className="text-center mb-8 text-[28px]">
                     Đăng Nhập
                 </Title>
+
                 <Form
+                    form={form}
                     name="login"
                     onFinish={onFinish}
                     layout="vertical"
@@ -90,35 +112,11 @@ const Login = () => {
                         </div>
                     </Form.Item>
                 </Form>
-
-
-                <div className="flex items-center my-6">
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                    <span className="mx-4 text-gray-500 text-sm font-medium">
-                        Hoặc đăng nhập bằng
-                    </span>
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                </div>
-
-                <div className="flex justify-center">
-                    <GoogleLogin
-                        onSuccess={handleGoogleSuccess}
-                        onError={handleGoogleError}
-                        width={400}
-                        size="large"
-                        text="signin_with"
-                        shape="rectangular"
-                        useOneTap={false}
-                    />
-                </div>
-
-
-                {/* Sign up link */}
                 <div className="text-center mt-6">
                     <p className="text-gray-600">
                         Chưa có tài khoản?
                         <Link
-                            to="/signup"
+                            to="/register"
                             className="text-blue-400 hover:text-blue-800 font-medium ml-1 transition-colors"
                         >
                             Đăng ký ngay
@@ -126,6 +124,46 @@ const Login = () => {
                     </p>
                 </div>
             </div>
+
+            {/* Welcome Modal */}
+            <Modal
+                title={
+                    <div className="text-center">
+                        <InfoCircleOutlined className="text-green-500 text-2xl mr-2" />
+                        <span className="text-green-600 font-semibold">Đăng ký thành công!</span>
+                    </div>
+                }
+                open={showWelcomeModal}
+                onOk={() => setShowWelcomeModal(false)}
+                onCancel={() => setShowWelcomeModal(false)}
+                okText="Hiểu rồi"
+                cancelText="Đóng"
+                centered
+                width={500}
+            >
+                <div className="text-center py-4">
+                    <p className="text-lg mb-4">Tài khoản của bạn đã được tạo thành công!</p>
+
+                    <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                        <p className="font-medium text-blue-800 mb-2">
+                            💡 Hướng dẫn quan trọng:
+                        </p>
+                        <p className="text-blue-700">
+                            Để sử dụng ví điện tử, bạn cần xác thực tài khoản trong phần
+                            <span className="font-semibold"> "Quản lý ví" </span>
+                            sau khi đăng nhập.
+                        </p>
+                    </div>
+
+                    {registeredEmail && (
+                        <div className="bg-gray-50 p-3 rounded">
+                            <p className="text-sm text-gray-600">
+                                Email đăng ký: <strong className="text-gray-800">{registeredEmail}</strong>
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 };

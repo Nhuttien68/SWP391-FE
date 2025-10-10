@@ -5,9 +5,8 @@ export const authAPI = {
     // Đăng ký tài khoản
     register: async (userData) => {
         try {
-            console.log('Sending registration data:', userData);
+
             const response = await apiClient.post('/User/register', userData);
-            console.log('Registration response:', response);
             return {
                 success: true,
                 data: response,
@@ -71,6 +70,8 @@ export const authAPI = {
 
             const response = await apiClient.post('/User/login', requestData);
 
+            console.log('Login response:', response);
+            console.log('Response data:', response.data);
 
             // Check if login successful (status "200" và có token)
             if (response.status === "200" && response.data?.token) {
@@ -78,7 +79,8 @@ export const authAPI = {
                 localStorage.setItem('user', JSON.stringify({
                     id: response.data.accountId,
                     fullName: response.data.fullName,
-                    email: response.data.email
+                    email: response.data.email,
+                    isActive: response.data.isActive || response.data.IsActive
                 }));
 
                 return {
@@ -184,7 +186,7 @@ export const authAPI = {
     // Gửi lại OTP (cho activate account)
     resendOTP: async (email) => {
         try {
-            const response = await apiClient.post('/User/resend-otp', { email });
+            const response = await apiClient.post('/User/resend-otp', { Email: email });
             return {
                 success: true,
                 data: response,
