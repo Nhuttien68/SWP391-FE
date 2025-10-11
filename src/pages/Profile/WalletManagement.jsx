@@ -203,31 +203,10 @@ const WalletManagement = () => {
         }
     };
 
-    // Hàm mở modal OTP và gửi OTP
-    const showOtpModal = async () => {
+    // Hàm mở modal OTP - CHỈ MỞ MODAL, KHÔNG GỬI OTP
+    const showOtpModal = () => {
         setIsOtpModalVisible(true);
-
-        // Gửi OTP khi mở modal (vì đây là lần đầu tiên gửi OTP sau khi đăng ký)
-        setLoading(true);
-        try {
-            const result = await resendOTP(user.email);
-
-            if (result.success) {
-                toast.success("Mã OTP đã được gửi đến email của bạn!");
-                startCountdown(); // Bắt đầu đếm ngược sau khi gửi thành công
-            } else {
-                toast.error(result.message);
-                // Vẫn cho phép nhập OTP nếu có OTP từ trước
-                startCountdown();
-            }
-        } catch (err) {
-            toast.error("Không thể gửi OTP! Vui lòng thử lại.");
-            console.error("Error sending OTP:", err);
-            // Vẫn cho phép nhập OTP nếu có OTP từ trước
-            startCountdown();
-        } finally {
-            setLoading(false);
-        }
+        // Không gửi OTP tự động, người dùng phải bấm "Gửi lại mã" nếu cần
     };
 
     const getTransactionTypeColor = (type) => {

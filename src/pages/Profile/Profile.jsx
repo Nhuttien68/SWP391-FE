@@ -106,7 +106,7 @@ const Profile = () => {
                                         {user?.email || 'Chưa cập nhật'}
                                     </Descriptions.Item>
                                     <Descriptions.Item label="Số điện thoại">
-                                        Chưa cập nhật
+                                        {user?.phone || "Chưa cập nhật"}
                                     </Descriptions.Item>
                                     <Descriptions.Item label="Địa chỉ">
                                         Chưa cập nhật

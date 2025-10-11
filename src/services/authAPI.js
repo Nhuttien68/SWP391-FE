@@ -80,6 +80,7 @@ export const authAPI = {
                     id: response.data.accountId,
                     fullName: response.data.fullName,
                     email: response.data.email,
+                    phone: response.data.phone,
                     isActive: response.data.isActive || response.data.IsActive
                 }));
 
