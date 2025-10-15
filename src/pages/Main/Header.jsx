@@ -76,6 +76,13 @@ const HeaderApp = () => {
 
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">
+                {isAuthenticated && (
+                    <Link to="/createPost">
+                        <Button type="primary" className="mr-3">
+                            Tạo bài viết
+                        </Button>
+                    </Link>
+                )}
                 {isAuthenticated ? (
                     // Hiển thị avatar và dropdown khi đã đăng nhập
                     <Dropdown

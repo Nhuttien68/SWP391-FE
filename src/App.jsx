@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from "./context/AuthContext.jsx";
+import PublicOnlyRoute from "./components/PublicOnlyRoute.jsx";
 import Login from "./pages/Login/Login.jsx";
 import ResetPassword from "./pages/Login/ResetPassword.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -12,6 +13,7 @@ import Profile from "./pages/Profile/Profile.jsx";
 import Register from "./pages/Login/Register.jsx";
 import Otp from "./pages/Login/Otp.jsx";
 import PostDetail from "./pages/Post/PostDetail.jsx";
+import CreatePost from "./pages/Post/CreatePost.jsx";
 
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import FooterApp from "./pages/Main/FooterApp.jsx"
@@ -22,22 +24,46 @@ function App() {
       <ErrorBoundary>
         <HeaderApp />
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/otp" element={<Otp />} />
+          {/* Public Routes - Chỉ truy cập khi chưa đăng nhập */}
+          <Route path="/login" element={
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
+          } />
+          <Route path="/register" element={
+            <PublicOnlyRoute>
+              <Register />
+            </PublicOnlyRoute>
+          } />
+          <Route path="/otp" element={
+            <PublicOnlyRoute>
+              <Otp />
+            </PublicOnlyRoute>
+          } />
+          <Route path="/reset-password" element={
+            <PublicOnlyRoute>
+              <ResetPassword />
+            </PublicOnlyRoute>
+          } />
+
+          {/* Public Routes - Ai cũng có thể truy cập */}
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/post/:id" element={<PostDetail />} />
+
+          {/* Protected Routes - Chỉ truy cập khi đã đăng nhập */}
+          <Route path="/createPost" element={<CreatePost />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={<AdminLayout />} />
+
+          {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <FooterApp />
       </ErrorBoundary>
       <ToastContainer
         position="top-right"
-        autoClose={4000}
+        autoClose={2000}
         hideProgressBar={false}
         newestOnTop
         closeOnClick

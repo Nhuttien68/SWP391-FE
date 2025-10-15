@@ -70,9 +70,6 @@ export const authAPI = {
 
             const response = await apiClient.post('/User/login', requestData);
 
-            console.log('Login response:', response);
-            console.log('Response data:', response.data);
-
             // Check if login successful (status "200" và có token)
             if (response.status === "200" && response.data?.token) {
                 localStorage.setItem('token', response.data.token);

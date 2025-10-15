@@ -2,6 +2,40 @@ import apiClient from './apiClient';
 
 // Posts API endpoints
 export const postAPI = {
+    // Tạo bài đăng mới
+    createPost: async (postData) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Vui lòng đăng nhập để tạo bài đăng'
+                };
+            }
+
+            // Convert form data to JSON if needed
+            const isFormData = postData instanceof FormData;
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': isFormData ? 'multipart/form-data' : 'application/json'
+            };
+
+            const response = await apiClient.post('/Posts', postData, { headers });
+
+            return {
+                success: true,
+                data: response.data,
+                message: 'Tạo bài đăng thành công!'
+            };
+        } catch (error) {
+            console.error('Create post error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Có lỗi xảy ra khi tạo bài đăng',
+                error: error.response?.data
+            };
+        }
+    },
     // Lấy tất cả posts
     getAllPosts: async (params = {}) => {
         try {
@@ -108,38 +142,7 @@ export const postAPI = {
         }
     },
 
-    // Tạo post mới (cho seller)
-    createPost: async (postData) => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                return {
-                    success: false,
-                    message: 'Chưa đăng nhập'
-                };
-            }
 
-            const response = await apiClient.post('/Posts', postData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
-            return {
-                success: true,
-                data: response.data || response,
-                message: 'Đăng bài thành công!'
-            };
-        } catch (error) {
-            console.error('Create post error:', error);
-            return {
-                success: false,
-                message: error.response?.data?.Message || 'Đăng bài thất bại',
-                error: error.response?.data
-            };
-        }
-    },
 
     // Cập nhật post
     updatePost: async (postId, postData) => {

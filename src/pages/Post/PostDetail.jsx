@@ -14,7 +14,7 @@ import {
     Divider,
     Space,
     Spin,
-    BackTop,
+    FloatButton,
     message
 } from 'antd';
 import {
@@ -372,7 +372,7 @@ const PostDetail = () => {
                 </Row>
             </div>
 
-            <BackTop />
+            <FloatButton.BackTop />
         </div>
     );
 };

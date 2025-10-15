@@ -8,6 +8,7 @@ import {
     Button,
     Typography,
     Spin,
+    Space,
     Empty,
     Pagination,
     message
@@ -103,7 +104,6 @@ const HomePage = () => {
 
     useEffect(() => {
         // Hiển thị mock data trước, sau đó thử gọi API
-        console.log('Setting mock posts:', mockPosts);
         setPosts(mockPosts);
         setFilteredPosts(mockPosts);
         fetchPosts();
@@ -113,7 +113,7 @@ const HomePage = () => {
         setLoading(true);
         // Tạm thời chỉ sử dụng mock data
         setTimeout(() => {
-            console.log('Loading mock data...');
+
             setLoading(false);
         }, 500);
 
@@ -228,7 +228,6 @@ const HomePage = () => {
             const result = await postAPI.getPostById(postId);
             if (result.success) {
                 // Navigate to detail page or open modal
-                console.log('Post detail:', result.data);
                 message.info('Chức năng xem chi tiết đang được phát triển');
             }
         } catch (error) {
@@ -241,8 +240,6 @@ const HomePage = () => {
     const startIndex = (currentPage - 1) * pageSize;
     const currentPosts = filteredPosts.slice(startIndex, startIndex + pageSize);
 
-    console.log('Current posts to render:', currentPosts);
-    console.log('Filtered posts length:', filteredPosts.length);
 
     const brands = ['Tesla', 'VinFast', 'BYD', 'Hyundai', 'Kia', 'BMW', 'Mercedes', 'Audi'];
     const priceRanges = [
@@ -267,7 +264,7 @@ const HomePage = () => {
 
                         {/* Quick Search */}
                         <div className="max-w-2xl mx-auto">
-                            <Input.Group compact>
+                            <Space.Compact block>
                                 <Input
                                     size="large"
                                     placeholder="Tìm kiếm xe điện (Tesla, VinFast, BYD...)"
@@ -285,7 +282,7 @@ const HomePage = () => {
                                 >
                                     Tìm kiếm
                                 </Button>
-                            </Input.Group>
+                            </Space.Compact>
                         </div>
                     </div>
                 </div>
