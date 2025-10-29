@@ -29,19 +29,22 @@ import {
 } from 'antd';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const WalletManagement = () => {
-    const { user, verifyOTP, resendOTP, createWallet } = useAuth();
+    const navigate = useNavigate();
+
+    const { isAuthenticated, isLoading, user, verifyOTP, resendOTP, createWallet } = useAuth();
+    const [isAccountActive, setIsAccountActive] = useState(false);
     const [walletBalance, setWalletBalance] = useState(2500000); // Mock data
     const [loading, setLoading] = useState(false);
     const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
     const [isWithdrawModalVisible, setIsWithdrawModalVisible] = useState(false);
     const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
     const [isOtpModalVisible, setIsOtpModalVisible] = useState(false);
-    const [isAccountActive, setIsAccountActive] = useState(true);
     const [countdown, setCountdown] = useState(0);
     const [canResend, setCanResend] = useState(true);
     const [depositForm] = Form.useForm();
@@ -102,11 +105,15 @@ const WalletManagement = () => {
 
     // useEffect để kiểm tra trạng thái active của user
     useEffect(() => {
-        if (user) {
-            // Kiểm tra trạng thái isActive từ thông tin user đã đăng nhập
-            setIsAccountActive(user.status === 'ACTIVE');
+        if (isLoading) return; // Chờ load xong
+
+        if (!isAuthenticated) {
+            navigate('/login');
+            return
         }
-    }, [user]);
+
+        setIsAccountActive(user?.status === 'ACTIVE')
+    }, [isAuthenticated, isLoading, user]);
 
     // useEffect để quản lý đếm ngược
     useEffect(() => {

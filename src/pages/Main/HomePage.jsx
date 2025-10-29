@@ -38,6 +38,8 @@ const HomePage = () => {
 
     const [postType, setPostType] = useState('vehicle');
     const [brands, setBrands] = useState([]); // used for both vehicle and battery brands
+    // const [startIndex, setStartIndex] = useState((currentPage - 1) * pageSize);
+    // const [currentPosts, setCurrentPosts] = useState(filteredPosts.slice(startIndex, startIndex + pageSize));
 
     // Mock data for demonstration - replace with actual API calls
     const mockPosts = [
@@ -409,11 +411,11 @@ const HomePage = () => {
                     <>
                         {/* Products Grid */}
                         <Row gutter={[24, 24]}>
-                            {currentPosts.map(post => (
+                            {/* {currentPosts.map(post => (
                                 <Col xs={24} sm={12} md={8} lg={6} key={post.id}>
                                     <PostCard post={post} />
                                 </Col>
-                            ))}
+                            ))} */}
                         </Row>
 
                         {/* Pagination */}

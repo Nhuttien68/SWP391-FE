@@ -29,7 +29,7 @@ const CreatePost = () => {
         }
 
         fetchBrands();
-    }, [isAuthenticated, isLoading, navigate]);
+    }, [isAuthenticated, isLoading]);
 
     const fetchBrands = async () => {
         try {
