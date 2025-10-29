@@ -10,7 +10,7 @@ const { TextArea } = Input;
 
 const CreatePost = () => {
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isLoading } = useAuth();
     const [form] = Form.useForm();
 
     const [vehicleBrands, setVehicleBrands] = useState([]);
@@ -20,70 +20,70 @@ const CreatePost = () => {
     const [postType, setPostType] = useState('vehicle');
 
     useEffect(() => {
+        // Wait until auth check completes to avoid race with AuthProvider
+        if (isLoading) return;
+
         if (!isAuthenticated) {
             navigate('/login');
             return;
         }
 
-        const fetchBrands = async () => {
-            try {
-                const [vehicleResponse, batteryResponse] = await Promise.all([
-                    brandAPI.getVehicleBrands(),
-                    brandAPI.getBatteryBrands()
-                ]);
-
-                if (vehicleResponse.success) {
-                    setVehicleBrands(vehicleResponse.data);
-                }
-                if (batteryResponse.success) {
-                    setBatteryBrands(batteryResponse.data);
-                }
-            } catch (error) {
-                console.error('Error fetching brands:', error);
-                message.error('Không thể tải danh sách thương hiệu');
-            }
-        };
-
         fetchBrands();
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, isLoading, navigate]);
+
+    const fetchBrands = async () => {
+        try {
+            const [vehicleResponse, batteryResponse] = await Promise.all([
+                brandAPI.getVehicleBrands(),
+                brandAPI.getBatteryBrands()
+            ]);
+
+            if (vehicleResponse.success) {
+                setVehicleBrands(vehicleResponse.data);
+            }
+            if (batteryResponse.success) {
+                setBatteryBrands(batteryResponse.data);
+            }
+        } catch (error) {
+            console.error('Error fetching brands:', error);
+            message.error('Không thể tải danh sách thương hiệu');
+        }
+    };
+
 
     const onFinish = async (values) => {
         try {
             setLoading(true);
 
-
-            const postData = {
-                Type: values.type,
-                Title: values.title,
-                Description: values.description || '',
-                Price: Number(values.price)
-            };
+            const postData = new FormData();
+            postData.append('type', values.type);
+            postData.append('title', values.title);
+            postData.append('description', values.description || '');
+            postData.append('price', Number(values.price));
 
             console.log('Sending data:', postData); // Để debug
 
             // BE chưa hỗ trợ upload ảnh nên tạm bỏ qua
-            // imageList.forEach((file) => {
-            //     formData.append('Images', file.originFileObj);
-            // });
+            imageList.forEach((file) => {
+                postData.append('images', file.originFileObj);
+            });
 
-            const response = await postAPI.createPost(postData);
+            // Backend expects nested vehicleCreateDto fields when binding from a form
+            if (values.type === 'vehicle') {
+                postData.append('vehicleCreateDto.brandId', values.brandId);
+                postData.append('vehicleCreateDto.model', values.model);
+                postData.append('vehicleCreateDto.year', values.year);
+                postData.append('vehicleCreateDto.mileage', values.mileage);
+            }
+            else {
+                postData.append('batteryCreateDto.branId', values.capacity);
+                postData.append('batteryCreateDto.capacity', values.capacity);
+                postData.append('batteryCreateDto.condition', values.condition);
+            }
+
+            const response = await postAPI.createPost(postData, values.type);
             if (response.success) {
                 message.success('Tạo bài đăng thành công!');
-                // Lưu thông tin bổ sung để cập nhật sau
-                const additionalData = {
-                    brandId: values.brandId,
-                    images: imageList,
-                    ...(values.type === 'vehicle' ? {
-                        model: values.model,
-                        year: values.year,
-                        mileage: values.mileage
-                    } : {
-                        capacity: values.capacity,
-                        condition: values.condition
-                    })
-                };
-                console.log('Thông tin bổ sung cần cập nhật sau:', additionalData);
-
                 navigate('/'); // Chuyển về trang chủ sau khi tạo thành công
             } else {
                 message.error(response.message || 'Có lỗi xảy ra khi tạo bài đăng');
@@ -118,7 +118,15 @@ const CreatePost = () => {
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
-                initialValues={{ type: postType }}
+                initialValues={{ 
+                    type: postType,
+                    title: "wawa title",
+                    description: "wawa description",
+                    price: 1000000,
+                    model: "wawa model",
+                    year: 2020,
+                    mileage: 10000
+                 }}
             >
                 <Form.Item
                     name="type"
@@ -143,7 +151,7 @@ const CreatePost = () => {
                     label="Mô tả"
                     rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
                 >
-                    <TextArea rows={4} placeholder="Nhập mô tả chi tiết về sản phẩm" />
+                    <TextArea rows={4} placeholder="Nhập mô tả chi tiết về sản phẩm" value="wawa description" />
                 </Form.Item>
 
                 <Form.Item
@@ -167,13 +175,13 @@ const CreatePost = () => {
                     <Select placeholder="Chọn thương hiệu">
                         {postType === 'vehicle'
                             ? vehicleBrands.map(brand => (
-                                <Select.Option key={brand.id} value={brand.id}>
-                                    {brand.name}
+                                <Select.Option key={brand.brandId} value={brand.brandId}>
+                                    {brand.brandName}
                                 </Select.Option>
                             ))
                             : batteryBrands.map(brand => (
-                                <Select.Option key={brand.id} value={brand.id}>
-                                    {brand.name}
+                                <Select.Option key={brand.brandId} value={brand.brandId}>
+                                    {brand.brandName}
                                 </Select.Option>
                             ))
                         }

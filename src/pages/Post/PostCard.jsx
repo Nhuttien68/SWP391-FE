@@ -112,13 +112,26 @@ const PostCard = ({ post, onViewDetail }) => {
                             {post.description || post.Description || 'Xe điện chất lượng cao'}
                         </Text>
                         <div className="flex justify-between text-sm">
-                            <span><CarOutlined /> {post.year || post.Year || 'N/A'}</span>
-                            <span><ThunderboltOutlined /> {post.batteryCapacity || post.BatteryCapacity || 'N/A'}kWh</span>
+                            <span>🏢 {post.vehicle?.brandName || post.battery?.brandName || 'N/A'}</span>
+                            {post.vehicle ?? (
+                                <span>🚗 {post.vehicle?.model || 'N/A'}</span>
+                            )}
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span>🔋 {post.range || post.Range || 'N/A'}km</span>
-                            <span>📍 {post.location || post.Location || 'N/A'}</span>
+                            {post.vehicle ?? (
+                                <>
+                                    <span>🗓️ {post.vehicle?.year || 'N/A'}</span>
+                                    <span>🛣️ {post.vehicle?.mileage || 'N/A'}km</span>
+                                </>
+                            )}
+                            {post.battery ?? (
+                                <>
+                                    <span>⚡ {post.battery?.capacity || 'N/A'}kW</span>
+                                    <span>❤️‍🩹 {post.battery?.condition || 'N/A'}</span>
+                                </>
+                            )}
                         </div>
+
                         <div className="flex justify-between text-xs text-gray-500">
                             <span><EyeOutlined /> {post.views || post.Views || 0}</span>
                             <span><HeartOutlined /> {post.likes || post.Likes || 0}</span>

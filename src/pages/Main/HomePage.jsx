@@ -20,6 +20,7 @@ import {
     DollarOutlined
 } from '@ant-design/icons';
 import { postAPI } from '../../services/postAPI';
+import { brandAPI } from '../../services/brandAPI';
 import PostCard from '../Post/PostCard';
 
 const { Title, Text, Paragraph } = Typography;
@@ -34,6 +35,9 @@ const HomePage = () => {
     const [selectedPriceRange, setSelectedPriceRange] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(12);
+
+    const [postType, setPostType] = useState('vehicle');
+    const [brands, setBrands] = useState([]); // used for both vehicle and battery brands
 
     // Mock data for demonstration - replace with actual API calls
     const mockPosts = [
@@ -118,7 +122,6 @@ const HomePage = () => {
         }, 500);
 
         // TODO: Uncomment when API is ready
-        /*
         try {
             const result = await postAPI.getAllPosts({
                 page: 1,
@@ -142,22 +145,46 @@ const HomePage = () => {
         } finally {
             setLoading(false);
         }
-        */
+
+
+        try{
+            const result = (postType == 'vehicle') ? await brandAPI.getVehicleBrands() : await brandAPI.getBatteryBrands();
+            if (result.success) {
+                setBrands(result.data || []);
+            }
+            brands.map(brand => (console.log(brand)));
+        } catch (error) {
+            console.error('Error fetching brands:', error);
+        }
     };
+
 
     // Filter functionality
     useEffect(() => {
         let filtered = posts;
 
+        // Filter by view type (vehicle or battery)
+        if (postType === 'vehicle') {
+            filtered = filtered.filter(post => post.vehicle != null);
+        } else if (postType === 'battery') {
+            filtered = filtered.filter(post => post.battery != null);
+        }
+
         if (searchText) {
             filtered = filtered.filter(post =>
                 post.title.toLowerCase().includes(searchText.toLowerCase()) ||
-                post.brand.toLowerCase().includes(searchText.toLowerCase())
+                post.vehicle?.brandName.toLowerCase().includes(searchText.toLowerCase()) ||
+                post.battery?.modelName.toLowerCase().includes(searchText.toLowerCase())
             );
         }
 
         if (selectedBrand) {
-            filtered = filtered.filter(post => post.brand === selectedBrand);
+            filtered = filtered.filter(post => (
+                post.vehicle?.brandName === selectedBrand ||
+                post.battery?.brandName === selectedBrand ||
+                // support mock data where brand is stored as `brand`
+                post.brand === selectedBrand
+            ));
         }
 
         if (selectedPriceRange) {
@@ -172,7 +199,7 @@ const HomePage = () => {
 
         setFilteredPosts(filtered);
         setCurrentPage(1);
-    }, [searchText, selectedBrand, selectedPriceRange, posts]);
+    }, [searchText, selectedBrand, selectedPriceRange, posts, postType]);
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('vi-VN', {
@@ -241,7 +268,6 @@ const HomePage = () => {
     const currentPosts = filteredPosts.slice(startIndex, startIndex + pageSize);
 
 
-    const brands = ['Tesla', 'VinFast', 'BYD', 'Hyundai', 'Kia', 'BMW', 'Mercedes', 'Audi'];
     const priceRanges = [
         { label: 'Dưới 1 tỷ', value: '0-1000000000' },
         { label: '1-2 tỷ', value: '1000000000-2000000000' },
@@ -302,7 +328,7 @@ const HomePage = () => {
                                 suffixIcon={<CarOutlined />}
                             >
                                 {brands.map(brand => (
-                                    <Option key={brand} value={brand}>{brand}</Option>
+                                    <Option key={brand.brandId} value={brand.brandName}>{brand.brandName}</Option>
                                 ))}
                             </Select>
                         </Col>
@@ -329,6 +355,24 @@ const HomePage = () => {
                             >
                                 Lọc nâng cao
                             </Button>
+                        </Col>
+                        <Col xs={24} sm={8} md={6}>
+                            <div className="flex items-center justify-center md:justify-start">
+                                <Space.Compact className="w-full">
+                                    <Button
+                                        type={postType === 'vehicle' ? 'primary' : 'default'}
+                                        onClick={() => setPostType('vehicle')}
+                                    >
+                                        Xe
+                                    </Button>
+                                    <Button
+                                        type={postType === 'battery' ? 'primary' : 'default'}
+                                        onClick={() => setPostType('battery')}
+                                    >
+                                        Pin
+                                    </Button>
+                                </Space.Compact>
+                            </div>
                         </Col>
                         <Col xs={24} md={6}>
                             <Text type="secondary">

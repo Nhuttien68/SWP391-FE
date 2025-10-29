@@ -104,7 +104,7 @@ const WalletManagement = () => {
     useEffect(() => {
         if (user) {
             // Kiểm tra trạng thái isActive từ thông tin user đã đăng nhập
-            setIsAccountActive(user.isActive === true);
+            setIsAccountActive(user.status === 'ACTIVE');
         }
     }, [user]);
 
@@ -137,12 +137,12 @@ const WalletManagement = () => {
                 toast.success("Xác thực tài khoản thành công!");
 
                 // Cập nhật user state để phản ánh trạng thái active
-                const updatedUser = { ...user, isActive: true };
+                const updatedUser = { ...user, status: 'ACTIVE' };
                 localStorage.setItem('user', JSON.stringify({
                     id: updatedUser.id,
                     fullName: updatedUser.fullName,
                     email: updatedUser.email,
-                    isActive: true
+                    status: 'ACTIVE'
                 }));
 
                 // Tự động tạo ví sau khi xác thực thành công

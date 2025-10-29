@@ -64,21 +64,22 @@ export const authAPI = {
         try {
             // Chuyển đổi field names để match với backend expectation
             const requestData = {
-                Email: loginData.email,
-                Password: loginData.password
+                email: loginData.email,
+                password: loginData.password
             };
 
             const response = await apiClient.post('/User/login', requestData);
 
             // Check if login successful (status "200" và có token)
             if (response.status === "200" && response.data?.token) {
+                console.log(response.data?.token)
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('user', JSON.stringify({
                     id: response.data.accountId,
                     fullName: response.data.fullName,
                     email: response.data.email,
                     phone: response.data.phone,
-                    isActive: response.data.isActive || response.data.IsActive
+                    status: response.data.status
                 }));
 
                 return {

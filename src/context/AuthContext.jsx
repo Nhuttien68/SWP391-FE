@@ -19,19 +19,19 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+    // Kiểm tra trạng thái đăng nhập khi load app
+    const checkAuthStatus = () => {
+        const token = localStorage.getItem('token');
+        const userData = authAPI.getCurrentUser();
+
+        if (token && userData) {
+            setUser(userData);
+            setIsAuthenticated(true);
+        }
+        setIsLoading(false);
+    };
+
     useEffect(() => {
-        // Kiểm tra trạng thái đăng nhập khi load app
-        const checkAuthStatus = () => {
-            const token = localStorage.getItem('token');
-            const userData = authAPI.getCurrentUser();
-
-            if (token && userData) {
-                setUser(userData);
-                setIsAuthenticated(true);
-            }
-            setIsLoading(false);
-        };
-
         checkAuthStatus();
     }, []);
 
@@ -69,10 +69,8 @@ export const AuthProvider = ({ children }) => {
 
             if (result.success) {
                 const userData = authAPI.getCurrentUser();
-                // Thêm thông tin IsActive vào user data
-                if (result.data?.IsActive !== undefined) {
-                    userData.isActive = result.data.IsActive;
-                }
+                userData.status = result.data.status;
+                
                 setUser(userData);
                 setIsAuthenticated(true);
             }

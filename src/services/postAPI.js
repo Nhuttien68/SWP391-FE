@@ -3,7 +3,7 @@ import apiClient from './apiClient';
 // Posts API endpoints
 export const postAPI = {
     // Tạo bài đăng mới
-    createPost: async (postData) => {
+    createPost: async (postData, type) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -15,12 +15,16 @@ export const postAPI = {
 
             // Convert form data to JSON if needed
             const isFormData = postData instanceof FormData;
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': isFormData ? 'multipart/form-data' : 'application/json'
-            };
 
-            const response = await apiClient.post('/Posts', postData, { headers });
+            // When sending FormData do NOT set Content-Type manually —
+            // the browser/axios will add the correct multipart boundary.
+            // When sending FormData we must ensure no explicit Content-Type is set
+            // so the browser/axios can add the correct multipart boundary.
+            const headers = isFormData
+                ? { 'Authorization': `Bearer ${token}`, 'Content-Type': undefined }
+                : { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+            const response = await apiClient.post(`/Posts/create-post-${type}`, postData, { headers });
 
             return {
                 success: true,
@@ -51,9 +55,9 @@ export const postAPI = {
             if (params.minPrice) queryParams.append('minPrice', params.minPrice);
             if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice);
             if (params.year) queryParams.append('year', params.year);
-            if (params.location) queryParams.append('location', params.location);
 
-            const response = await apiClient.get(`/Posts?${queryParams.toString()}`);
+            //const response = await apiClient.get(`/Posts?${queryParams.toString()}`);
+            const response = await apiClient.get(`/Posts/Get-All-Post`);
 
             return {
                 success: true,

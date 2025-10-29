@@ -15,13 +15,13 @@ export default function UsersPage() {
 
     // Tính toán thống kê
     const totalUsers = users.length;
-    const activeUsers = users.filter(u => u.is_active === 1).length;
-    const adminUsers = users.filter(u => u.role === "Admin").length;
+    const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
+    const adminUsers = users.filter(u => u.role === "ADMIN").length;
 
     // Cập nhật trạng thái
     const toggleActive = (id) => {
         setUsers(users.map(u =>
-            u.id === id ? { ...u, is_active: u.is_active ? 0 : 1 } : u
+            u.id === id ? { ...u, status: u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : u
         ));
         toast.success("Cập nhật trạng thái thành công");
     };
