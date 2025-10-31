@@ -192,7 +192,7 @@ export const postAPI = {
                 };
             }
 
-            const response = await apiClient.delete(`/Posts/${postId}`, {
+            const response = await apiClient.delete(`/Posts/Delete-Post/${postId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -244,6 +244,98 @@ export const postAPI = {
             return {
                 success: false,
                 message: error.response?.data?.Message || 'Không thể tải bài đăng của bạn',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Admin Functions
+    // Lấy danh sách bài đăng chờ duyệt
+    getPendingPosts: async () => {
+        try {
+            const response = await apiClient.get('/Posts/Get-All-Post-Pendding');
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Lấy danh sách bài đăng chờ duyệt thành công'
+            };
+        } catch (error) {
+            console.error('Get pending posts error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể tải danh sách bài đăng chờ duyệt',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Phê duyệt bài đăng
+    approvePost: async (postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Vui lòng đăng nhập để thực hiện thao tác này'
+                };
+            }
+
+            const response = await apiClient.put('/Posts/Approved-Post', null, {
+                params: { postId: postId }, // Sửa thành postId
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Phê duyệt bài đăng thành công'
+            };
+        } catch (error) {
+            // Log chi tiết lỗi để debug
+            console.error('Approve post error:', error);
+            console.error('Error response:', error.response);
+
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể phê duyệt bài đăng',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Từ chối bài đăng
+    rejectPost: async (postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Vui lòng đăng nhập để thực hiện thao tác này'
+                };
+            }
+
+            const response = await apiClient.put('/Posts/Reject-Post', null, {
+                params: { postId: postId }, // Sửa thành postId
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Từ chối bài đăng thành công'
+            };
+        } catch (error) {
+            // Log chi tiết lỗi để debug
+            console.error('Reject post error:', error);
+            console.error('Error response:', error.response);
+
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể từ chối bài đăng',
                 error: error.response?.data
             };
         }

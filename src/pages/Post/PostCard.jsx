@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Card, Image, Badge, Button, Typography, Rate, Divider } from 'antd';
 import {
     CarOutlined,
@@ -20,6 +20,68 @@ const PostCard = ({ post, onViewDetail }) => {
             currency: 'VND'
         }).format(price);
     };
+
+    // Helper to safely render values that might be objects coming from different API shapes
+    const renderPrimitive = (val, fallback = 'N/A') => {
+        // Always return a string to avoid React "object as child" errors
+        if (val === null || val === undefined) return String(fallback);
+        if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return String(val);
+        // If it's an object try common fields that are likely primitives
+        if (typeof val === 'object') {
+            const candidate = val.brandName ?? val.model ?? val.Name ?? val.name ?? val.capacity ?? val.capacity ?? null;
+            if (candidate !== null && candidate !== undefined) return String(candidate);
+            try {
+                return JSON.stringify(val);
+            } catch (e) {
+                return String(fallback);
+            }
+        }
+        return String(val);
+    };
+
+    const getPriceValue = () => Number(post.price ?? post.Price ?? 0);
+
+    const getBrand = () => {
+        const type = post.type || (post.Type && String(post.Type).toUpperCase());
+        if (String(type).toUpperCase() === 'VEHICLE') {
+            const v = post.vehicle || post.Vehicle || null;
+            if (!v) return renderPrimitive(post.brand ?? post.Brand ?? 'N/A', 'N/A');
+            return renderPrimitive(v.brandName ?? v.BrandName ?? v.model ?? v.Model ?? v, 'N/A');
+        }
+        const b = post.battery || post.Battery || null;
+        if (!b) return renderPrimitive(post.brand ?? post.Brand ?? 'N/A', 'N/A');
+        return renderPrimitive(b.brandName ?? b.BrandName ?? b.model ?? b.Model ?? b.capacity ?? b.Capacity ?? b, 'N/A');
+    };
+
+    const getModelOrCapacity = () => {
+        const type = post.type || (post.Type && String(post.Type).toUpperCase());
+        if (String(type).toUpperCase() === 'VEHICLE') {
+            const v = post.vehicle || post.Vehicle || null;
+            if (!v) return 'N/A';
+            return renderPrimitive(v.model ?? v.Model ?? v, 'N/A');
+        }
+        const b = post.battery || post.Battery || null;
+        if (!b) return 'N/A';
+        return renderPrimitive(b.capacity ?? b.Capacity ?? b.model ?? b.Model ?? b, 'N/A');
+    };
+
+    const getYear = () => {
+        const v = post.vehicle || post.Vehicle || null;
+        if (!v) return 'N/A';
+        const y = (typeof v.year === 'number' || typeof v.year === 'string') ? v.year : renderPrimitive(v.year, 'N/A');
+        return String(y);
+    };
+
+    const getMileage = () => {
+        const v = post.vehicle || post.Vehicle || null;
+        if (!v) return 'N/A';
+        const m = v.mileage ?? v.Mileage ?? v.km ?? v.Km;
+        if (typeof m === 'number') return m.toLocaleString();
+        if (typeof m === 'string') return m;
+        return renderPrimitive(m, 'N/A');
+    };
+
+    const getSellerName = () => renderPrimitive(post.seller?.name ?? post.Seller?.Name ?? post.sellerName ?? post.SellerName ?? (typeof post.seller === 'string' ? post.seller : null) ?? 'Người bán', 'Người bán');
 
     const handleViewDetail = () => {
         if (onViewDetail) {
@@ -59,14 +121,14 @@ const PostCard = ({ post, onViewDetail }) => {
                     <Badge
                         count={
                             (post.status || post.Status) === 'available' ||
-                            (post.status || post.Status) === 'Active' ?
-                            'Có sẵn' : 'Đã bán'
+                                (post.status || post.Status) === 'Active' ?
+                                'Có sẵn' : 'Đã bán'
                         }
                         style={{
                             backgroundColor:
                                 (post.status || post.Status) === 'available' ||
-                                (post.status || post.Status) === 'Active' ?
-                                '#52c41a' : '#ff4d4f',
+                                    (post.status || post.Status) === 'Active' ?
+                                    '#52c41a' : '#ff4d4f',
                             position: 'absolute',
                             top: 8,
                             right: 8
@@ -76,13 +138,14 @@ const PostCard = ({ post, onViewDetail }) => {
             }
             actions={[
                 <EyeOutlined key="view" />,
-                <HeartOutlined 
-                    key="like" 
+                <HeartOutlined
+                    key="like"
                     onClick={handleLike}
                     className="hover:text-red-500"
                 />,
-                <Button 
-                    type="primary" 
+                <Button
+                    key="detail"
+                    type="primary"
                     size="small"
                     onClick={(e) => {
                         e.stopPropagation();
@@ -97,11 +160,11 @@ const PostCard = ({ post, onViewDetail }) => {
                 title={
                     <div>
                         <Text strong className="text-base line-clamp-2">
-                            {post.title || post.Title || 'Xe điện'}
+                            {renderPrimitive(post.title ?? post.Title, 'Xe điện')}
                         </Text>
                         <div className="mt-2">
                             <Text type="danger" className="text-lg font-bold">
-                                {formatPrice(post.price || post.Price || 0)}
+                                {formatPrice(getPriceValue())}
                             </Text>
                         </div>
                     </div>
@@ -109,42 +172,36 @@ const PostCard = ({ post, onViewDetail }) => {
                 description={
                     <div className="space-y-2">
                         <Text className="text-sm text-gray-600 line-clamp-2">
-                            {post.description || post.Description || 'Xe điện chất lượng cao'}
+                            {renderPrimitive(post.description ?? post.Description, 'Xe điện chất lượng cao')}
                         </Text>
-                        <div className="flex justify-between text-sm">
-                            <span>🏢 {post.vehicle?.brandName || post.battery?.brandName || 'N/A'}</span>
-                            {post.vehicle ?? (
-                                <span>🚗 {post.vehicle?.model || 'N/A'}</span>
-                            )}
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            {post.vehicle ?? (
-                                <>
-                                    <span>🗓️ {post.vehicle?.year || 'N/A'}</span>
-                                    <span>🛣️ {post.vehicle?.mileage || 'N/A'}km</span>
-                                </>
-                            )}
-                            {post.battery ?? (
-                                <>
-                                    <span>⚡ {post.battery?.capacity || 'N/A'}kW</span>
-                                    <span>❤️‍🩹 {post.battery?.condition || 'N/A'}</span>
-                                </>
-                            )}
-                        </div>
-
+                        <Text className="text-sm text-blue-600">
+                            {getBrand()} - {getModelOrCapacity()}
+                        </Text>
+                        {String(post.type).toUpperCase() === 'VEHICLE' && (post.vehicle || post.Vehicle) && (
+                            <div className="flex justify-between text-sm">
+                                <span><CarOutlined /> {getYear()}</span>
+                                <span><ThunderboltOutlined /> {getMileage()} km</span>
+                            </div>
+                        )}
+                        {String(post.type).toUpperCase() === 'BATTERY' && (post.battery || post.Battery) && (
+                            <div className="flex justify-between text-sm">
+                                <span>🔋 {renderPrimitive((post.battery || post.Battery)?.capacity ?? (post.battery || post.Battery)?.Capacity, 'N/A')}</span>
+                                <span>📍 {renderPrimitive((post.battery || post.Battery)?.condition ?? (post.battery || post.Battery)?.Condition, 'N/A')}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between text-xs text-gray-500">
-                            <span><EyeOutlined /> {post.views || post.Views || 0}</span>
-                            <span><HeartOutlined /> {post.likes || post.Likes || 0}</span>
+                            <span><EyeOutlined /> {Number(post.views ?? post.Views ?? 0)}</span>
+                            <span><HeartOutlined /> {Number(post.likes ?? post.Likes ?? 0)}</span>
                         </div>
                         <Divider className="my-2" />
                         <div className="flex items-center justify-between">
                             <Text className="text-xs">
-                                {post.seller?.name || post.Seller?.Name || post.sellerName || 'Người bán'}
+                                {getSellerName()}
                             </Text>
-                            <Rate 
-                                disabled 
-                                defaultValue={post.seller?.rating || post.Seller?.Rating || 4.5} 
-                                size="small" 
+                            <Rate
+                                disabled
+                                defaultValue={Number(post.seller?.rating ?? post.Seller?.Rating ?? 4.5)}
+                                size="small"
                             />
                         </div>
                     </div>

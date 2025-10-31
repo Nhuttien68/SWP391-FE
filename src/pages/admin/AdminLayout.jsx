@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import UsersPage from "./UserPage";
+import AdminPostsPage from "./AdminPostsPage";
 
 const { Header, Sider, Content } = Layout;
 
@@ -145,7 +146,7 @@ export default function AdminLayout() {
                 <Content className="m-6 p-6 bg-white rounded-lg shadow">
                     {selectedKey === "users_list" && <UsersPage />}
                     {selectedKey === "wallets" && <div>💳 Quản lý Wallets</div>}
-                    {selectedKey === "posts_list" && <div>📰 Quản lý Posts</div>}
+                    {selectedKey === "posts_list" && <AdminPostsPage />}
                     {selectedKey === "vehicles" && <div>🚗 Quản lý Vehicles</div>}
                     {selectedKey === "auctions_list" && <div>🏷️ Quản lý Auctions</div>}
                     {selectedKey === "transactions" && <div>💰 Quản lý Transactions</div>}
