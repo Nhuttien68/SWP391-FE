@@ -19,6 +19,10 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+    useEffect(() => {
+        checkAuthStatus();
+    }, []);
+
     // Kiểm tra trạng thái đăng nhập khi load app
     const checkAuthStatus = () => {
         const token = localStorage.getItem('token');
@@ -30,10 +34,6 @@ export const AuthProvider = ({ children }) => {
         }
         setIsLoading(false);
     };
-
-    useEffect(() => {
-        checkAuthStatus();
-    }, []);
 
     // Hàm đăng ký
     const register = async (userData) => {

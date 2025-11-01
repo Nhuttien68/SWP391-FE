@@ -154,7 +154,6 @@ const HomePage = () => {
             if (result.success) {
                 setBrands(result.data || []);
             }
-            brands.map(brand => (console.log(brand)));
         } catch (error) {
             console.error('Error fetching brands:', error);
         }
@@ -268,7 +267,7 @@ const HomePage = () => {
     // Get current posts for pagination
     const startIndex = (currentPage - 1) * pageSize;
     const currentPosts = filteredPosts.slice(startIndex, startIndex + pageSize);
-
+    console.log(currentPosts.length)
 
     const priceRanges = [
         { label: 'Dưới 1 tỷ', value: '0-1000000000' },
@@ -411,11 +410,11 @@ const HomePage = () => {
                     <>
                         {/* Products Grid */}
                         <Row gutter={[24, 24]}>
-                            {/* {currentPosts.map(post => (
+                            {currentPosts.map(post => (
                                 <Col xs={24} sm={12} md={8} lg={6} key={post.id}>
                                     <PostCard post={post} />
                                 </Col>
-                            ))} */}
+                            ))}
                         </Row>
 
                         {/* Pagination */}

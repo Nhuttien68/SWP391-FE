@@ -16,15 +16,11 @@ export const postAPI = {
             // Convert form data to JSON if needed
             const isFormData = postData instanceof FormData;
 
-            // When sending FormData do NOT set Content-Type manually —
-            // the browser/axios will add the correct multipart boundary.
-            // When sending FormData we must ensure no explicit Content-Type is set
-            // so the browser/axios can add the correct multipart boundary.
-            const headers = isFormData
-                ? { 'Authorization': `Bearer ${token}`, 'Content-Type': undefined }
-                : { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-            const response = await apiClient.post(`/Posts/create-post-${type}`, postData, { headers });
+            const response = await apiClient.post(`/Posts/create-post-${type}`, postData, {
+                headers: {
+                    'Content-Type': (isFormData) ? 'multipart/form-data' : 'application/json'
+                }
+            });
 
             return {
                 success: true,
