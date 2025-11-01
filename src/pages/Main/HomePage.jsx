@@ -26,7 +26,7 @@ const HomePage = () => {
     const [filtered, setFiltered] = useState([]);
     const [searchText, setSearchText] = useState('');
     const [selectedBrand, setSelectedBrand] = useState('');
-    const [postType, setPostType] = useState('vehicle');
+    const [postType, setPostType] = useState('VEHICLE');
     const [brands, setBrands] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 12;
@@ -54,8 +54,8 @@ const HomePage = () => {
 
     useEffect(() => {
         let out = posts.slice();
-        if (postType === 'vehicle') out = out.filter(p => p.vehicle || p.Vehicle || p.type === 'VEHICLE' || !p.battery);
-        else out = out.filter(p => p.battery || p.Battery || p.type === 'BATTERY');
+        if (postType === 'VEHICLE') out = out.filter(p => p.type === 'VEHICLE');
+        else if (postType === 'BATTERY') out = out.filter(p => p.type === 'BATTERY');
 
         if (searchText) {
             const q = searchText.toLowerCase();
@@ -120,8 +120,8 @@ const HomePage = () => {
                     </Col>
                     <Col xs={24} sm={16} md={18} className="flex justify-end">
                         <div className="flex gap-2">
-                            <Button type={postType === 'vehicle' ? 'primary' : 'default'} onClick={() => setPostType('vehicle')}>Xe</Button>
-                            <Button type={postType === 'battery' ? 'primary' : 'default'} onClick={() => setPostType('battery')}>Pin</Button>
+                            <Button type={postType === 'VEHICLE' ? 'primary' : 'default'} onClick={() => setPostType('VEHICLE')}>Xe</Button>
+                            <Button type={postType === 'BATTERY' ? 'primary' : 'default'} onClick={() => setPostType('BATTERY')}>Pin</Button>
                         </div>
                     </Col>
                 </Row>

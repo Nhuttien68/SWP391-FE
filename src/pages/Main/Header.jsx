@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 const { Header } = Layout;
 
 const HeaderApp = () => {
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -76,10 +76,17 @@ const HeaderApp = () => {
 
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">
+                {true && (
+                    <Link to="/admin">
+                        <Button type="default" className="mr-3">
+                            Quản lý bài đăng
+                        </Button>
+                    </Link>
+                )}
                 {isAuthenticated && (
                     <Link to="/createPost">
                         <Button type="primary" className="mr-3">
-                            Tạo bài viết
+                            Tạo bài đăng
                         </Button>
                     </Link>
                 )}

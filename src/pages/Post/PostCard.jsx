@@ -42,8 +42,7 @@ const PostCard = ({ post, onViewDetail }) => {
     const getPriceValue = () => Number(post.price ?? post.Price ?? 0);
 
     const getBrand = () => {
-        const type = post.type || (post.Type && String(post.Type).toUpperCase());
-        if (String(type).toUpperCase() === 'VEHICLE') {
+        if (post.type === 'VEHICLE') {
             const v = post.vehicle || post.Vehicle || null;
             if (!v) return renderPrimitive(post.brand ?? post.Brand ?? 'N/A', 'N/A');
             return renderPrimitive(v.brandName ?? v.BrandName ?? v.model ?? v.Model ?? v, 'N/A');
@@ -54,8 +53,7 @@ const PostCard = ({ post, onViewDetail }) => {
     };
 
     const getModelOrCapacity = () => {
-        const type = post.type || (post.Type && String(post.Type).toUpperCase());
-        if (String(type).toUpperCase() === 'VEHICLE') {
+        if (post.type === 'VEHICLE') {
             const v = post.vehicle || post.Vehicle || null;
             if (!v) return 'N/A';
             return renderPrimitive(v.model ?? v.Model ?? v, 'N/A');
@@ -81,7 +79,19 @@ const PostCard = ({ post, onViewDetail }) => {
         return renderPrimitive(m, 'N/A');
     };
 
-    const getSellerName = () => renderPrimitive(post.seller?.name ?? post.Seller?.Name ?? post.sellerName ?? post.SellerName ?? (typeof post.seller === 'string' ? post.seller : null) ?? 'Người bán', 'Người bán');
+    const getCapacity = () => {
+        const b = post.battery || post.Battery || null;
+        if (!b) return 'N/A';
+        return renderPrimitive(b.capacity ?? b.Capacity ?? b, 'N/A');
+    }
+
+    const getCondition = () => {
+        const b = post.battery || post.Battery || null;
+        if (!b) return 'N/A';
+        return renderPrimitive(b.condition ?? b.Condition ?? b, 'N/A');
+    }
+
+    const getSellerName = () => renderPrimitive(post.user?.fullName ?? 'Người bán');
 
     const handleViewDetail = () => {
         if (onViewDetail) {
@@ -107,8 +117,7 @@ const PostCard = ({ post, onViewDetail }) => {
                 <div className="relative">
                     <Image
                         src={
-                            post.images?.[0] ||
-                            post.Images?.[0]?.ImageUrl ||
+                            post.imageUrls?.[0] ||
                             post.ImageUrl ||
                             'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400'
                         }
@@ -120,15 +129,10 @@ const PostCard = ({ post, onViewDetail }) => {
                     />
                     <Badge
                         count={
-                            (post.status || post.Status) === 'available' ||
-                                (post.status || post.Status) === 'Active' ?
-                                'Có sẵn' : 'Đã bán'
+                            (post.status || post.Status) === 'SOLD' ? 'Đã bán' : 'Có sẵn' 
                         }
                         style={{
-                            backgroundColor:
-                                (post.status || post.Status) === 'available' ||
-                                    (post.status || post.Status) === 'Active' ?
-                                    '#52c41a' : '#ff4d4f',
+                            backgroundColor: (post.status || post.Status) === 'SOLD' ? '#ff4d4f' : '#52c41a',
                             position: 'absolute',
                             top: 8,
                             right: 8
@@ -177,16 +181,16 @@ const PostCard = ({ post, onViewDetail }) => {
                         <Text className="text-sm text-blue-600">
                             {getBrand()} - {getModelOrCapacity()}
                         </Text>
-                        {String(post.type).toUpperCase() === 'VEHICLE' && (post.vehicle || post.Vehicle) && (
+                        {post.type === 'VEHICLE' && (post.vehicle || post.Vehicle) && (
                             <div className="flex justify-between text-sm">
                                 <span><CarOutlined /> {getYear()}</span>
                                 <span><ThunderboltOutlined /> {getMileage()} km</span>
                             </div>
                         )}
-                        {String(post.type).toUpperCase() === 'BATTERY' && (post.battery || post.Battery) && (
+                        {post.type === 'BATTERY' && (post.battery || post.Battery) && (
                             <div className="flex justify-between text-sm">
-                                <span>🔋 {renderPrimitive((post.battery || post.Battery)?.capacity ?? (post.battery || post.Battery)?.Capacity, 'N/A')}</span>
-                                <span>📍 {renderPrimitive((post.battery || post.Battery)?.condition ?? (post.battery || post.Battery)?.Condition, 'N/A')}</span>
+                                <span>🔋 {getCapacity()} kWh</span>
+                                <span>📍 {getCondition()}</span>
                             </div>
                         )}
                         <div className="flex justify-between text-xs text-gray-500">

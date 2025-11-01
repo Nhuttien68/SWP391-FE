@@ -18,7 +18,7 @@ const CreatePost = () => {
     const [batteryBrands, setBatteryBrands] = useState([]);
     const [loading, setLoading] = useState(false);
     const [imageList, setImageList] = useState([]);
-    const [postType, setPostType] = useState('vehicle');
+    const [postType, setPostType] = useState('VEHICLE');
 
     useEffect(() => {
         // Wait until auth check completes to avoid race with AuthProvider
@@ -102,20 +102,20 @@ const CreatePost = () => {
             });
 
             // Backend expects nested vehicleCreateDto fields when binding from a form
-            if (values.type === 'vehicle') {
+            if (values.type === 'VEHICLE') {
                 postData.append('vehicleCreateDto.brandId', values.brandId);
                 postData.append('vehicleCreateDto.model', values.model);
                 postData.append('vehicleCreateDto.year', values.year);
                 postData.append('vehicleCreateDto.mileage', values.mileage);
             }
             else {
-                postData.append('batteryCreateDto.branId', values.capacity);
+                postData.append('batteryCreateDto.branId', values.brandId);
                 postData.append('batteryCreateDto.capacity', values.capacity);
                 postData.append('batteryCreateDto.condition', values.condition);
             }
 
             console.log('Calling postAPI.createPost with:', { type: values.type });
-            const response = await postAPI.createPost(postData, values.type);
+            const response = await postAPI.createPost(postData, String(values.type).toLowerCase());
             console.log('Create post response:', response);
 
             if (response.success) {
@@ -170,8 +170,8 @@ const CreatePost = () => {
                     label="Loại tin đăng"
                 >
                     <Radio.Group onChange={(e) => setPostType(e.target.value)}>
-                        <Radio value="vehicle">Xe điện</Radio>
-                        <Radio value="battery">Pin xe điện</Radio>
+                        <Radio value="VEHICLE">Xe điện</Radio>
+                        <Radio value="BATTERY">Pin xe điện</Radio>
                     </Radio.Group>
                 </Form.Item>
 
@@ -210,7 +210,7 @@ const CreatePost = () => {
                     rules={[{ required: true, message: 'Vui lòng chọn thương hiệu!' }]}
                 >
                     <Select placeholder="Chọn thương hiệu">
-                        {postType === 'vehicle'
+                        {postType === 'VEHICLE'
                             ? vehicleBrands.map(brand => (
                                 <Select.Option key={brand.brandId} value={brand.brandId}>
                                     {brand.brandName}
@@ -225,7 +225,7 @@ const CreatePost = () => {
                     </Select>
                 </Form.Item>
 
-                {postType === 'vehicle' ? (
+                {postType === 'VEHICLE' ? (
                     <>
                         <Form.Item
                             name="model"

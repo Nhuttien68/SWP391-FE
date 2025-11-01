@@ -73,7 +73,7 @@ export const postAPI = {
     // Lấy chi tiết post
     getPostById: async (postId) => {
         try {
-            const response = await apiClient.get(`/Posts/${postId}`);
+            const response = await apiClient.get(`/Posts/Get-Post-By-Id/${postId}`);
 
             return {
                 success: true,

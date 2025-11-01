@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         checkAuthStatus();
@@ -30,7 +31,9 @@ export const AuthProvider = ({ children }) => {
 
         if (token && userData) {
             setUser(userData);
+
             setIsAuthenticated(true);
+            setIsAdmin(userData.role === 'ADMIN');
         }
         setIsLoading(false);
     };
