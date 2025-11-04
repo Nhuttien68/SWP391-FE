@@ -3,6 +3,7 @@ import { Table, Button, notification, Modal, Space, Badge, Card, Row, Col, Stati
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, WalletOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { postAPI } from '../../services/postAPI';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const { confirm } = Modal;
 const { Text } = Typography;
@@ -22,6 +23,21 @@ const AdminPostsPage = () => {
     });
     const [activeTab, setActiveTab] = useState('moderation');
     const navigate = useNavigate();
+    const { isLoading, isAuthenticated, isAdmin } = useAuth();
+
+    useEffect(() => {
+        if (isLoading) return;
+
+        if (!isAuthenticated) {
+            navigate('/login');
+            return
+        }
+
+        if (!isAdmin) {
+            navigate('/');
+            return
+        }
+    }, [isLoading, isAuthenticated, isAdmin, navigate]);
 
     const fetchPendingPosts = async () => {
         setLoading(true);

@@ -76,7 +76,7 @@ const HeaderApp = () => {
 
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">
-                {true && (
+                {isAdmin && (
                     <Link to="/admin">
                         <Button type="default" className="mr-3">
                             Quản lý bài đăng

@@ -113,7 +113,7 @@ const WalletManagement = () => {
         }
 
         setIsAccountActive(user?.status === 'ACTIVE')
-    }, [isAuthenticated, isLoading, user]);
+    }, [isAuthenticated, isLoading, user, navigate]);
 
     // useEffect để quản lý đếm ngược
     useEffect(() => {

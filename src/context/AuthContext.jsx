@@ -76,6 +76,7 @@ export const AuthProvider = ({ children }) => {
                 
                 setUser(userData);
                 setIsAuthenticated(true);
+                setIsAdmin(userData.role === 'ADMIN');
             }
 
             setIsLoading(false);
@@ -91,6 +92,7 @@ export const AuthProvider = ({ children }) => {
         authAPI.logout();
         setUser(null);
         setIsAuthenticated(false);
+        setIsAdmin(false);
     };
 
     // Hàm gửi OTP cho forgot password  
@@ -116,6 +118,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         isAuthenticated,
+        isAdmin,
         isLoading,
         register,
         verifyOTP,

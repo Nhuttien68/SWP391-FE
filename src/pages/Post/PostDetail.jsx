@@ -169,8 +169,8 @@ const PostDetail = () => {
     };
 
     const handleCall = () => {
-        if (post?.seller?.phone) {
-            window.open(`tel:${post.seller.phone}`);
+        if (post?.user?.phone) {
+            window.open(`tel:${post.user.phone}`);
         }
     };
 
@@ -316,7 +316,7 @@ const PostDetail = () => {
                                     onClick={handleCall}
                                     className="bg-green-600 hover:bg-green-700"
                                 >
-                                    Gọi điện: {post.seller?.phone}
+                                    Gọi điện: {post.user?.phone}
                                 </Button>
                                 <Button
                                     type="default"
@@ -353,9 +353,9 @@ const PostDetail = () => {
                                 <div>
                                     <div className="flex items-center mb-1">
                                         <Text strong className="text-lg mr-2">
-                                            {post.seller?.name}
+                                            {post.user?.fullName}
                                         </Text>
-                                        {post.seller?.verified && (
+                                        {post.user?.status == 'ACTIVE' && (
                                             <Tag color="blue" icon={<SafetyOutlined />}>
                                                 Đã xác minh
                                             </Tag>

@@ -30,7 +30,7 @@ const CreatePost = () => {
         }
 
         fetchBrands();
-    }, [isAuthenticated, isLoading]);
+    }, [isAuthenticated, isLoading, navigate]);
 
     const fetchBrands = async () => {
         try {
