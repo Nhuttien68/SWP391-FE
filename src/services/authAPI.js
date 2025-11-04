@@ -74,13 +74,7 @@ export const authAPI = {
             if (response.status === "200" && response.data?.token) {
                 console.log(response.data?.token)
                 localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify({
-                    id: response.data.accountId,
-                    fullName: response.data.fullName,
-                    email: response.data.email,
-                    phone: response.data.phone,
-                    status: response.data.status
-                }));
+                localStorage.setItem('user', JSON.stringify(response.data));
 
                 return {
                     success: true,

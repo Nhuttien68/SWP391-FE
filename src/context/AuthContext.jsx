@@ -18,6 +18,11 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        checkAuthStatus();
+    }, []);
 
     // Kiểm tra trạng thái đăng nhập khi load app
     const checkAuthStatus = () => {
@@ -26,14 +31,12 @@ export const AuthProvider = ({ children }) => {
 
         if (token && userData) {
             setUser(userData);
+
             setIsAuthenticated(true);
+            setIsAdmin(userData.role === 'ADMIN');
         }
         setIsLoading(false);
     };
-
-    useEffect(() => {
-        checkAuthStatus();
-    }, []);
 
     // Hàm đăng ký
     const register = async (userData) => {
@@ -73,6 +76,7 @@ export const AuthProvider = ({ children }) => {
                 
                 setUser(userData);
                 setIsAuthenticated(true);
+                setIsAdmin(userData.role === 'ADMIN');
             }
 
             setIsLoading(false);
@@ -88,6 +92,7 @@ export const AuthProvider = ({ children }) => {
         authAPI.logout();
         setUser(null);
         setIsAuthenticated(false);
+        setIsAdmin(false);
     };
 
     // Hàm gửi OTP cho forgot password  
@@ -113,6 +118,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         isAuthenticated,
+        isAdmin,
         isLoading,
         register,
         verifyOTP,

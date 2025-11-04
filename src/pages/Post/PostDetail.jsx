@@ -71,6 +71,30 @@ const PostDetail = () => {
         }
     };
 
+    useEffect(() => {
+        // Ensure we don't mutate the state object directly. If the post
+        // doesn't provide images, populate `imageUrls` via setPost so React
+        // re-renders and the Carousel receives the fallback images.
+        if (!post) return;
+
+        const defaultImages = [
+            'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800',
+            'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800',
+            'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800'
+        ];
+
+        // If no imageUrls but there is an `images` array (mock), copy it.
+        if ((!post.imageUrls || post.imageUrls.length === 0) && post.images && post.images.length > 0) {
+            setPost(prev => ({ ...prev, imageUrls: post.images }));
+            return;
+        }
+
+        // If neither imageUrls nor images exist, set default images.
+        if (!post.imageUrls || post.imageUrls.length === 0) {
+            setPost(prev => ({ ...prev, imageUrls: defaultImages }));
+        }
+    }, [post]);
+
     const getMockPostDetail = (postId) => {
         return {
             id: postId,
@@ -145,8 +169,8 @@ const PostDetail = () => {
     };
 
     const handleCall = () => {
-        if (post?.seller?.phone) {
-            window.open(`tel:${post.seller.phone}`);
+        if (post?.user?.phone) {
+            window.open(`tel:${post.user.phone}`);
         }
     };
 
@@ -192,7 +216,7 @@ const PostDetail = () => {
                     <Col xs={24} lg={14}>
                         <Card className="mb-6">
                             <Carousel autoplay>
-                                {post.images?.map((image, index) => (
+                                {post.imageUrls?.map((image, index) => (
                                     <div key={index}>
                                         <Image
                                             src={image}
@@ -228,18 +252,20 @@ const PostDetail = () => {
                         {/* Specifications */}
                         <Card title="Thông số kỹ thuật">
                             <Descriptions bordered column={2}>
-                                <Descriptions.Item label="Thương hiệu">{post.brand}</Descriptions.Item>
-                                <Descriptions.Item label="Model">{post.model}</Descriptions.Item>
-                                <Descriptions.Item label="Năm sản xuất">{post.year}</Descriptions.Item>
-                                <Descriptions.Item label="Số km đã đi">{formatDistance(post.mileage)}</Descriptions.Item>
-                                <Descriptions.Item label="Dung lượng pin">{post.batteryCapacity} kWh</Descriptions.Item>
-                                <Descriptions.Item label="Phạm vi hoạt động">{post.range} km</Descriptions.Item>
-                                <Descriptions.Item label="Thời gian sạc">{post.chargingTime}</Descriptions.Item>
-                                <Descriptions.Item label="Màu sắc">{post.color}</Descriptions.Item>
-                                <Descriptions.Item label="Số chỗ ngồi">{post.seats} chỗ</Descriptions.Item>
-                                <Descriptions.Item label="Số cửa">{post.doors} cửa</Descriptions.Item>
-                                <Descriptions.Item label="Hộp số">{post.transmission}</Descriptions.Item>
-                                <Descriptions.Item label="Tình trạng">{post.condition}</Descriptions.Item>
+                                {post.type === 'VEHICLE' ? (
+                                    <>
+                                        <Descriptions.Item label="Thương hiệu">{post.vehicle?.brandName}</Descriptions.Item>
+                                        <Descriptions.Item label="Model">{post.vehicle?.model}</Descriptions.Item>
+                                        <Descriptions.Item label="Năm sản xuất">{post.vehicle?.year}</Descriptions.Item>
+                                        <Descriptions.Item label="Số km đã đi">{formatDistance(post.vehicle?.mileage)}</Descriptions.Item>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Descriptions.Item label="Thương hiệu">{post.battery?.brandName}</Descriptions.Item>
+                                        <Descriptions.Item label="Dung lượng">{post.battery?.capacity} kWh</Descriptions.Item>
+                                        <Descriptions.Item label="Tình trạng">{post.battery?.condition}</Descriptions.Item>
+                                    </>
+                                )}
                             </Descriptions>
                         </Card>
                     </Col>
@@ -256,9 +282,7 @@ const PostDetail = () => {
                                     {post.title}
                                 </Title>
                                 <Space size="large" className="text-gray-600">
-                                    <span><CalendarOutlined /> {post.year}</span>
-                                    <span><ThunderboltOutlined /> {post.batteryCapacity}kWh</span>
-                                    <span><EnvironmentOutlined /> {post.location}</span>
+                                    <span><CalendarOutlined /> {new Date(post.createdAt).toString()}</span>
                                 </Space>
                             </div>
 
@@ -292,7 +316,7 @@ const PostDetail = () => {
                                     onClick={handleCall}
                                     className="bg-green-600 hover:bg-green-700"
                                 >
-                                    Gọi điện: {post.seller?.phone}
+                                    Gọi điện: {post.user?.phone}
                                 </Button>
                                 <Button
                                     type="default"
@@ -329,9 +353,9 @@ const PostDetail = () => {
                                 <div>
                                     <div className="flex items-center mb-1">
                                         <Text strong className="text-lg mr-2">
-                                            {post.seller?.name}
+                                            {post.user?.fullName}
                                         </Text>
-                                        {post.seller?.verified && (
+                                        {post.user?.status == 'ACTIVE' && (
                                             <Tag color="blue" icon={<SafetyOutlined />}>
                                                 Đã xác minh
                                             </Tag>

@@ -16,15 +16,11 @@ export const postAPI = {
             // Convert form data to JSON if needed
             const isFormData = postData instanceof FormData;
 
-            // When sending FormData do NOT set Content-Type manually —
-            // the browser/axios will add the correct multipart boundary.
-            // When sending FormData we must ensure no explicit Content-Type is set
-            // so the browser/axios can add the correct multipart boundary.
-            const headers = isFormData
-                ? { 'Authorization': `Bearer ${token}`, 'Content-Type': undefined }
-                : { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-            const response = await apiClient.post(`/Posts/create-post-${type}`, postData, { headers });
+            const response = await apiClient.post(`/Posts/create-post-${type}`, postData, {
+                headers: {
+                    'Content-Type': (isFormData) ? 'multipart/form-data' : 'application/json'
+                }
+            });
 
             return {
                 success: true,
@@ -77,7 +73,7 @@ export const postAPI = {
     // Lấy chi tiết post
     getPostById: async (postId) => {
         try {
-            const response = await apiClient.get(`/Posts/${postId}`);
+            const response = await apiClient.get(`/Posts/Get-Post-By-Id/${postId}`);
 
             return {
                 success: true,
@@ -192,7 +188,7 @@ export const postAPI = {
                 };
             }
 
-            const response = await apiClient.delete(`/Posts/${postId}`, {
+            const response = await apiClient.delete(`/Posts/Delete-Post/${postId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -244,6 +240,98 @@ export const postAPI = {
             return {
                 success: false,
                 message: error.response?.data?.Message || 'Không thể tải bài đăng của bạn',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Admin Functions
+    // Lấy danh sách bài đăng chờ duyệt
+    getPendingPosts: async () => {
+        try {
+            const response = await apiClient.get('/Posts/Get-All-Post-Pendding');
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Lấy danh sách bài đăng chờ duyệt thành công'
+            };
+        } catch (error) {
+            console.error('Get pending posts error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể tải danh sách bài đăng chờ duyệt',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Phê duyệt bài đăng
+    approvePost: async (postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Vui lòng đăng nhập để thực hiện thao tác này'
+                };
+            }
+
+            const response = await apiClient.put('/Posts/Approved-Post', null, {
+                params: { postId: postId }, // Sửa thành postId
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Phê duyệt bài đăng thành công'
+            };
+        } catch (error) {
+            // Log chi tiết lỗi để debug
+            console.error('Approve post error:', error);
+            console.error('Error response:', error.response);
+
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể phê duyệt bài đăng',
+                error: error.response?.data
+            };
+        }
+    },
+
+    // Từ chối bài đăng
+    rejectPost: async (postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Vui lòng đăng nhập để thực hiện thao tác này'
+                };
+            }
+
+            const response = await apiClient.put('/Posts/Reject-Post', null, {
+                params: { postId: postId }, // Sửa thành postId
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data || response,
+                message: 'Từ chối bài đăng thành công'
+            };
+        } catch (error) {
+            // Log chi tiết lỗi để debug
+            console.error('Reject post error:', error);
+            console.error('Error response:', error.response);
+
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể từ chối bài đăng',
                 error: error.response?.data
             };
         }

@@ -7,14 +7,33 @@ import {
     BarChartOutlined,
     LogoutOutlined,
 } from "@ant-design/icons";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import UsersPage from "./UserPage";
+import AdminPostsPage from "./AdminPostsPage";
+import { useAuth } from "../../context/AuthContext";
 
 const { Header, Sider, Content } = Layout;
 
 export default function AdminLayout() {
+    const navigate = useNavigate();
+    const { isLoading, isAuthenticated, isAdmin } = useAuth();
+
     const [selectedKey, setSelectedKey] = useState("users");
+
+    useEffect(() => {
+        if (isLoading) return;
+
+        if (!isAuthenticated) {
+            navigate('/login');
+            return
+        }
+
+        if (!isAdmin) {
+            navigate('/');
+            return
+        }
+    }, [isLoading, isAuthenticated, isAdmin, navigate]);
 
     return (
         <Layout className="min-h-screen">
@@ -145,7 +164,7 @@ export default function AdminLayout() {
                 <Content className="m-6 p-6 bg-white rounded-lg shadow">
                     {selectedKey === "users_list" && <UsersPage />}
                     {selectedKey === "wallets" && <div>💳 Quản lý Wallets</div>}
-                    {selectedKey === "posts_list" && <div>📰 Quản lý Posts</div>}
+                    {selectedKey === "posts_list" && <AdminPostsPage />}
                     {selectedKey === "vehicles" && <div>🚗 Quản lý Vehicles</div>}
                     {selectedKey === "auctions_list" && <div>🏷️ Quản lý Auctions</div>}
                     {selectedKey === "transactions" && <div>💰 Quản lý Transactions</div>}

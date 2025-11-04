@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL của backend API
-const BASE_URL = 'http://localhost:5037/api';
+const BASE_URL = 'https://localhost:7184/api';
 
 // Tạo axios instance với cấu hình cơ bản
 const apiClient = axios.create({
@@ -32,12 +32,12 @@ apiClient.interceptors.response.use(
         return response.data; // Trả về data thay vì toàn bộ response
     },
     (error) => {
-        // if (error.response?.status === 401) {
-        //     // Token hết hạn, redirect về login
-        //     localStorage.removeItem('token');
-        //     localStorage.removeItem('user');
-        //     window.location.href = '/login';
-        // }
+        if (error.response?.status === 401) {
+            // Token hết hạn, redirect về login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
         console.error('API error:', error);
         return Promise.reject(error);
     }

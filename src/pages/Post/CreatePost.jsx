@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { postAPI } from '../../services/postAPI';
+import { walletAPI } from '../../services/walletAPI';
 import { brandAPI } from '../../services/brandAPI';
 import { Form, Input, Select, Button, Upload, message, InputNumber, Radio } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
@@ -17,7 +18,7 @@ const CreatePost = () => {
     const [batteryBrands, setBatteryBrands] = useState([]);
     const [loading, setLoading] = useState(false);
     const [imageList, setImageList] = useState([]);
-    const [postType, setPostType] = useState('vehicle');
+    const [postType, setPostType] = useState('VEHICLE');
 
     useEffect(() => {
         // Wait until auth check completes to avoid race with AuthProvider
@@ -29,7 +30,7 @@ const CreatePost = () => {
         }
 
         fetchBrands();
-    }, [isAuthenticated, isLoading]);
+    }, [isAuthenticated, isLoading, navigate]);
 
     const fetchBrands = async () => {
         try {
@@ -55,6 +56,38 @@ const CreatePost = () => {
         try {
             setLoading(true);
 
+            // --- Wallet check: ensure user has a wallet and sufficient balance before creating a post ---
+            const walletResp = await walletAPI.getWallet();
+
+            if (walletResp.status === '404' || walletResp.status === 404) {
+                // Wallet not found - try to create one
+                const createResp = await walletAPI.createWallet();
+                if (createResp.success) {
+                    message.info('Ví đã được tạo. Vui lòng nạp tiền vào ví trước khi tạo bài đăng.');
+                } else {
+                    message.error(createResp.message || 'Không thể tạo ví.');
+                }
+                setLoading(false);
+                return;
+            }
+
+            if (!walletResp.success) {
+                message.error(walletResp.message || 'Không thể lấy thông tin ví.');
+                setLoading(false);
+                return;
+            }
+
+            // Get balance from normalized response
+            const balance = walletResp.data?.Balance ?? walletResp.data?.balance ?? 0;
+            const requiredFee = 100000;
+            if (balance < requiredFee) {
+                message.error(`Số dư ví không đủ (cần ${requiredFee.toLocaleString()} VND). Vui lòng nạp tiền trước khi tạo bài đăng.`);
+                setLoading(false);
+                return;
+            }
+
+            console.log('Wallet check passed, proceeding to create post...');
+
             const postData = new FormData();
             postData.append('type', values.type);
             postData.append('title', values.title);
@@ -69,24 +102,28 @@ const CreatePost = () => {
             });
 
             // Backend expects nested vehicleCreateDto fields when binding from a form
-            if (values.type === 'vehicle') {
+            if (values.type === 'VEHICLE') {
                 postData.append('vehicleCreateDto.brandId', values.brandId);
                 postData.append('vehicleCreateDto.model', values.model);
                 postData.append('vehicleCreateDto.year', values.year);
                 postData.append('vehicleCreateDto.mileage', values.mileage);
             }
             else {
-                postData.append('batteryCreateDto.branId', values.capacity);
+                postData.append('batteryCreateDto.branId', values.brandId);
                 postData.append('batteryCreateDto.capacity', values.capacity);
                 postData.append('batteryCreateDto.condition', values.condition);
             }
 
-            const response = await postAPI.createPost(postData, values.type);
+            console.log('Calling postAPI.createPost with:', { type: values.type });
+            const response = await postAPI.createPost(postData, String(values.type).toLowerCase());
+            console.log('Create post response:', response);
+
             if (response.success) {
                 message.success('Tạo bài đăng thành công!');
                 navigate('/'); // Chuyển về trang chủ sau khi tạo thành công
             } else {
                 message.error(response.message || 'Có lỗi xảy ra khi tạo bài đăng');
+                console.error('Create post error details:', response.error);
             }
         } catch (error) {
             console.error('Error creating post:', error);
@@ -118,7 +155,7 @@ const CreatePost = () => {
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
-                initialValues={{ 
+                initialValues={{
                     type: postType,
                     title: "wawa title",
                     description: "wawa description",
@@ -126,15 +163,15 @@ const CreatePost = () => {
                     model: "wawa model",
                     year: 2020,
                     mileage: 10000
-                 }}
+                }}
             >
                 <Form.Item
                     name="type"
                     label="Loại tin đăng"
                 >
                     <Radio.Group onChange={(e) => setPostType(e.target.value)}>
-                        <Radio value="vehicle">Xe điện</Radio>
-                        <Radio value="battery">Pin xe điện</Radio>
+                        <Radio value="VEHICLE">Xe điện</Radio>
+                        <Radio value="BATTERY">Pin xe điện</Radio>
                     </Radio.Group>
                 </Form.Item>
 
@@ -173,7 +210,7 @@ const CreatePost = () => {
                     rules={[{ required: true, message: 'Vui lòng chọn thương hiệu!' }]}
                 >
                     <Select placeholder="Chọn thương hiệu">
-                        {postType === 'vehicle'
+                        {postType === 'VEHICLE'
                             ? vehicleBrands.map(brand => (
                                 <Select.Option key={brand.brandId} value={brand.brandId}>
                                     {brand.brandName}
@@ -188,7 +225,7 @@ const CreatePost = () => {
                     </Select>
                 </Form.Item>
 
-                {postType === 'vehicle' ? (
+                {postType === 'VEHICLE' ? (
                     <>
                         <Form.Item
                             name="model"
