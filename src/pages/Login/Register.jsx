@@ -20,13 +20,14 @@ const Register = () => {
             const result = await register(values);
 
             if (result.success) {
-                toast.success('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.');
-                // Chuyển về trang đăng nhập với thông tin cần xác thực
-                navigate('/login?registered=true&email=' + encodeURIComponent(values.email));
+                toast.success('Đăng ký thành công! Mã OTP đã được gửi đến email của bạn.');
+                // Chuyển đến trang xác thực OTP
+                navigate('/verify-otp', { state: { email: values.email } });
             } else {
-                toast.error(result.message);
+                toast.error(result.message || 'Đăng ký thất bại');
             }
         } catch (error) {
+            console.error('Register error:', error);
             toast.error('Có lỗi xảy ra khi đăng ký');
         } finally {
             setLoading(false);

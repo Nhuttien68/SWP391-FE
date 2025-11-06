@@ -11,12 +11,14 @@ import HeaderApp from "./pages/Main/Header.jsx";
 import HomePage from "./pages/Main/HomePage.jsx";
 import Profile from "./pages/Profile/Profile.jsx";
 import Register from "./pages/Login/Register.jsx";
+import VerifyOTP from "./pages/Login/VerifyOTP.jsx";
 import Otp from "./pages/Login/Otp.jsx";
 import PostDetail from "./pages/Post/PostDetail.jsx";
 import CreatePost from "./pages/Post/CreatePost.jsx";
 
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import FooterApp from "./pages/Main/FooterApp.jsx"
+import PaymentReturn from "./pages/Profile/PaymentReturn.jsx";
 
 function App() {
   return (
@@ -35,6 +37,9 @@ function App() {
               <Register />
             </PublicOnlyRoute>
           } />
+          <Route path="/verify-otp" element={
+            <VerifyOTP />
+          } />
           <Route path="/otp" element={
             <PublicOnlyRoute>
               <Otp />
@@ -50,6 +55,10 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/post/:id" element={<PostDetail />} />
+
+
+          {/* Payment return/callback route */}
+          <Route path="/payment-return" element={<PaymentReturn />} />
 
           {/* Protected Routes - Chỉ truy cập khi đã đăng nhập */}
           <Route path="/createPost" element={<CreatePost />} />

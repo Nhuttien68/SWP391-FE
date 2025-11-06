@@ -25,11 +25,14 @@ import {
     Typography,
     Space,
     Divider,
-    Alert
+    Alert,
+    Empty
 } from 'antd';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { walletAPI } from '../../services/walletAPI';
+import { paymentAPI } from '../../services/paymentAPI';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -37,64 +40,20 @@ const { Option } = Select;
 const WalletManagement = () => {
     const navigate = useNavigate();
 
-    const { isAuthenticated, isLoading, user, verifyOTP, resendOTP, createWallet } = useAuth();
+    const { isAuthenticated, isLoading, user } = useAuth();
     const [isAccountActive, setIsAccountActive] = useState(false);
-    const [walletBalance, setWalletBalance] = useState(2500000); // Mock data
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(false);
     const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
     const [isWithdrawModalVisible, setIsWithdrawModalVisible] = useState(false);
     const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
-    const [isOtpModalVisible, setIsOtpModalVisible] = useState(false);
-    const [countdown, setCountdown] = useState(0);
-    const [canResend, setCanResend] = useState(true);
+    const [isCreateWalletModalVisible, setIsCreateWalletModalVisible] = useState(false);
     const [depositForm] = Form.useForm();
     const [withdrawForm] = Form.useForm();
     const [transferForm] = Form.useForm();
-    const [otpForm] = Form.useForm();
 
-    // Mock transaction history
-    const [transactions, setTransactions] = useState([
-        {
-            id: 1,
-            type: 'deposit',
-            amount: 500000,
-            description: 'Nạp tiền vào ví',
-            date: '2024-01-15 14:30:00',
-            status: 'completed'
-        },
-        {
-            id: 2,
-            type: 'withdraw',
-            amount: -200000,
-            description: 'Rút tiền về ngân hàng',
-            date: '2024-01-14 10:15:00',
-            status: 'completed'
-        },
-        {
-            id: 3,
-            type: 'transfer',
-            amount: -100000,
-            description: 'Chuyển tiền cho user123',
-            date: '2024-01-13 16:45:00',
-            status: 'pending'
-        },
-        {
-            id: 4,
-            type: 'auction_win',
-            amount: -800000,
-            description: 'Thanh toán đấu giá xe ABC',
-            date: '2024-01-12 09:20:00',
-            status: 'completed'
-        },
-        {
-            id: 5,
-            type: 'auction_refund',
-            amount: 300000,
-            description: 'Hoàn tiền đấu giá XYZ',
-            date: '2024-01-11 11:30:00',
-            status: 'completed'
-        }
-    ]);
+    const [transactions, setTransactions] = useState([]);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', {
@@ -103,117 +62,74 @@ const WalletManagement = () => {
         }).format(amount);
     };
 
-    // useEffect để kiểm tra trạng thái active của user
+    // useEffect để kiểm tra trạng thái active của user và lấy thông tin ví
     useEffect(() => {
         if (isLoading) return; // Chờ load xong
 
         if (!isAuthenticated) {
             navigate('/login');
-            return
-        }
-
-        setIsAccountActive(user?.status === 'ACTIVE')
-    }, [isAuthenticated, isLoading, user, navigate]);
-
-    // useEffect để quản lý đếm ngược
-    useEffect(() => {
-        let interval = null;
-        if (countdown > 0) {
-            interval = setInterval(() => {
-                setCountdown(countdown => countdown - 1);
-            }, 1000);
-        } else if (countdown === 0) {
-            setCanResend(true);
-        }
-        return () => clearInterval(interval);
-    }, [countdown]);
-
-    // Hàm bắt đầu đếm ngược
-    const startCountdown = () => {
-        setCountdown(300);
-        setCanResend(false);
-    };
-
-    // Hàm xử lý xác thực OTP
-    const handleVerifyOTP = async (values) => {
-        setLoading(true);
-        try {
-            const result = await verifyOTP(user.email, values.otp);
-
-            if (result.success) {
-                toast.success("Xác thực tài khoản thành công!");
-
-                // Cập nhật user state để phản ánh trạng thái active
-                const updatedUser = { ...user, status: 'ACTIVE' };
-                localStorage.setItem('user', JSON.stringify({
-                    id: updatedUser.id,
-                    fullName: updatedUser.fullName,
-                    email: updatedUser.email,
-                    status: 'ACTIVE'
-                }));
-
-                // Tự động tạo ví sau khi xác thực thành công
-                try {
-                    const walletResult = await createWallet();
-                    if (walletResult.success) {
-                        toast.success("Ví của bạn đã được tạo thành công!");
-                        setIsAccountActive(true);
-                        setIsOtpModalVisible(false);
-                        // Reload page để cập nhật giao diện
-                        window.location.reload();
-                    } else {
-                        toast.warning("Tài khoản đã được kích hoạt nhưng không thể tạo ví. Vui lòng thử lại.");
-                        setIsAccountActive(true);
-                        setIsOtpModalVisible(false);
-                        // Reload page để cập nhật giao diện
-                        window.location.reload();
-                    }
-                } catch (walletError) {
-                    console.error("Lỗi tạo ví:", walletError);
-                    toast.warning("Tài khoản đã được kích hoạt nhưng không thể tạo ví. Vui lòng thử lại.");
-                    setIsAccountActive(true);
-                    setIsOtpModalVisible(false);
-                    // Reload page để cập nhật giao diện
-                    window.location.reload();
-                }
-            } else {
-                toast.error(result.message);
-            }
-        } catch (err) {
-            toast.error("Có lỗi xảy ra khi xác thực OTP!");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Hàm gửi lại OTP
-    const handleResendOTP = async () => {
-        if (!canResend) {
-            toast.warning(`Vui lòng đợi ${countdown} giây trước khi gửi lại OTP!`);
             return;
         }
 
+        setIsAccountActive(user?.status === 'ACTIVE');
+
+        // Nếu tài khoản đã active, lấy thông tin ví và số dư
+        if (user?.status === 'ACTIVE') {
+            const fetchWalletInfo = async () => {
+                try {
+                    // Lấy thông tin ví
+                    const walletResponse = await walletAPI.getWallet();
+                    if (walletResponse.success) {
+                        setWallet(walletResponse.data);
+
+                        // Chỉ lấy số dư nếu có ví
+                        const balanceResponse = await walletAPI.getBalance();
+                        if (balanceResponse.success) {
+                            setWalletBalance(balanceResponse.data.balance);
+                        }
+                    } else if (walletResponse.status === '404') {
+                        // Chưa có ví, không làm gì cả (không hiển thị error)
+                        console.log('User chưa có ví');
+                        setWallet(null);
+                    } else {
+                        // Lỗi khác
+                        console.error('Get wallet error:', walletResponse.message);
+                    }
+                } catch (error) {
+                    console.error('Fetch wallet error:', error);
+                    // Không hiển thị toast error để tránh spam khi chưa có ví
+                }
+            };
+
+            fetchWalletInfo();
+        }
+    }, [isAuthenticated, isLoading, user, navigate]);
+
+    // Hàm tạo ví
+    const handleCreateWallet = async () => {
         setLoading(true);
         try {
-            const result = await resendOTP(user.email);
+            const result = await walletAPI.createWallet();
 
             if (result.success) {
-                toast.success(result.message);
-                startCountdown();
+                toast.success('Tạo ví thành công!');
+                setWallet(result.data);
+                setIsCreateWalletModalVisible(false);
+
+                // Lấy lại số dư sau khi tạo ví
+                const balanceResponse = await walletAPI.getBalance();
+                if (balanceResponse.success) {
+                    setWalletBalance(balanceResponse.data.balance);
+                }
             } else {
-                toast.error(result.message);
+                toast.error(result.message || 'Không thể tạo ví');
             }
-        } catch (err) {
-            toast.error("Không thể gửi lại OTP!");
+        } catch (error) {
+            console.error('Create wallet error:', error);
+            toast.error('Có lỗi xảy ra khi tạo ví');
         } finally {
             setLoading(false);
         }
-    };
-
-    // Hàm mở modal OTP - CHỈ MỞ MODAL, KHÔNG GỬI OTP
-    const showOtpModal = () => {
-        setIsOtpModalVisible(true);
-        // Không gửi OTP tự động, người dùng phải bấm "Gửi lại mã" nếu cần
     };
 
     const getTransactionTypeColor = (type) => {
@@ -241,25 +157,42 @@ const WalletManagement = () => {
     const handleDeposit = async (values) => {
         setLoading(true);
         try {
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const { amount } = values;
 
-            const newTransaction = {
-                id: transactions.length + 1,
-                type: 'deposit',
-                amount: values.amount,
-                description: `Nạp tiền qua ${values.method}`,
-                date: new Date().toLocaleString('vi-VN'),
-                status: 'completed'
-            };
+            // Validate amount
+            const numAmount = Number(amount);
+            if (!numAmount || numAmount < 10000) {
+                toast.error('Số tiền nạp tối thiểu là 10,000 VNĐ');
+                setLoading(false);
+                return;
+            }
 
-            setTransactions([newTransaction, ...transactions]);
-            setWalletBalance(prev => prev + values.amount);
-            setIsDepositModalVisible(false);
-            depositForm.resetFields();
-            toast.success('Nạp tiền thành công!');
+            // Gọi API tạo payment URL
+            const result = await paymentAPI.createPayment(numAmount, 'Nạp tiền vào ví');
+
+            if (result.success && result.data) {
+                // result.data có thể là object { paymentUrl: "..." } hoặc trực tiếp là URL string
+                const paymentUrl = result.data.paymentUrl || result.data;
+
+                if (paymentUrl && typeof paymentUrl === 'string') {
+                    // Redirect đến trang thanh toán VNPay
+                    toast.success('Đang chuyển đến trang thanh toán...');
+                    setIsDepositModalVisible(false);
+                    depositForm.resetFields();
+
+                    // Delay một chút để toast hiển thị
+                    setTimeout(() => {
+                        window.location.href = paymentUrl;
+                    }, 500);
+                } else {
+                    toast.error('URL thanh toán không hợp lệ');
+                }
+            } else {
+                toast.error(result.message || 'Không thể tạo thanh toán');
+            }
         } catch (error) {
-            toast.error('Có lỗi xảy ra khi nạp tiền!');
+            console.error('Deposit error:', error);
+            toast.error(error.response?.data?.Message || error.message || 'Có lỗi xảy ra khi tạo thanh toán!');
         } finally {
             setLoading(false);
         }
@@ -270,28 +203,36 @@ const WalletManagement = () => {
         try {
             if (values.amount > walletBalance) {
                 toast.error('Số dư không đủ!');
-                setLoading(false);
                 return;
             }
 
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const response = await walletAPI.withdraw(values.amount);
+            if (response.success) {
+                // Cập nhật số dư mới
+                const balanceResponse = await walletAPI.getBalance();
+                if (balanceResponse.success) {
+                    setWalletBalance(balanceResponse.data.balance);
+                }
 
-            const newTransaction = {
-                id: transactions.length + 1,
-                type: 'withdraw',
-                amount: -values.amount,
-                description: `Rút tiền về ${values.bankAccount}`,
-                date: new Date().toLocaleString('vi-VN'),
-                status: 'pending'
-            };
+                // Thêm giao dịch mới vào lịch sử
+                const newTransaction = {
+                    id: transactions.length + 1,
+                    type: 'withdraw',
+                    amount: -values.amount,
+                    description: `Rút tiền về ${values.bankAccount}`,
+                    date: new Date().toLocaleString('vi-VN'),
+                    status: 'pending'
+                };
 
-            setTransactions([newTransaction, ...transactions]);
-            setWalletBalance(prev => prev - values.amount);
-            setIsWithdrawModalVisible(false);
-            withdrawForm.resetFields();
-            toast.success('Yêu cầu rút tiền đã được gửi!');
+                setTransactions([newTransaction, ...transactions]);
+                setIsWithdrawModalVisible(false);
+                withdrawForm.resetFields();
+                toast.success('Yêu cầu rút tiền đã được gửi!');
+            } else {
+                toast.error(response.message || 'Không thể rút tiền');
+            }
         } catch (error) {
+            console.error('Withdraw error:', error);
             toast.error('Có lỗi xảy ra khi rút tiền!');
         } finally {
             setLoading(false);
@@ -301,30 +242,12 @@ const WalletManagement = () => {
     const handleTransfer = async (values) => {
         setLoading(true);
         try {
-            if (values.amount > walletBalance) {
-                toast.error('Số dư không đủ!');
-                setLoading(false);
-                return;
-            }
-
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const newTransaction = {
-                id: transactions.length + 1,
-                type: 'transfer',
-                amount: -values.amount,
-                description: `Chuyển tiền cho ${values.receiver}`,
-                date: new Date().toLocaleString('vi-VN'),
-                status: 'completed'
-            };
-
-            setTransactions([newTransaction, ...transactions]);
-            setWalletBalance(prev => prev - values.amount);
+            // TODO: Implement transfer API when available
+            toast.warning('Tính năng chuyển tiền đang được phát triển');
             setIsTransferModalVisible(false);
             transferForm.resetFields();
-            toast.success('Chuyển tiền thành công!');
         } catch (error) {
+            console.error('Transfer error:', error);
             toast.error('Có lỗi xảy ra khi chuyển tiền!');
         } finally {
             setLoading(false);
@@ -384,30 +307,24 @@ const WalletManagement = () => {
                     </Title>
                 </div>
 
-                {/* Kiểm tra trạng thái active */}
-                {!isAccountActive ? (
+                {/* Kiểm tra xem đã có ví chưa */}
+                {!wallet ? (
                     <div className="text-center py-16">
-                        <WarningOutlined className="text-6xl text-orange-500 mb-4" />
+                        <WalletOutlined className="text-6xl text-blue-500 mb-4" />
                         <Title level={3} className="text-gray-700 mb-4">
-                            Tài khoản chưa được kích hoạt
+                            Chưa có ví điện tử
                         </Title>
                         <Text className="text-gray-500 mb-6 block">
-                            Bạn cần xác thực tài khoản để sử dụng tính năng ví điện tử
+                            Bạn cần tạo ví để sử dụng các tính năng thanh toán và giao dịch
                         </Text>
-                        <Alert
-                            message="Lưu ý"
-                            description="Bạn cần xác thực tài khoản để sử dụng tính năng ví điện tử. Click nút bên dưới để nhận mã OTP qua email."
-                            type="info"
-                            showIcon
-                            className="mb-6 max-w-md mx-auto"
-                        />
                         <Button
                             type="primary"
                             size="large"
-                            onClick={showOtpModal}
-                            icon={<SendOutlined />}
+                            onClick={() => setIsCreateWalletModalVisible(true)}
+                            icon={<PlusOutlined />}
+                            loading={loading}
                         >
-                            Xác thực tài khoản ngay
+                            Tạo ví ngay
                         </Button>
                     </div>
                 ) : (
@@ -429,7 +346,7 @@ const WalletManagement = () => {
                                 <Card className="text-center">
                                     <Statistic
                                         title="Tổng nạp trong tháng"
-                                        value={1500000}
+                                        value={0}
                                         formatter={(value) => formatCurrency(value)}
                                         valueStyle={{ color: '#52c41a' }}
                                         prefix={<ArrowUpOutlined />}
@@ -440,7 +357,7 @@ const WalletManagement = () => {
                                 <Card className="text-center">
                                     <Statistic
                                         title="Tổng chi trong tháng"
-                                        value={800000}
+                                        value={0}
                                         formatter={(value) => formatCurrency(value)}
                                         valueStyle={{ color: '#ff4d4f' }}
                                         prefix={<ArrowDownOutlined />}
@@ -491,13 +408,19 @@ const WalletManagement = () => {
 
                         {/* Transaction History */}
                         <Card title="Lịch sử giao dịch" className="shadow-lg">
-                            <Table
-                                columns={columns}
-                                dataSource={transactions}
-                                rowKey="id"
-                                pagination={{ pageSize: 10, showSizeChanger: true }}
-                                className="custom-table"
-                            />
+                            {transactions.length > 0 ? (
+                                <Table
+                                    columns={columns}
+                                    dataSource={transactions}
+                                    rowKey="id"
+                                    pagination={{ pageSize: 10, showSizeChanger: true }}
+                                    className="custom-table"
+                                />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <Empty description="Chưa có giao dịch nào" />
+                                </div>
+                            )}
                         </Card>
 
                         {/* Deposit Modal */}
@@ -513,40 +436,51 @@ const WalletManagement = () => {
                                 layout="vertical"
                                 onFinish={handleDeposit}
                             >
-                                <Form.Item
-                                    name="method"
-                                    label="Phương thức nạp tiền"
-                                    rules={[{ required: true, message: 'Vui lòng chọn phương thức!' }]}
-                                >
-                                    <Select placeholder="Chọn phương thức">
-                                        <Option value="bank_transfer">Chuyển khoản ngân hàng</Option>
-                                        <Option value="momo">Ví MoMo</Option>
-                                        <Option value="zalopay">ZaloPay</Option>
-                                        <Option value="vnpay">VNPay</Option>
-                                    </Select>
-                                </Form.Item>
+                                <Alert
+                                    message="Phương thức thanh toán: VNPay"
+                                    description="Bạn sẽ được chuyển đến trang thanh toán VNPay để hoàn tất giao dịch."
+                                    type="info"
+                                    showIcon
+                                    className="mb-4"
+                                />
                                 <Form.Item
                                     name="amount"
-                                    label="Số tiền"
+                                    label="Số tiền cần nạp"
                                     rules={[
                                         { required: true, message: 'Vui lòng nhập số tiền!' },
-                                        { type: 'number', min: 10000, message: 'Số tiền tối thiểu 10,000 VND' }
+                                        {
+                                            validator: (_, value) => {
+                                                const numValue = Number(value);
+                                                if (!value) {
+                                                    return Promise.reject('Vui lòng nhập số tiền!');
+                                                }
+                                                if (isNaN(numValue) || numValue < 10000) {
+                                                    return Promise.reject('Số tiền tối thiểu 10,000 VNĐ');
+                                                }
+                                                return Promise.resolve();
+                                            }
+                                        }
                                     ]}
                                 >
                                     <Input
                                         type="number"
-                                        placeholder="Nhập số tiền"
-                                        suffix="VND"
+                                        placeholder="Nhập số tiền (tối thiểu 10,000 VNĐ)"
+                                        suffix="VNĐ"
                                         className="text-lg"
                                     />
                                 </Form.Item>
+                                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                                    <Text type="secondary" className="text-sm">
+                                        💡 <strong>Lưu ý:</strong> Bạn sẽ thanh toán qua cổng VNPay. Số tiền sẽ được cộng vào ví sau khi thanh toán thành công.
+                                    </Text>
+                                </div>
                                 <Form.Item className="mb-0 text-right">
                                     <Space>
                                         <Button onClick={() => setIsDepositModalVisible(false)}>
                                             Hủy
                                         </Button>
                                         <Button type="primary" htmlType="submit" loading={loading}>
-                                            Nạp tiền
+                                            Tiếp tục thanh toán
                                         </Button>
                                     </Space>
                                 </Form.Item>
@@ -668,80 +602,48 @@ const WalletManagement = () => {
                     </>
                 )}
 
-                {/* Modal xác thực OTP */}
+                {/* Modal Tạo Ví */}
                 <Modal
-                    title="Xác thực tài khoản"
-                    open={isOtpModalVisible}
-                    onCancel={() => setIsOtpModalVisible(false)}
+                    title="Tạo ví điện tử"
+                    open={isCreateWalletModalVisible}
+                    onCancel={() => setIsCreateWalletModalVisible(false)}
                     footer={null}
                     centered
                 >
-                    <div className="text-center mb-4">
-                        <WarningOutlined className="text-4xl text-orange-500 mb-2" />
-                        <Text type="secondary" className="block mb-2">
-                            Nhập mã OTP đã được gửi đến email: <strong>{user?.email}</strong>
+                    <div className="text-center mb-6">
+                        <WalletOutlined className="text-6xl text-blue-500 mb-4" />
+                        <Title level={4} className="mb-2">Xác nhận tạo ví</Title>
+                        <Text type="secondary">
+                            Bạn có chắc chắn muốn tạo ví điện tử? Ví sẽ được tạo với số dư ban đầu là 0 VNĐ.
                         </Text>
-                        <Alert
-                            message="Mã OTP đã được gửi đến email của bạn để xác thực tài khoản"
-                            type="info"
-                            showIcon
-                            className="text-left"
-                        />
                     </div>
 
-                    <Form
-                        form={otpForm}
-                        layout="vertical"
-                        onFinish={handleVerifyOTP}
-                    >
-                        <Form.Item
-                            name="otp"
-                            label="Mã OTP"
-                            rules={[
-                                { required: true, message: 'Vui lòng nhập mã OTP!' },
-                                { len: 6, message: 'Mã OTP phải có 6 chữ số!' }
-                            ]}
+                    <Alert
+                        message="Lưu ý"
+                        description="Mỗi tài khoản chỉ được tạo một ví duy nhất. Vui lòng bảo mật thông tin tài khoản của bạn."
+                        type="info"
+                        showIcon
+                        className="mb-6"
+                    />
+
+                    <div className="flex gap-3">
+                        <Button
+                            onClick={() => setIsCreateWalletModalVisible(false)}
+                            block
+                            size="large"
                         >
-                            <Input
-                                placeholder="Nhập mã OTP (6 chữ số)"
-                                maxLength={6}
-                                size="large"
-                                className="text-center text-lg tracking-widest"
-                            />
-                        </Form.Item>
-
-                        <Form.Item className="mb-4">
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                block
-                                size="large"
-                                loading={loading}
-                            >
-                                Xác thực và tạo ví
-                            </Button>
-                        </Form.Item>
-
-                        <div className="text-center">
-                            <Text type="secondary">
-                                Không nhận được mã?{' '}
-                                {canResend ? (
-                                    <Button
-                                        type="link"
-                                        onClick={handleResendOTP}
-                                        disabled={loading}
-                                        className="p-0"
-                                    >
-                                        Gửi lại OTP
-                                    </Button>
-                                ) : (
-                                    <span className="text-gray-500">
-                                        Gửi lại sau {countdown}s
-                                    </span>
-                                )}
-                            </Text>
-                        </div>
-                    </Form>
+                            Hủy
+                        </Button>
+                        <Button
+                            type="primary"
+                            onClick={handleCreateWallet}
+                            block
+                            size="large"
+                            loading={loading}
+                        >
+                            Xác nhận tạo ví
+                        </Button>
+                    </div>
                 </Modal>
             </div>
         </div>

@@ -36,6 +36,34 @@ export const walletAPI = {
                 status: error.response?.data?.Status || error.response?.status
             };
         }
+    },
+
+    withdraw: async (amount) => {
+        try {
+            const resp = await apiClient.post(`/Wallet/withdraw?amount=${amount}`);
+            const { data, message, status } = normalize(resp);
+            return { success: true, data, message, status };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.Message || error.message || 'Không thể rút tiền từ ví',
+                status: error.response?.data?.Status || error.response?.status
+            };
+        }
+    },
+
+    getBalance: async () => {
+        try {
+            const resp = await apiClient.get('/Wallet/balance');
+            const { data, message, status } = normalize(resp);
+            return { success: true, data, message, status };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.Message || error.message || 'Không thể lấy số dư ví',
+                status: error.response?.data?.Status || error.response?.status
+            };
+        }
     }
 };
 
