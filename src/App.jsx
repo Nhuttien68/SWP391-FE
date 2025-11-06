@@ -15,6 +15,9 @@ import VerifyOTP from "./pages/Login/VerifyOTP.jsx";
 import Otp from "./pages/Login/Otp.jsx";
 import PostDetail from "./pages/Post/PostDetail.jsx";
 import CreatePost from "./pages/Post/CreatePost.jsx";
+import CartPage from "./pages/Cart/CartPage.jsx";
+import CheckoutPage from "./pages/Cart/CheckoutPage.jsx";
+import OrdersPage from "./pages/Profile/OrdersPage.jsx";
 
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import FooterApp from "./pages/Main/FooterApp.jsx"
@@ -55,6 +58,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
 
 
           {/* Payment return/callback route */}
@@ -63,6 +68,7 @@ function App() {
           {/* Protected Routes - Chỉ truy cập khi đã đăng nhập */}
           <Route path="/createPost" element={<CreatePost />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/orders" element={<OrdersPage />} />
           <Route path="/admin" element={<AdminLayout />} />
 
           {/* Fallback route */}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
     Row,
     Col,
@@ -11,286 +11,454 @@ import {
     Pagination,
     Space,
     message,
-    Carousel
+    Card,
+    Tag,
+    Badge,
+    Carousel,
 } from 'antd';
-import { SearchOutlined, CarOutlined } from '@ant-design/icons';
+import {
+    SearchOutlined,
+    CarOutlined,
+    FireOutlined,
+    ThunderboltOutlined,
+    HeartOutlined,
+    DollarOutlined,
+    ClockCircleOutlined,
+    SafetyOutlined,
+    BgColorsOutlined,
+    TeamOutlined,
+    LockOutlined,
+    CheckCircleOutlined,
+} from '@ant-design/icons';
 import PostCard from '../Post/PostCard';
 import { postAPI } from '../../services/postAPI';
 import { brandAPI } from '../../services/brandAPI';
 
-const { Title, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
+
+const quickFilters = [
+    { label: 'Bán chạy', icon: <FireOutlined /> },
+    { label: 'Giá tốt', icon: <DollarOutlined /> },
+    { label: 'Mới nhất', icon: <ClockCircleOutlined /> },
+    { label: 'Yêu thích', icon: <HeartOutlined /> },
+];
+
+const highlightCategories = [
+    { title: 'Xe điện', icon: '🚗', count: 234, color: 'blue' },
+    { title: 'Pin xe điện', icon: '🔋', count: 156, color: 'green' },
+    { title: 'Phụ tùng', icon: '⚙️', count: 89, color: 'orange' },
+    { title: 'Đấu giá', icon: '🔨', count: 45, color: 'red' },
+    { title: 'Sạc điện', icon: '⚡', count: 67, color: 'purple' },
+    { title: 'Phụ kiện', icon: '🎨', count: 123, color: 'pink' },
+];
 
 const HomePage = () => {
     const [loading, setLoading] = useState(false);
     const [posts, setPosts] = useState([]);
-    const [filtered, setFiltered] = useState([]);
     const [searchText, setSearchText] = useState('');
     const [selectedBrand, setSelectedBrand] = useState('');
-    const [postType, setPostType] = useState('VEHICLE');
+    const [postType, setPostType] = useState('vehicle');
     const [brands, setBrands] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 12;
 
     useEffect(() => {
-        (async () => {
+        const loadInitialData = async () => {
             setLoading(true);
             try {
-                const res = await postAPI.getAllPosts({ page: 1, pageSize: 200 });
-                const postsData = res?.data?.data || res?.data || [];
-                const normalized = postsData.map(p => ({ ...p, id: p.id ?? p.postId ?? p.postID }));
-                setPosts(normalized);
-                setFiltered(normalized);
+                const [postRes, brandRes] = await Promise.all([
+                    postAPI.getAllPosts({ page: 1, pageSize: 200 }),
+                    brandAPI.getVehicleBrands(),
+                ]);
 
-                const brandResp = await brandAPI.getVehicleBrands();
-                setBrands(brandResp?.data || []);
+                const postsData = postRes?.data?.data || postRes?.data || [];
+                const normalized = postsData.map((p) => ({
+                    ...p,
+                    id: p.id ?? p.postId ?? p.postID,
+                }));
+                setPosts(normalized);
+                setBrands(brandRes?.data || []);
             } catch (err) {
                 console.error('Fetch posts error', err);
-                message.error('Không thể tải bài đăng (xem console)');
+                message.error('Không thể tải danh sách bài đăng.');
             } finally {
                 setLoading(false);
             }
-        })();
+        };
+
+        loadInitialData();
     }, []);
 
-    useEffect(() => {
-        let out = posts.slice();
-        if (postType === 'VEHICLE') out = out.filter(p => p.type === 'VEHICLE');
-        else if (postType === 'BATTERY') out = out.filter(p => p.type === 'BATTERY');
+    const filteredPosts = useMemo(() => {
+        let result = posts.slice();
+
+        if (postType === 'vehicle') {
+            result = result.filter(
+                (p) => p.vehicle || p.Vehicle || p.type === 'VEHICLE' || !p.battery,
+            );
+        } else {
+            result = result.filter((p) => p.battery || p.Battery || p.type === 'BATTERY');
+        }
 
         if (searchText) {
             const q = searchText.toLowerCase();
-            out = out.filter(p => (
-                (p.title || p.Title || '').toString().toLowerCase().includes(q) ||
-                (p.description || p.Description || '').toString().toLowerCase().includes(q) ||
-                ((p.vehicle || p.Vehicle)?.brandName || (p.battery || p.Battery)?.brandName || p.brand || '').toString().toLowerCase().includes(q)
-            ));
-        }
+            result = result.filter((p) => {
+                const title = (p.title || p.Title || '').toString().toLowerCase();
+                const desc = (p.description || p.Description || '').toString().toLowerCase();
+                const brandName = (
+                    (p.vehicle || p.Vehicle)?.brandName ||
+                    (p.battery || p.Battery)?.brandName ||
+                    p.brand ||
+                    ''
+                )
+                    .toString()
+                    .toLowerCase();
 
-        if (selectedBrand) {
-            out = out.filter(p => {
-                const b = (p.vehicle || p.Vehicle)?.brandName || (p.battery || p.Battery)?.brandName || p.brand || '';
-                return b === selectedBrand;
+                return title.includes(q) || desc.includes(q) || brandName.includes(q);
             });
         }
 
-        setFiltered(out);
+        if (selectedBrand) {
+            result = result.filter((p) => {
+                const brandName =
+                    (p.vehicle || p.Vehicle)?.brandName ||
+                    (p.battery || p.Battery)?.brandName ||
+                    p.brand ||
+                    '';
+                return brandName === selectedBrand;
+            });
+        }
+
+        return result;
+    }, [posts, postType, searchText, selectedBrand]);
+
+    useEffect(() => {
         setCurrentPage(1);
-    }, [searchText, selectedBrand, postType, posts]);
+    }, [filteredPosts]);
 
     const startIndex = (currentPage - 1) * pageSize;
-    const current = filtered.slice(startIndex, startIndex + pageSize);
+    const current = filteredPosts.slice(startIndex, startIndex + pageSize);
+
+    const systemFeatures = [
+        {
+            icon: '🛡️',
+            title: 'Giao Dịch An Toàn',
+            description: 'Hệ thống xác minh người dùng và bảo vệ toàn bộ giao dịch 100%',
+        },
+        {
+            icon: '⚡',
+            title: 'Nhanh Chóng & Hiệu Quả',
+            description: 'Đăng bài trong 5 phút, tìm kiếm thông minh với AI',
+        },
+        {
+            icon: '🤝',
+            title: 'Cộng Đồng Lớn',
+            description: 'Kết nối hàng chục ngàn người dùng xe điện trên toàn quốc',
+        },
+        {
+            icon: '💰',
+            title: 'Giá Rẻ & Minh Bạch',
+            description: 'Phí đăng tin chỉ 100K/bài, không phí ẩn, thanh toán linh hoạt',
+        },
+    ];
+
+    const functionalityFeatures = [
+        {
+            icon: '🔨',
+            title: 'Hệ Thống Đấu Giá',
+            description: 'Tham gia đấu giá xe điện và phụ tùng với giá cạnh tranh. Theo dõi các phiên đấu giá trực tiếp và thắng giá tốt nhất.',
+            details: ['Đấu giá trực tuyến realtime', 'Bảo vệ giá của người thắng', 'Hệ thống tự động nâng giá'],
+        },
+        {
+            icon: '📢',
+            title: 'Đăng Tin Dễ Dàng',
+            description: 'Đăng bài bán xe hoặc phụ tùng của bạn chỉ với 100K/bài. Hỗ trợ upload ảnh, mô tả chi tiết và định giá tự động.',
+            details: ['Phí đăng tin: 100K/bài', 'Hỗ trợ up hình miễn phí', 'Công cụ định giá AI'],
+        },
+        {
+            icon: '⭐',
+            title: 'Đánh Giá & Xếp Hạng',
+            description: 'Xây dựng uy tín qua hệ thống đánh giá 5 sao. Khách hàng có thể xem lịch sử giao dịch và nhận xét của bạn.',
+            details: ['Hệ thống sao 5', 'Lịch sử giao dịch công khai', 'Huy hiệu độ tin cậy'],
+        },
+        {
+            icon: '📊',
+            title: 'Phân Tích & Thống Kê',
+            description: 'Theo dõi hiệu suất bán hàng của bạn với dashboard chi tiết. Xem số lượt xem, tin nhắn và tỷ lệ bán hàng.',
+            details: ['Dashboard người bán', 'Thống kê lượt xem', 'Báo cáo doanh số'],
+        },
+    ];
+
+    const introSlides = [
+        {
+            title: 'Chào Mừng Đến EV Marketplace',
+            subtitle: 'Nền tảng trao đổi xe điện và phụ tùng hàng đầu Việt Nam',
+            description: 'Kết nối người mua và người bán trong cộng đồng xe điện uy tín',
+            image: '🚗',
+            bgColor: 'from-blue-600 to-blue-800',
+            cta: 'Khám Phá Ngay',
+        },
+        {
+            title: 'An Toàn & Bảo Vệ',
+            subtitle: 'Mọi giao dịch đều được bảo vệ tối đa',
+            description: 'Xác minh danh tính, bảo hiểm giao dịch, hỗ trợ 24/7',
+            image: '🔒',
+            bgColor: 'from-green-600 to-green-800',
+            cta: 'Tìm Hiểu Thêm',
+        },
+        {
+            title: 'Cộng Đồng Xe Điện',
+            subtitle: 'Chia sẻ kinh nghiệm, thông tin sản phẩm',
+            description: 'Tham gia diễn đàn, nhận tư vấn từ các chuyên gia',
+            image: '👥',
+            bgColor: 'from-purple-600 to-purple-800',
+            cta: 'Tham Gia Ngay',
+        },
+    ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Promotional Banner */}
-            <div className="bg-[#FFBA00]">
-                <div className="max-w-7xl mx-auto px-4">
-                    <Carousel autoplay className="mb-0">
-                        <div>
-                            <div className="h-[400px] bg-center bg-cover rounded-b-xl overflow-hidden relative" style={{ backgroundImage: 'url(https://www.vinfast.com/themes/porto/img/slides/vf8-black.jpg)' }}>
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent">
-                                    <div className="h-full flex items-center">
-                                        <div className="text-white p-12 max-w-2xl">
-                                            <h1 className="text-5xl font-bold mb-4">"Nhà" mới toanh. Khám phá nhanh!</h1>
-                                            <p className="text-xl mb-8">Khám phá các mẫu xe điện hiện đại và thân thiện với môi trường</p>
-                                            <div className="bg-white/90 rounded-lg p-4 backdrop-blur-sm">
-                                                <div className="flex gap-4">
-                                                    <Select
-                                                        className="w-1/3"
-                                                        placeholder="Danh mục"
-                                                        size="large"
-                                                    >
-                                                        <Option value="xe">Xe điện</Option>
-                                                        <Option value="pin">Pin xe điện</Option>
-                                                    </Select>
-                                                    <Input.Search
-                                                        placeholder="Tìm sản phẩm..."
-                                                        size="large"
-                                                        className="flex-1"
-                                                        enterButton="Tìm kiếm"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div className="h-[400px] bg-center bg-cover rounded-b-xl overflow-hidden relative" style={{ backgroundImage: 'url(https://vinfastauto.com/sites/default/files/styles/news_360x200/public/2022-11/VF8_front.jpg)' }}>
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent">
-                                    <div className="h-full flex items-center">
-                                        <div className="text-white p-12 max-w-2xl">
-                                            <h1 className="text-5xl font-bold mb-4">Pin Chính Hãng</h1>
-                                            <p className="text-xl mb-8">Giải pháp pin thông minh cho xe điện của bạn</p>
-                                            <div className="bg-white/90 rounded-lg p-4 backdrop-blur-sm">
-                                                <div className="flex gap-4">
-                                                    <Select
-                                                        className="w-1/3"
-                                                        placeholder="Danh mục"
-                                                        size="large"
-                                                    >
-                                                        <Option value="xe">Xe điện</Option>
-                                                        <Option value="pin">Pin xe điện</Option>
-                                                    </Select>
-                                                    <Input.Search
-                                                        placeholder="Tìm sản phẩm..."
-                                                        size="large"
-                                                        className="flex-1"
-                                                        enterButton="Tìm kiếm"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </Carousel>
-                </div>
-            </div>
-
-            {/* Categories Section */}
-            <div className="max-w-7xl mx-auto px-4 py-8">
-                <Row gutter={[16, 32]} className="mb-8">
-                    <Col xs={12} sm={8} md={6} lg={3}>
-                        <div className="text-center cursor-pointer hover:opacity-80">
-                            <div className="bg-white rounded-lg p-4 shadow-sm mb-2">
-                                <img src="/electric-car.png" alt="Xe điện" className="w-16 h-16 mx-auto" />
-                            </div>
-                            <p className="font-medium">Xe điện</p>
-                        </div>
-                    </Col>
-                    <Col xs={12} sm={8} md={6} lg={3}>
-                        <div className="text-center cursor-pointer hover:opacity-80">
-                            <div className="bg-white rounded-lg p-4 shadow-sm mb-2">
-                                <img src="/battery.png" alt="Pin" className="w-16 h-16 mx-auto" />
-                            </div>
-                            <p className="font-medium">Pin xe điện</p>
-                        </div>
-                    </Col>
-                    <Col xs={12} sm={8} md={6} lg={3}>
-                        <div className="text-center cursor-pointer hover:opacity-80">
-                            <div className="bg-white rounded-lg p-4 shadow-sm mb-2">
-                                <img src="/spare-parts.png" alt="Phụ tùng" className="w-16 h-16 mx-auto" />
-                            </div>
-                            <p className="font-medium">Phụ tùng</p>
-                        </div>
-                    </Col>
-                    <Col xs={12} sm={8} md={6} lg={3}>
-                        <div className="text-center cursor-pointer hover:opacity-80">
-                            <div className="bg-white rounded-lg p-4 shadow-sm mb-2">
-                                <img src="/maintenance.png" alt="Bảo dưỡng" className="w-16 h-16 mx-auto" />
-                            </div>
-                            <p className="font-medium">Bảo dưỡng</p>
-                        </div>
-                    </Col>
-                </Row>
-            </div>
-
-            {/* Promotional Banner */}
-            <div className="max-w-7xl mx-auto px-4 mb-8">
-                <Carousel autoplay>
-                    <div>
-                        <div className="h-[300px] bg-center bg-cover rounded-xl overflow-hidden" style={{ backgroundImage: 'url(https://www.vinfast.com/themes/porto/img/slides/vf8-black.jpg)' }}>
-                            <div className="h-full flex items-center bg-gradient-to-r from-black/50 to-transparent">
-                                <div className="text-white p-12">
-                                    <h2 className="text-3xl font-bold mb-4">Xe Điện Thế Hệ Mới</h2>
-                                    <p className="text-lg mb-6">Khám phá ngay hôm nay</p>
-                                    <Button type="primary" size="large" className="bg-[#FFBA00] border-none">
-                                        Xem thêm
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 via-purple-50 to-pink-50">
+            {/* Introduction Carousel */}
+            <section className="mb-8">
+                <Carousel autoplay dotPosition="bottom" className="w-full">
+                    {introSlides.map((slide, idx) => (
+                        <div key={idx}>
+                            <div className={`bg-gradient-to-r ${slide.bgColor} py-20 md:py-32 text-center`}>
+                                <div className="max-w-4xl mx-auto px-4">
+                                    <div className="text-6xl md:text-8xl mb-6">{slide.image}</div>
+                                    <Title level={1} className="!text-white !mb-3 !text-3xl md:!text-5xl">
+                                        {slide.title}
+                                    </Title>
+                                    <Text className="text-blue-100 text-lg md:text-xl block mb-4">
+                                        {slide.subtitle}
+                                    </Text>
+                                    <Text className="text-blue-50 text-base md:text-lg block mb-8">
+                                        {slide.description}
+                                    </Text>
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
+                                    >
+                                        {slide.cta}
                                     </Button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div>
-                        <div className="h-[300px] bg-center bg-cover rounded-xl overflow-hidden" style={{ backgroundImage: 'url(https://vinfastauto.com/sites/default/files/styles/news_360x200/public/2022-11/VF8_front.jpg)' }}>
-                            <div className="h-full flex items-center bg-gradient-to-r from-black/50 to-transparent">
-                                <div className="text-white p-12">
-                                    <h2 className="text-3xl font-bold mb-4">Pin Chính Hãng</h2>
-                                    <p className="text-lg mb-6">Chất lượng đảm bảo</p>
-                                    <Button type="primary" size="large" className="bg-[#FFBA00] border-none">
-                                        Tìm hiểu thêm
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    ))}
                 </Carousel>
-            </div>
+            </section>
 
-            <div className="bg-white py-8">
-                <div className="max-w-7xl mx-auto px-4 text-center">
-                    <Title level={1} className="text-white mb-4">🚗 Khám Phá Xe Điện</Title>
-                    <Paragraph className="text-blue-100 mb-6">Tìm kiếm xe điện phù hợp với nhu cầu của bạn</Paragraph>
-
-                    <div className="max-w-3xl mx-auto">
-                        <Space.Compact block style={{ width: '100%' }}>
-                            <Input
-                                size="large"
-                                placeholder="Tìm kiếm xe điện..."
-                                prefix={<SearchOutlined />}
-                                value={searchText}
-                                onChange={(e) => setSearchText(e.target.value)}
-                            />
-                            <Button type="primary" size="large" onClick={() => { /* noop - reactive search */ }}>Tìm kiếm</Button>
-                        </Space.Compact>
-                    </div>
+            {/* Features Section */}
+            <section className="bg-gradient-to-r from-white via-blue-50 to-white py-12 mb-8">
+                <div className="max-w-7xl mx-auto px-4">
+                    <Title level={2} className="text-center mb-12">
+                        🌟 Tại Sao Chọn EV Marketplace?
+                    </Title>
+                    <Row gutter={[24, 24]}>
+                        {systemFeatures.map((feature, idx) => (
+                            <Col xs={24} sm={12} md={6} key={idx}>
+                                <Card hoverable bordered={false} className="text-center h-full hover:shadow-lg transition">
+                                    <div className="text-5xl mb-4">{feature.icon}</div>
+                                    <Title level={4}>{feature.title}</Title>
+                                    <Text type="secondary">{feature.description}</Text>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
                 </div>
-            </div>
+            </section>
 
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                <Row gutter={[16, 16]} className="mb-6">
-                    <Col xs={24} sm={8} md={6}>
-                        <Select
-                            placeholder="Thương hiệu"
-                            allowClear
-                            className="w-full"
-                            value={selectedBrand || undefined}
-                            onChange={setSelectedBrand}
-                            suffixIcon={<CarOutlined />}
-                        >
-                            {brands.map(b => (
-                                <Option key={b.brandId ?? b.id} value={b.brandName ?? b.BrandName}>{b.brandName ?? b.BrandName}</Option>
-                            ))}
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={16} md={18} className="flex justify-end">
-                        <div className="flex gap-2">
-                            <Button type={postType === 'VEHICLE' ? 'primary' : 'default'} onClick={() => setPostType('VEHICLE')}>Xe</Button>
-                            <Button type={postType === 'BATTERY' ? 'primary' : 'default'} onClick={() => setPostType('BATTERY')}>Pin</Button>
-                        </div>
-                    </Col>
-                </Row>
+            {/* Functionality Features Section */}
+            <section className="bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50 py-12 mb-8">
+                <div className="max-w-7xl mx-auto px-4">
+                    <Title level={2} className="text-center mb-12">
+                        ✨ Các Chức Năng Nổi Bật
+                    </Title>
+                    <Row gutter={[32, 32]}>
+                        {functionalityFeatures.map((feature, idx) => (
+                            <Col xs={24} sm={12} md={12} lg={6} key={idx}>
+                                <Card
+                                    hoverable
+                                    bordered={false}
+                                    className="h-full hover:shadow-lg transition"
+                                >
+                                    <div className="text-5xl mb-4 text-center">{feature.icon}</div>
+                                    <Title level={4} className="text-center">{feature.title}</Title>
+                                    <Text className="block mb-4">{feature.description}</Text>
+                                    <div className="space-y-2">
+                                        {feature.details.map((detail, i) => (
+                                            <div key={i} className="flex items-center text-sm text-gray-600">
+                                                <CheckCircleOutlined className="mr-2 text-green-600" />
+                                                {detail}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
+                </div>
+            </section>
+
+            <section className="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+                <div className="max-w-7xl mx-auto px-4 py-6">
+                    <Row gutter={[32, 16]} className="text-center">
+                        <Col xs={12} sm={6}>
+                            <div className="text-3xl font-bold text-blue-600">1,234</div>
+                            <div className="text-gray-600 text-sm">Xe đang bán</div>
+                        </Col>
+                        <Col xs={12} sm={6}>
+                            <div className="text-3xl font-bold text-green-600">856</div>
+                            <div className="text-gray-600 text-sm">Người dùng</div>
+                        </Col>
+                        <Col xs={12} sm={6}>
+                            <div className="text-3xl font-bold text-orange-600">342</div>
+                            <div className="text-gray-600 text-sm">Giao dịch thành công</div>
+                        </Col>
+                        <Col xs={12} sm={6}>
+                            <div className="text-3xl font-bold text-purple-600">98%</div>
+                            <div className="text-gray-600 text-sm">Khách hàng hài lòng</div>
+                        </Col>
+                    </Row>
+                </div>
+            </section>
+
+            <section className="bg-gradient-to-r from-white via-indigo-50 to-white py-8 mb-6">
+                <div className="max-w-7xl mx-auto px-4">
+                    <Title level={3} className="!mb-6">
+                        <FireOutlined className="text-orange-500 mr-2" /> Danh mục nổi bật
+                    </Title>
+                    <Row gutter={[16, 16]}>
+                        {highlightCategories.map((cat) => (
+                            <Col xs={12} sm={8} md={4} key={cat.title}>
+                                <Card hoverable bordered={false} className="text-center hover:shadow-md">
+                                    <div className="text-4xl mb-2">{cat.icon}</div>
+                                    <div className="font-semibold">{cat.title}</div>
+                                    <Badge
+                                        count={cat.count}
+                                        style={{ backgroundColor: `var(--ant-${cat.color}-6)` }}
+                                        className="mt-2"
+                                    />
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
+                </div>
+            </section>
+
+            <section className="max-w-7xl mx-auto px-4 py-6 bg-gradient-to-r from-cyan-50 via-blue-50 to-cyan-50 rounded-lg">
+                <Card className="mb-6 shadow-sm bg-white/80">
+                    <Row gutter={[16, 16]} align="middle">
+                        <Col flex="auto">
+                            <Space wrap>
+                                <Select
+                                    placeholder="Thương hiệu"
+                                    allowClear
+                                    style={{ width: 200 }}
+                                    value={selectedBrand || undefined}
+                                    onChange={setSelectedBrand}
+                                    suffixIcon={<CarOutlined />}
+                                >
+                                    {brands.map((b) => (
+                                        <Option key={b.brandId ?? b.id} value={b.brandName ?? b.BrandName}>
+                                            {b.brandName ?? b.BrandName}
+                                        </Option>
+                                    ))}
+                                </Select>
+                                <Select placeholder="Khoảng giá" allowClear style={{ width: 180 }}>
+                                    <Option value="0-100">Dưới 100tr</Option>
+                                    <Option value="100-300">100tr - 300tr</Option>
+                                    <Option value="300-500">300tr - 500tr</Option>
+                                    <Option value="500+">Trên 500tr</Option>
+                                </Select>
+                                <Select placeholder="Khu vực" allowClear style={{ width: 180 }}>
+                                    <Option value="HN">Hà Nội</Option>
+                                    <Option value="HCM">TP.HCM</Option>
+                                    <Option value="DN">Đà Nẵng</Option>
+                                </Select>
+                            </Space>
+                        </Col>
+                        <Col>
+                            <Text type="secondary">
+                                Tìm thấy <strong>{filteredPosts.length}</strong> sản phẩm
+                            </Text>
+                        </Col>
+                    </Row>
+                </Card>
+
+                <Title level={3} className="!mb-6">
+                    <ThunderboltOutlined className="text-yellow-500 mr-2" />
+                    {postType === 'vehicle' ? 'Xe điện đang bán' : 'Pin xe điện nổi bật'}
+                </Title>
 
                 {loading ? (
-                    <div className="text-center py-20"><Spin size="large" /></div>
-                ) : filtered.length === 0 ? (
-                    <Empty description="Không tìm thấy bài đăng" />
+                    <div className="text-center py-20">
+                        <Spin size="large" tip="Đang tải sản phẩm..." />
+                    </div>
+                ) : filteredPosts.length === 0 ? (
+                    <Empty description="Không tìm thấy sản phẩm phù hợp" />
                 ) : (
                     <>
-                        <Row gutter={[24, 24]}>
-                            {current.map(p => (
-                                <Col xs={24} sm={12} md={8} lg={6} key={p.id ?? p.postId}>
-                                    <PostCard post={p} />
+                        <Row gutter={[16, 16]}>
+                            {current.map((post) => (
+                                <Col xs={24} sm={12} md={8} lg={6} key={post.id ?? post.postId}>
+                                    <PostCard post={post} />
                                 </Col>
                             ))}
                         </Row>
-
                         <div className="text-center mt-8">
                             <Pagination
                                 current={currentPage}
-                                total={filtered.length}
+                                total={filteredPosts.length}
                                 pageSize={pageSize}
-                                onChange={(p) => setCurrentPage(p)}
+                                onChange={(page) => setCurrentPage(page)}
                                 showSizeChanger={false}
+                                showTotal={(total) => `Tổng ${total} sản phẩm`}
                             />
                         </div>
                     </>
                 )}
-            </div>
+            </section>
+
+            <section className="bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 py-12">
+                <div className="max-w-7xl mx-auto px-4">
+                    <Title level={2} className="text-center !mb-8">
+                        Tại sao chọn chúng tôi?
+                    </Title>
+                    <Row gutter={[32, 32]}>
+                        <Col xs={24} sm={12} md={6}>
+                            <Card bordered={false} className="text-center h-full">
+                                <div className="text-4xl mb-3">🛡️</div>
+                                <Title level={4}>An toàn</Title>
+                                <Text type="secondary">Giao dịch được bảo vệ 100%</Text>
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                            <Card bordered={false} className="text-center h-full">
+                                <div className="text-4xl mb-3">⚡</div>
+                                <Title level={4}>Nhanh chóng</Title>
+                                <Text type="secondary">Đăng bán chỉ trong 5 phút</Text>
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                            <Card bordered={false} className="text-center h-full">
+                                <div className="text-4xl mb-3">💰</div>
+                                <Title level={4}>Tiết kiệm</Title>
+                                <Text type="secondary">Không phí ẩn, tối ưu chi phí</Text>
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                            <Card bordered={false} className="text-center h-full">
+                                <div className="text-4xl mb-3">🤝</div>
+                                <Title level={4}>Hỗ trợ 24/7</Title>
+                                <Text type="secondary">Đội ngũ hỗ trợ luôn sẵn sàng</Text>
+                            </Card>
+                        </Col>
+                    </Row>
+                </div>
+            </section>
         </div>
     );
 };

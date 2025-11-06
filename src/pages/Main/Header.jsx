@@ -1,14 +1,35 @@
 
-import { Layout, Menu, Button, Dropdown, Avatar } from "antd";
-import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined } from "@ant-design/icons";
+import { Layout, Menu, Button, Dropdown, Avatar, Badge } from "antd";
+import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useState, useEffect } from "react";
+import { cartAPI } from "../../services/cartAPI.js";
 
 const { Header } = Layout;
 
 const HeaderApp = () => {
     const { user, isAuthenticated, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
+    const [cartCount, setCartCount] = useState(0);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchCartCount();
+        }
+    }, [isAuthenticated]);
+
+    const fetchCartCount = async () => {
+        try {
+            const response = await cartAPI.getCart();
+            if (response.success) {
+                const items = response.data?.data?.cartItems || response.data?.cartItems || [];
+                setCartCount(items.length);
+            }
+        } catch (error) {
+            console.error('Fetch cart count error:', error);
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -76,6 +97,17 @@ const HeaderApp = () => {
 
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">
+                {isAuthenticated && (
+                    <Link to="/cart">
+                        <Badge count={cartCount} offset={[-5, 5]}>
+                            <Button
+                                type="text"
+                                icon={<ShoppingCartOutlined className="text-xl" />}
+                                className="mr-2"
+                            />
+                        </Badge>
+                    </Link>
+                )}
                 {isAdmin && (
                     <Link to="/admin">
                         <Button type="default" className="mr-3">

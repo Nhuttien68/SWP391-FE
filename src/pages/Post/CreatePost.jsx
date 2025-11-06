@@ -4,10 +4,35 @@ import { useAuth } from '../../context/AuthContext';
 import { postAPI } from '../../services/postAPI';
 import { walletAPI } from '../../services/walletAPI';
 import { brandAPI } from '../../services/brandAPI';
-import { Form, Input, Select, Button, Upload, message, InputNumber, Radio } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import {
+    Form,
+    Input,
+    Select,
+    Button,
+    Upload,
+    message,
+    InputNumber,
+    Radio,
+    Card,
+    Steps,
+    Space,
+    Typography,
+    Divider,
+    Row,
+    Col,
+    Alert
+} from 'antd';
+import {
+    UploadOutlined,
+    DollarOutlined,
+    CarOutlined,
+    FileTextOutlined,
+    PictureOutlined
+} from '@ant-design/icons';
 
 const { TextArea } = Input;
+const { Title, Text } = Typography;
+const { Step } = Steps;
 
 const CreatePost = () => {
     const navigate = useNavigate();
@@ -18,19 +43,37 @@ const CreatePost = () => {
     const [batteryBrands, setBatteryBrands] = useState([]);
     const [loading, setLoading] = useState(false);
     const [imageList, setImageList] = useState([]);
-    const [postType, setPostType] = useState('VEHICLE');
+    const [postType, setPostType] = useState('vehicle');
+    const [currentStep, setCurrentStep] = useState(0);
+    const [walletBalance, setWalletBalance] = useState(0);
+
+    const POSTING_FEE = 100000;
 
     useEffect(() => {
         // Wait until auth check completes to avoid race with AuthProvider
         if (isLoading) return;
 
         if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để tạo bài đăng');
             navigate('/login');
             return;
         }
 
         fetchBrands();
+        checkWallet();
     }, [isAuthenticated, isLoading, navigate]);
+
+    const checkWallet = async () => {
+        try {
+            const walletResp = await walletAPI.getWallet();
+            if (walletResp.success) {
+                const balance = walletResp.data?.Balance ?? walletResp.data?.balance ?? 0;
+                setWalletBalance(balance);
+            }
+        } catch (error) {
+            console.error('Error checking wallet:', error);
+        }
+    };
 
     const fetchBrands = async () => {
         try {
@@ -53,17 +96,24 @@ const CreatePost = () => {
 
 
     const onFinish = async (values) => {
+        console.log('=== STARTING POST CREATION ===');
+        console.log('Form values:', values);
+        console.log('Post type:', postType);
+        console.log('Image list:', imageList);
+
         try {
             setLoading(true);
 
-            // --- Wallet check: ensure user has a wallet and sufficient balance before creating a post ---
+            // Kiểm tra ví
+            console.log('Step 1: Checking wallet...');
             const walletResp = await walletAPI.getWallet();
+            console.log('Wallet response:', walletResp);
 
             if (walletResp.status === '404' || walletResp.status === 404) {
-                // Wallet not found - try to create one
+                console.log('Wallet not found, creating new wallet...');
                 const createResp = await walletAPI.createWallet();
                 if (createResp.success) {
-                    message.info('Ví đã được tạo. Vui lòng nạp tiền vào ví trước khi tạo bài đăng.');
+                    message.warning('Ví đã được tạo. Vui lòng nạp tiền vào ví trước khi tạo bài đăng.');
                 } else {
                     message.error(createResp.message || 'Không thể tạo ví.');
                 }
@@ -72,64 +122,85 @@ const CreatePost = () => {
             }
 
             if (!walletResp.success) {
+                console.error('Failed to get wallet:', walletResp);
                 message.error(walletResp.message || 'Không thể lấy thông tin ví.');
                 setLoading(false);
                 return;
             }
 
-            // Get balance from normalized response
             const balance = walletResp.data?.Balance ?? walletResp.data?.balance ?? 0;
-            const requiredFee = 100000;
-            if (balance < requiredFee) {
-                message.error(`Số dư ví không đủ (cần ${requiredFee.toLocaleString()} VND). Vui lòng nạp tiền trước khi tạo bài đăng.`);
+            console.log('Current balance:', balance, 'Required:', POSTING_FEE);
+
+            if (balance < POSTING_FEE) {
+                console.log('Insufficient balance!');
+                message.error(`Số dư ví không đủ! Cần ${POSTING_FEE.toLocaleString('vi-VN')} VND để đăng tin. Số dư hiện tại: ${balance.toLocaleString('vi-VN')} VND`);
                 setLoading(false);
                 return;
             }
 
-            console.log('Wallet check passed, proceeding to create post...');
-
+            // Tạo FormData
+            console.log('Step 2: Creating FormData...');
             const postData = new FormData();
-            postData.append('type', values.type);
-            postData.append('title', values.title);
-            postData.append('description', values.description || '');
-            postData.append('price', Number(values.price));
+            postData.append('Title', values.title);
+            postData.append('Description', values.description || '');
+            postData.append('Price', Number(values.price));
 
-            console.log('Sending data:', postData); // Để debug
-
-            // BE chưa hỗ trợ upload ảnh nên tạm bỏ qua
-            imageList.forEach((file) => {
-                postData.append('images', file.originFileObj);
-            });
-
-            // Backend expects nested vehicleCreateDto fields when binding from a form
-            if (values.type === 'VEHICLE') {
-                postData.append('vehicleCreateDto.brandId', values.brandId);
-                postData.append('vehicleCreateDto.model', values.model);
-                postData.append('vehicleCreateDto.year', values.year);
-                postData.append('vehicleCreateDto.mileage', values.mileage);
-            }
-            else {
-                postData.append('batteryCreateDto.branId', values.brandId);
-                postData.append('batteryCreateDto.capacity', values.capacity);
-                postData.append('batteryCreateDto.condition', values.condition);
+            // Upload images
+            if (imageList && imageList.length > 0) {
+                console.log('Adding images:', imageList.length);
+                imageList.forEach((file, index) => {
+                    console.log(`Image ${index}:`, file.originFileObj);
+                    postData.append('Images', file.originFileObj);
+                });
+            } else {
+                console.warn('No images to upload!');
             }
 
-            console.log('Calling postAPI.createPost with:', { type: values.type });
-            const response = await postAPI.createPost(postData, String(values.type).toLowerCase());
-            console.log('Create post response:', response);
+            // Thêm dữ liệu theo loại post
+            if (postType === 'vehicle') {
+                console.log('Adding vehicle data...');
+                postData.append('vehicleCreateDto.BrandId', values.brandId);
+                postData.append('vehicleCreateDto.Model', values.model);
+                postData.append('vehicleCreateDto.Year', Number(values.year));
+                postData.append('vehicleCreateDto.Mileage', Number(values.mileage));
+            } else {
+                console.log('Adding battery data...');
+                // Chú ý: Backend có lỗi chính tả "BranId" thay vì "BrandId"
+                postData.append('batteryCreateDto.BranId', values.brandId);
+                postData.append('batteryCreateDto.Capacity', Number(values.capacity));
+                postData.append('batteryCreateDto.Condition', values.condition);
+            }
+
+            // Log FormData
+            console.log('Step 3: FormData contents:');
+            for (let pair of postData.entries()) {
+                console.log(pair[0] + ':', pair[1]);
+            }
+
+            console.log('Step 4: Calling API with type:', postType);
+            const response = await postAPI.createPost(postData, postType);
+            console.log('Step 5: API Response:', response);
 
             if (response.success) {
-                message.success('Tạo bài đăng thành công!');
-                navigate('/'); // Chuyển về trang chủ sau khi tạo thành công
+                console.log('✅ POST CREATED SUCCESSFULLY!');
+                message.success('Tạo bài đăng thành công! Bài đăng đang chờ phê duyệt.');
+                form.resetFields();
+                setImageList([]);
+                setTimeout(() => {
+                    navigate('/profile');
+                }, 1500);
             } else {
+                console.error('❌ POST CREATION FAILED:', response);
                 message.error(response.message || 'Có lỗi xảy ra khi tạo bài đăng');
-                console.error('Create post error details:', response.error);
+                console.error('Error details:', response.error);
             }
         } catch (error) {
-            console.error('Error creating post:', error);
-            message.error('Có lỗi xảy ra khi tạo bài đăng');
+            console.error('❌ EXCEPTION in onFinish:', error);
+            console.error('Error stack:', error.stack);
+            message.error('Có lỗi xảy ra khi tạo bài đăng. Vui lòng thử lại!');
         } finally {
             setLoading(false);
+            console.log('=== END POST CREATION ===');
         }
     };
 
@@ -140,162 +211,429 @@ const CreatePost = () => {
                 message.error('Bạn chỉ có thể tải lên file ảnh!');
                 return false;
             }
-            return false;
+            const isLt5M = file.size / 1024 / 1024 < 5;
+            if (!isLt5M) {
+                message.error('Ảnh phải nhỏ hơn 5MB!');
+                return false;
+            }
+            return false; // Prevent auto upload
         },
         onChange: ({ fileList }) => {
             setImageList(fileList);
+        },
+        onRemove: (file) => {
+            const index = imageList.indexOf(file);
+            const newFileList = imageList.slice();
+            newFileList.splice(index, 1);
+            setImageList(newFileList);
         }
     };
 
+    const formatCurrency = (value) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+        }).format(value);
+    };
+
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-6">Tạo Bài Đăng Mới</h1>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8">
+            <div className="max-w-5xl mx-auto px-4">
+                {/* Header */}
+                <Card className="mb-6 shadow-lg">
+                    <Space direction="vertical" className="w-full" size="large">
+                        <div>
+                            <Title level={2} className="!mb-2">
+                                <FileTextOutlined className="mr-3 text-blue-600" />
+                                Tạo Bài Đăng Mới
+                            </Title>
+                            <Text type="secondary">
+                                Điền thông tin chi tiết để đăng tin bán xe điện hoặc pin
+                            </Text>
+                        </div>
 
-            <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                initialValues={{
-                    type: postType,
-                    title: "wawa title",
-                    description: "wawa description",
-                    price: 1000000,
-                    model: "wawa model",
-                    year: 2020,
-                    mileage: 10000
-                }}
-            >
-                <Form.Item
-                    name="type"
-                    label="Loại tin đăng"
-                >
-                    <Radio.Group onChange={(e) => setPostType(e.target.value)}>
-                        <Radio value="VEHICLE">Xe điện</Radio>
-                        <Radio value="BATTERY">Pin xe điện</Radio>
-                    </Radio.Group>
-                </Form.Item>
+                        {/* Wallet Info Alert */}
+                        <Alert
+                            message={
+                                <Space>
+                                    <DollarOutlined />
+                                    <Text strong>Phí đăng tin: {formatCurrency(POSTING_FEE)}</Text>
+                                </Space>
+                            }
+                            description={
+                                <Space direction="vertical" size="small">
+                                    <Text>
+                                        Số dư ví hiện tại: <Text strong className={walletBalance >= POSTING_FEE ? 'text-green-600' : 'text-red-600'}>
+                                            {formatCurrency(walletBalance)}
+                                        </Text>
+                                    </Text>
+                                    {walletBalance < POSTING_FEE && (
+                                        <Text type="danger">
+                                            ⚠️ Bạn cần nạp thêm {formatCurrency(POSTING_FEE - walletBalance)} để đăng tin
+                                        </Text>
+                                    )}
+                                </Space>
+                            }
+                            type={walletBalance >= POSTING_FEE ? 'success' : 'warning'}
+                            showIcon
+                        />
+                    </Space>
+                </Card>
 
-                <Form.Item
-                    name="title"
-                    label="Tiêu đề"
-                    rules={[{ required: true, message: 'Vui lòng nhập tiêu đề!' }]}
-                >
-                    <Input placeholder="Nhập tiêu đề bài đăng" />
-                </Form.Item>
-
-                <Form.Item
-                    name="description"
-                    label="Mô tả"
-                    rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
-                >
-                    <TextArea rows={4} placeholder="Nhập mô tả chi tiết về sản phẩm" value="wawa description" />
-                </Form.Item>
-
-                <Form.Item
-                    name="price"
-                    label="Giá"
-                    rules={[{ required: true, message: 'Vui lòng nhập giá!' }]}
-                >
-                    <InputNumber
-                        className="w-full"
-                        placeholder="Nhập giá"
-                        formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                    />
-                </Form.Item>
-
-                <Form.Item
-                    name="brandId"
-                    label="Thương hiệu"
-                    rules={[{ required: true, message: 'Vui lòng chọn thương hiệu!' }]}
-                >
-                    <Select placeholder="Chọn thương hiệu">
-                        {postType === 'VEHICLE'
-                            ? vehicleBrands.map(brand => (
-                                <Select.Option key={brand.brandId} value={brand.brandId}>
-                                    {brand.brandName}
-                                </Select.Option>
-                            ))
-                            : batteryBrands.map(brand => (
-                                <Select.Option key={brand.brandId} value={brand.brandId}>
-                                    {brand.brandName}
-                                </Select.Option>
-                            ))
-                        }
-                    </Select>
-                </Form.Item>
-
-                {postType === 'VEHICLE' ? (
-                    <>
-                        <Form.Item
-                            name="model"
-                            label="Model"
-                            rules={[{ required: true, message: 'Vui lòng nhập model!' }]}
-                        >
-                            <Input placeholder="Nhập model xe" />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="year"
-                            label="Năm sản xuất"
-                            rules={[{ required: true, message: 'Vui lòng nhập năm sản xuất!' }]}
-                        >
-                            <InputNumber className="w-full" placeholder="Nhập năm sản xuất" />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="mileage"
-                            label="Số km đã đi"
-                            rules={[{ required: true, message: 'Vui lòng nhập số km đã đi!' }]}
-                        >
-                            <InputNumber className="w-full" placeholder="Nhập số km đã đi" />
-                        </Form.Item>
-                    </>
-                ) : (
-                    <>
-                        <Form.Item
-                            name="capacity"
-                            label="Dung lượng"
-                            rules={[{ required: true, message: 'Vui lòng nhập dung lượng pin!' }]}
-                        >
-                            <Input placeholder="Nhập dung lượng pin (VD: 4000mAh)" />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="condition"
-                            label="Tình trạng"
-                            rules={[{ required: true, message: 'Vui lòng chọn tình trạng!' }]}
-                        >
-                            <Select placeholder="Chọn tình trạng">
-                                <Select.Option value="new">Mới</Select.Option>
-                                <Select.Option value="like-new">Như mới</Select.Option>
-                                <Select.Option value="used">Đã sử dụng</Select.Option>
-                            </Select>
-                        </Form.Item>
-                    </>
-                )}
-
-                <Form.Item
-                    name="images"
-                    label="Hình ảnh"
-                    rules={[{ required: true, message: 'Vui lòng tải lên ít nhất 1 hình ảnh!' }]}
-                >
-                    <Upload
-                        listType="picture"
-                        maxCount={5}
-                        multiple
-                        {...uploadProps}
+                {/* Form */}
+                <Card className="shadow-lg">
+                    <Form
+                        form={form}
+                        layout="vertical"
+                        onFinish={onFinish}
+                        initialValues={{
+                            type: postType
+                        }}
+                        size="large"
                     >
-                        <Button icon={<UploadOutlined />}>Tải lên hình ảnh</Button>
-                    </Upload>
-                </Form.Item>
+                        {/* Step 1: Loại tin */}
+                        <Divider orientation="left">
+                            <Space>
+                                <CarOutlined />
+                                <Text strong>Loại Tin Đăng</Text>
+                            </Space>
+                        </Divider>
 
-                <Form.Item>
-                    <Button type="primary" htmlType="submit" loading={loading} className="w-full">
-                        Tạo bài đăng
-                    </Button>
-                </Form.Item>
-            </Form>
+                        <Form.Item name="type">
+                            <Radio.Group
+                                onChange={(e) => {
+                                    setPostType(e.target.value);
+                                    form.resetFields(['brandId', 'model', 'year', 'mileage', 'capacity', 'condition']);
+                                }}
+                                value={postType}
+                                className="w-full"
+                            >
+                                <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                        <Card
+                                            hoverable
+                                            className={`text-center cursor-pointer ${postType === 'vehicle' ? 'border-blue-500 border-2 bg-blue-50' : ''}`}
+                                            onClick={() => {
+                                                setPostType('vehicle');
+                                                form.setFieldsValue({ type: 'vehicle' });
+                                                form.resetFields(['brandId', 'model', 'year', 'mileage', 'capacity', 'condition']);
+                                            }}
+                                        >
+                                            <Radio value="vehicle" className="hidden" />
+                                            <Space direction="vertical" align="center" size="middle" className="w-full py-4">
+                                                <CarOutlined className="text-5xl text-blue-600" />
+                                                <Text strong className="text-lg">Xe Điện</Text>
+                                                <Text type="secondary" className="text-sm">Đăng tin bán xe điện</Text>
+                                            </Space>
+                                        </Card>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                        <Card
+                                            hoverable
+                                            className={`text-center cursor-pointer ${postType === 'battery' ? 'border-green-500 border-2 bg-green-50' : ''}`}
+                                            onClick={() => {
+                                                setPostType('battery');
+                                                form.setFieldsValue({ type: 'battery' });
+                                                form.resetFields(['brandId', 'model', 'year', 'mileage', 'capacity', 'condition']);
+                                            }}
+                                        >
+                                            <Radio value="battery" className="hidden" />
+                                            <Space direction="vertical" align="center" size="middle" className="w-full py-4">
+                                                <span className="text-5xl">🔋</span>
+                                                <Text strong className="text-lg">Pin Xe Điện</Text>
+                                                <Text type="secondary" className="text-sm">Đăng tin bán pin</Text>
+                                            </Space>
+                                        </Card>
+                                    </Col>
+                                </Row>
+                            </Radio.Group>
+                        </Form.Item>
+
+                        {/* Step 2: Thông tin cơ bản */}
+                        <Divider orientation="left">
+                            <Space>
+                                <FileTextOutlined />
+                                <Text strong>Thông Tin Cơ Bản</Text>
+                            </Space>
+                        </Divider>
+
+                        <Row gutter={16}>
+                            <Col xs={24}>
+                                <Form.Item
+                                    name="title"
+                                    label="Tiêu đề bài đăng"
+                                    rules={[
+                                        { required: true, message: 'Vui lòng nhập tiêu đề!' },
+                                        { min: 10, message: 'Tiêu đề phải có ít nhất 10 ký tự!' },
+                                        { max: 200, message: 'Tiêu đề không được quá 200 ký tự!' }
+                                    ]}
+                                >
+                                    <Input
+                                        placeholder="VD: Xe điện VinFast VF8 2023 - Màu trắng, ít sử dụng"
+                                        showCount
+                                        maxLength={200}
+                                    />
+                                </Form.Item>
+                            </Col>
+
+                            <Col xs={24}>
+                                <Form.Item
+                                    name="description"
+                                    label="Mô tả chi tiết"
+                                    rules={[
+                                        { required: true, message: 'Vui lòng nhập mô tả!' },
+                                        { min: 20, message: 'Mô tả phải có ít nhất 20 ký tự!' }
+                                    ]}
+                                >
+                                    <TextArea
+                                        rows={6}
+                                        placeholder="Nhập mô tả chi tiết về sản phẩm: tình trạng, lịch sử sử dụng, các đặc điểm nổi bật..."
+                                        showCount
+                                        maxLength={1000}
+                                    />
+                                </Form.Item>
+                            </Col>
+
+                            <Col xs={24} sm={12}>
+                                <Form.Item
+                                    name="price"
+                                    label="Giá bán (VND)"
+                                    rules={[
+                                        { required: true, message: 'Vui lòng nhập giá!' },
+                                        {
+                                            type: 'number',
+                                            min: 1000000,
+                                            message: 'Giá phải lớn hơn 1.000.000 VND!'
+                                        }
+                                    ]}
+                                >
+                                    <InputNumber
+                                        className="w-full"
+                                        placeholder="Nhập giá bán"
+                                        formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                        parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                                        addonAfter="VND"
+                                    />
+                                </Form.Item>
+                            </Col>
+
+                            <Col xs={24} sm={12}>
+                                <Form.Item
+                                    name="brandId"
+                                    label="Thương hiệu"
+                                    rules={[{ required: true, message: 'Vui lòng chọn thương hiệu!' }]}
+                                >
+                                    <Select
+                                        placeholder="Chọn thương hiệu"
+                                        showSearch
+                                        optionFilterProp="children"
+                                    >
+                                        {(postType === 'vehicle' ? vehicleBrands : batteryBrands).map(brand => (
+                                            <Select.Option key={brand.brandId} value={brand.brandId}>
+                                                {brand.brandName}
+                                            </Select.Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
+
+                        {/* Step 3: Thông tin chi tiết */}
+                        <Divider orientation="left">
+                            <Space>
+                                <CarOutlined />
+                                <Text strong>Thông Tin Chi Tiết</Text>
+                            </Space>
+                        </Divider>
+
+                        {postType === 'vehicle' ? (
+                            <Row gutter={16}>
+                                <Col xs={24} sm={8}>
+                                    <Form.Item
+                                        name="model"
+                                        label="Model / Phiên bản"
+                                        rules={[{ required: true, message: 'Vui lòng nhập model!' }]}
+                                    >
+                                        <Input placeholder="VD: VF8 Plus" />
+                                    </Form.Item>
+                                </Col>
+
+                                <Col xs={24} sm={8}>
+                                    <Form.Item
+                                        name="year"
+                                        label="Năm sản xuất"
+                                        rules={[
+                                            { required: true, message: 'Vui lòng nhập năm sản xuất!' },
+                                            {
+                                                type: 'number',
+                                                min: 2000,
+                                                max: new Date().getFullYear() + 1,
+                                                message: 'Năm sản xuất không hợp lệ!'
+                                            }
+                                        ]}
+                                    >
+                                        <InputNumber
+                                            className="w-full"
+                                            placeholder="VD: 2023"
+                                        />
+                                    </Form.Item>
+                                </Col>
+
+                                <Col xs={24} sm={8}>
+                                    <Form.Item
+                                        name="mileage"
+                                        label="Số km đã đi"
+                                        rules={[
+                                            { required: true, message: 'Vui lòng nhập số km!' },
+                                            { type: 'number', min: 0, message: 'Số km phải >= 0!' }
+                                        ]}
+                                    >
+                                        <InputNumber
+                                            className="w-full"
+                                            placeholder="VD: 15000"
+                                            formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                            parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                                            addonAfter="km"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        ) : (
+                            <Row gutter={16}>
+                                <Col xs={24} sm={12}>
+                                    <Form.Item
+                                        name="capacity"
+                                        label="Dung lượng pin"
+                                        rules={[
+                                            { required: true, message: 'Vui lòng nhập dung lượng!' },
+                                            { type: 'number', min: 1, message: 'Dung lượng phải > 0!' }
+                                        ]}
+                                    >
+                                        <InputNumber
+                                            className="w-full"
+                                            placeholder="VD: 4000"
+                                            addonAfter="mAh"
+                                        />
+                                    </Form.Item>
+                                </Col>
+
+                                <Col xs={24} sm={12}>
+                                    <Form.Item
+                                        name="condition"
+                                        label="Tình trạng"
+                                        rules={[{ required: true, message: 'Vui lòng chọn tình trạng!' }]}
+                                    >
+                                        <Select placeholder="Chọn tình trạng pin">
+                                            <Select.Option value="Mới">🆕 Mới 100%</Select.Option>
+                                            <Select.Option value="Như mới">✨ Như mới (&gt;95%)</Select.Option>
+                                            <Select.Option value="Tốt">👍 Tốt (80-95%)</Select.Option>
+                                            <Select.Option value="Trung bình">⚡ Trung bình (60-80%)</Select.Option>
+                                            <Select.Option value="Cần thay thế">🔧 Cần thay thế (&lt;60%)</Select.Option>
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        )}
+
+                        {/* Step 4: Hình ảnh */}
+                        <Divider orientation="left">
+                            <Space>
+                                <PictureOutlined />
+                                <Text strong>Hình Ảnh Sản Phẩm</Text>
+                            </Space>
+                        </Divider>
+
+                        <Form.Item
+                            name="images"
+                            rules={[
+                                {
+                                    validator: (_, value) => {
+                                        console.log('Validating images, imageList:', imageList);
+                                        if (imageList.length === 0) {
+                                            return Promise.reject(new Error('Vui lòng tải lên ít nhất 1 hình ảnh!'));
+                                        }
+                                        return Promise.resolve();
+                                    }
+                                }
+                            ]}
+                        >
+                            <Upload
+                                listType="picture-card"
+                                maxCount={5}
+                                multiple
+                                accept="image/*"
+                                {...uploadProps}
+                            >
+                                {imageList.length < 5 && (
+                                    <div>
+                                        <PictureOutlined className="text-2xl mb-2" />
+                                        <div>Tải ảnh lên</div>
+                                        <div className="text-xs text-gray-500">
+                                            (Tối đa 5 ảnh)
+                                        </div>
+                                    </div>
+                                )}
+                            </Upload>
+                        </Form.Item>
+
+                        <Alert
+                            message="Lưu ý"
+                            description={
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>Hình ảnh rõ nét, chất lượng cao sẽ thu hút nhiều người mua hơn</li>
+                                    <li>Nên chụp nhiều góc độ khác nhau của sản phẩm</li>
+                                    <li>Mỗi ảnh không quá 5MB</li>
+                                    <li>Định dạng: JPG, PNG, JPEG</li>
+                                </ul>
+                            }
+                            type="info"
+                            className="mb-6"
+                        />
+
+                        {/* Submit Button */}
+                        <Form.Item>
+                            <Space direction="vertical" className="w-full">
+                                <Button
+                                    type="primary"
+                                    htmlType="submit"
+                                    loading={loading}
+                                    size="large"
+                                    block
+                                    disabled={walletBalance < POSTING_FEE}
+                                    className="h-12 text-lg font-semibold"
+                                    onClick={() => {
+                                        console.log('Submit button clicked!');
+                                        console.log('Current form values:', form.getFieldsValue());
+                                        console.log('Image list:', imageList);
+                                        console.log('Post type:', postType);
+                                    }}
+                                >
+                                    {walletBalance < POSTING_FEE
+                                        ? `Nạp tiền để đăng tin (Thiếu ${formatCurrency(POSTING_FEE - walletBalance)})`
+                                        : `Đăng Tin - Phí ${formatCurrency(POSTING_FEE)}`
+                                    }
+                                </Button>
+                            </Space>
+                        </Form.Item>
+
+                        {walletBalance < POSTING_FEE && (
+                            <Alert
+                                message="Số dư không đủ"
+                                description={
+                                    <Space direction="vertical">
+                                        <Text>Vui lòng nạp tiền vào ví để đăng tin.</Text>
+                                        <Button type="link" onClick={() => navigate('/profile?view=wallet')}>
+                                            Đi đến trang ví
+                                        </Button>
+                                    </Space>
+                                }
+                                type="error"
+                                showIcon
+                            />
+                        )}
+                    </Form>
+                </Card>
+            </div>
         </div>
     );
 };

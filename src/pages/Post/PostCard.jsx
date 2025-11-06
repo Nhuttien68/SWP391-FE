@@ -1,24 +1,61 @@
 
-import { Card, Image, Badge, Button, Typography, Rate, Divider } from 'antd';
+import { Card, Image, Badge, Button, Typography, Space, Tag, Tooltip, message } from 'antd';
 import {
     CarOutlined,
     ThunderboltOutlined,
     EyeOutlined,
-    HeartOutlined
+    HeartOutlined,
+    ShoppingCartOutlined,
+    ShoppingOutlined,
+    CalendarOutlined,
+    ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { cartAPI } from '../../services/cartAPI';
+import { useAuth } from '../../context/AuthContext';
 
-const { Text } = Typography;
-const { Meta } = Card;
+const { Text, Title } = Typography;
 
 const PostCard = ({ post, onViewDetail }) => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND'
         }).format(price);
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            if (days === 0) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                if (hours === 0) {
+                    const minutes = Math.floor(diff / (1000 * 60));
+                    return `${minutes} phút trước`;
+                }
+                return `${hours} giờ trước`;
+            } else if (days === 1) {
+                return 'Hôm qua';
+            } else if (days < 7) {
+                return `${days} ngày trước`;
+            } else {
+                return date.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
+        } catch (error) {
+            return '';
+        }
     };
 
     // Helper to safely render values that might be objects coming from different API shapes
@@ -108,109 +145,229 @@ const PostCard = ({ post, onViewDetail }) => {
         console.log('Liked post:', post.id);
     };
 
+    const handleAddToCart = async (e) => {
+        e.stopPropagation();
+
+        if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để thêm vào giỏ hàng');
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const response = await cartAPI.addToCart(post.id || post.postId, 1);
+            if (response.success) {
+                message.success('Đã thêm vào giỏ hàng!');
+            } else {
+                message.error(response.message);
+            }
+        } catch (error) {
+            console.error('Add to cart error:', error);
+            message.error('Không thể thêm vào giỏ hàng');
+        }
+    };
+
+    const handleBuyNow = (e) => {
+        e.stopPropagation();
+
+        if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để mua hàng');
+            navigate('/login');
+            return;
+        }
+
+        navigate('/checkout', { state: { post: post } });
+    };
+
+    const getFirstImage = () => {
+        if (post.postImages && post.postImages.length > 0) {
+            return post.postImages[0].imageUrl || post.postImages[0].ImageUrl;
+        }
+        if (post.PostImages && post.PostImages.length > 0) {
+            return post.PostImages[0].imageUrl || post.PostImages[0].ImageUrl;
+        }
+        if (post.imageUrls && post.imageUrls.length > 0) {
+            return post.imageUrls[0];
+        }
+        return 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400';
+    };
+
     return (
         <Card
             hoverable
-            className="h-full shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+            className="h-full overflow-hidden group transition-all duration-300 hover:shadow-2xl border-0"
+            bodyStyle={{ padding: '16px' }}
             onClick={handleViewDetail}
             cover={
-                <div className="relative">
+                <div className="relative overflow-hidden bg-gray-100">
                     <Image
-                        src={
-                            post.imageUrls?.[0] ||
-                            post.ImageUrl ||
-                            'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400'
-                        }
+                        src={getFirstImage()}
                         alt={post.title || post.Title || 'Xe điện'}
-                        height={200}
-                        className="object-cover w-full"
+                        height={220}
+                        className="object-cover w-full transition-transform duration-500 group-hover:scale-110"
                         preview={false}
-                        fallback="https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400"
+                        fallback="https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400"
                     />
-                    <Badge
-                        count={
-                            (post.status || post.Status) === 'SOLD' ? 'Đã bán' : 'Có sẵn' 
-                        }
-                        style={{
-                            backgroundColor: (post.status || post.Status) === 'SOLD' ? '#ff4d4f' : '#52c41a',
-                            position: 'absolute',
-                            top: 8,
-                            right: 8
-                        }}
-                    />
+
+                    {/* Badge trạng thái góc trên phải */}
+                    <div className="absolute top-3 right-3 z-10">
+                        <Badge
+                            count={(post.status || post.Status) === 'SOLD' ? 'Đã bán' : 'Còn hàng'}
+                            style={{
+                                backgroundColor: (post.status || post.Status) === 'SOLD' ? '#ff4d4f' : '#52c41a',
+                                fontWeight: '600',
+                                fontSize: '12px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                borderRadius: '6px',
+                                padding: '2px 8px'
+                            }}
+                        />
+                    </div>
+
+                    {/* Overlay gradient khi hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {/* Quick action buttons khi hover */}
+                    <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <Tooltip title="Yêu thích">
+                            <Button
+                                shape="circle"
+                                icon={<HeartOutlined />}
+                                onClick={handleLike}
+                                className="bg-white/95 hover:!bg-red-500 hover:!text-white hover:!border-red-500 transition-all"
+                            />
+                        </Tooltip>
+                        <Tooltip title="Xem chi tiết">
+                            <Button
+                                shape="circle"
+                                icon={<EyeOutlined />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewDetail();
+                                }}
+                                className="bg-white/95 hover:!bg-blue-500 hover:!text-white hover:!border-blue-500 transition-all"
+                            />
+                        </Tooltip>
+                        <div className="flex-1" />
+                        <Tooltip title="Thêm vào giỏ">
+                            <Button
+                                shape="circle"
+                                icon={<ShoppingCartOutlined />}
+                                onClick={handleAddToCart}
+                                className="bg-white/95 hover:!bg-orange-500 hover:!text-white hover:!border-orange-500 transition-all"
+                            />
+                        </Tooltip>
+                    </div>
                 </div>
             }
-            actions={[
-                <EyeOutlined key="view" />,
-                <HeartOutlined
-                    key="like"
-                    onClick={handleLike}
-                    className="hover:text-red-500"
-                />,
-                <Button
-                    key="detail"
-                    type="primary"
-                    size="small"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewDetail();
-                    }}
-                >
-                    Xem chi tiết
-                </Button>
-            ]}
         >
-            <Meta
-                title={
-                    <div>
-                        <Text strong className="text-base line-clamp-2">
-                            {renderPrimitive(post.title ?? post.Title, 'Xe điện')}
+            {/* Nội dung card */}
+            <div className="space-y-3">
+                {/* Tiêu đề */}
+                <Title
+                    level={5}
+                    className="!mb-0 line-clamp-2 !text-base !font-semibold hover:text-blue-600 transition-colors cursor-pointer min-h-[48px]"
+                >
+                    {renderPrimitive(post.title ?? post.Title, 'Xe điện')}
+                </Title>
+
+                {/* Giá tiền */}
+                <div className="flex items-baseline gap-2">
+                    <Text className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
+                        {formatPrice(getPriceValue())}
+                    </Text>
+                </div>
+
+                {/* Thương hiệu và Model */}
+                <div className="flex items-center gap-2">
+                    <CarOutlined className="text-blue-500 text-base" />
+                    <Text className="font-medium text-gray-800">{getBrand()}</Text>
+                    <Text type="secondary" className="text-xs">•</Text>
+                    <Text type="secondary" className="text-sm">{getModelOrCapacity()}</Text>
+                </div>
+
+                {/* Thông tin xe/pin */}
+                <div className="flex flex-wrap gap-2">
+                    {post.type === 'VEHICLE' && (post.vehicle || post.Vehicle) && (
+                        <>
+                            <Tag icon={<CalendarOutlined />} color="blue" className="!m-0">
+                                {getYear()}
+                            </Tag>
+                            <Tag icon={<ThunderboltOutlined />} color="green" className="!m-0">
+                                {getMileage()} km
+                            </Tag>
+                        </>
+                    )}
+
+                    {post.type === 'BATTERY' && (post.battery || post.Battery) && (
+                        <>
+                            <Tag color="orange" className="!m-0">
+                                🔋 {getCapacity()} kWh
+                            </Tag>
+                            <Tag color="cyan" className="!m-0">
+                                {getCondition()}
+                            </Tag>
+                        </>
+                    )}
+                </div>
+
+                {/* Ngày đăng tin */}
+                {(post.createdAt || post.CreatedAt) && (
+                    <div className="flex items-center gap-1">
+                        <ClockCircleOutlined className="text-gray-400 text-xs" />
+                        <Text type="secondary" className="text-xs">
+                            {formatDate(post.createdAt || post.CreatedAt)}
                         </Text>
-                        <div className="mt-2">
-                            <Text type="danger" className="text-lg font-bold">
-                                {formatPrice(getPriceValue())}
-                            </Text>
-                        </div>
                     </div>
-                }
-                description={
-                    <div className="space-y-2">
-                        <Text className="text-sm text-gray-600 line-clamp-2">
-                            {renderPrimitive(post.description ?? post.Description, 'Xe điện chất lượng cao')}
+                )}
+
+                {/* Thống kê và người bán */}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <Space size={12}>
+                        <Tooltip title="Lượt xem">
+                            <Space size={4} className="text-gray-500">
+                                <EyeOutlined />
+                                <Text className="text-xs">{Number(post.views ?? post.Views ?? 0)}</Text>
+                            </Space>
+                        </Tooltip>
+                        <Tooltip title="Lượt thích">
+                            <Space size={4} className="text-gray-500">
+                                <HeartOutlined />
+                                <Text className="text-xs">{Number(post.likes ?? post.Likes ?? 0)}</Text>
+                            </Space>
+                        </Tooltip>
+                    </Space>
+
+                    <Tooltip title={getSellerName()}>
+                        <Text type="secondary" className="text-xs truncate max-w-[100px]">
+                            📍 {getSellerName()}
                         </Text>
-                        <Text className="text-sm text-blue-600">
-                            {getBrand()} - {getModelOrCapacity()}
-                        </Text>
-                        {post.type === 'VEHICLE' && (post.vehicle || post.Vehicle) && (
-                            <div className="flex justify-between text-sm">
-                                <span><CarOutlined /> {getYear()}</span>
-                                <span><ThunderboltOutlined /> {getMileage()} km</span>
-                            </div>
-                        )}
-                        {post.type === 'BATTERY' && (post.battery || post.Battery) && (
-                            <div className="flex justify-between text-sm">
-                                <span>🔋 {getCapacity()} kWh</span>
-                                <span>📍 {getCondition()}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between text-xs text-gray-500">
-                            <span><EyeOutlined /> {Number(post.views ?? post.Views ?? 0)}</span>
-                            <span><HeartOutlined /> {Number(post.likes ?? post.Likes ?? 0)}</span>
-                        </div>
-                        <Divider className="my-2" />
-                        <div className="flex items-center justify-between">
-                            <Text className="text-xs">
-                                {getSellerName()}
-                            </Text>
-                            <Rate
-                                disabled
-                                defaultValue={Number(post.seller?.rating ?? post.Seller?.Rating ?? 4.5)}
-                                size="small"
-                            />
-                        </div>
-                    </div>
-                }
-            />
+                    </Tooltip>
+                </div>
+
+                {/* Nút hành động */}
+                <div className="flex gap-2 pt-2">
+                    <Button
+                        type="primary"
+                        danger
+                        icon={<ShoppingOutlined />}
+                        onClick={handleBuyNow}
+                        block
+                        size="large"
+                        className="!font-semibold !h-10 !rounded-lg shadow-md hover:shadow-lg transition-all"
+                    >
+                        Mua ngay
+                    </Button>
+                    <Tooltip title="Thêm vào giỏ hàng">
+                        <Button
+                            icon={<ShoppingCartOutlined />}
+                            onClick={handleAddToCart}
+                            size="large"
+                            className="!h-10 !w-10 !rounded-lg hover:!bg-orange-50 hover:!text-orange-600 hover:!border-orange-400 transition-all"
+                        />
+                    </Tooltip>
+                </div>
+            </div>
         </Card>
     );
 };

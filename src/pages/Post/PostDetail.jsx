@@ -158,6 +158,39 @@ const PostDetail = () => {
         return new Intl.NumberFormat('vi-VN').format(mileage) + ' km';
     };
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            if (days === 0) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                if (hours === 0) {
+                    const minutes = Math.floor(diff / (1000 * 60));
+                    return `${minutes} phút trước`;
+                }
+                return `${hours} giờ trước`;
+            } else if (days === 1) {
+                return 'Hôm qua';
+            } else if (days < 7) {
+                return `${days} ngày trước`;
+            } else {
+                return date.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        } catch (error) {
+            return '';
+        }
+    };
+
     const handleLike = () => {
         setLiked(!liked);
         // TODO: Call API to like/unlike
@@ -282,7 +315,7 @@ const PostDetail = () => {
                                     {post.title}
                                 </Title>
                                 <Space size="large" className="text-gray-600">
-                                    <span><CalendarOutlined /> {new Date(post.createdAt).toString()}</span>
+                                    <span><CalendarOutlined /> {formatDate(post.createdAt || post.postedDate)}</span>
                                 </Space>
                             </div>
 
