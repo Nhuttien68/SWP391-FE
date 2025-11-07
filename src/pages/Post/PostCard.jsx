@@ -196,7 +196,7 @@ const PostCard = ({ post, onViewDetail }) => {
         <Card
             hoverable
             className="h-full overflow-hidden group transition-all duration-300 hover:shadow-2xl border-0"
-            bodyStyle={{ padding: '16px' }}
+            styles={{ body: { padding: '16px' } }}
             onClick={handleViewDetail}
             cover={
                 <div className="relative overflow-hidden bg-gray-100">

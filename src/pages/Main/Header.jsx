@@ -14,10 +14,12 @@ const HeaderApp = () => {
     const [cartCount, setCartCount] = useState(0);
 
     useEffect(() => {
-        if (isAuthenticated) {
+        if (isAuthenticated && user) {
             fetchCartCount();
+        } else {
+            setCartCount(0);
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, user]);
 
     const fetchCartCount = async () => {
         try {
@@ -115,13 +117,12 @@ const HeaderApp = () => {
                         </Button>
                     </Link>
                 )}
-                {isAuthenticated && (
-                    <Link to="/createPost">
-                        <Button type="primary" className="mr-3">
-                            Tạo bài đăng
-                        </Button>
-                    </Link>
-                )}
+                {/* Nút Đăng tin - luôn hiển thị */}
+                <Link to={isAuthenticated ? "/createPost" : "/login"}>
+                    <Button type="primary" className="mr-3">
+                        Đăng tin
+                    </Button>
+                </Link>
                 {isAuthenticated ? (
                     // Hiển thị avatar và dropdown khi đã đăng nhập
                     <Dropdown

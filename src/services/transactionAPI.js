@@ -18,12 +18,12 @@ export const transactionAPI = {
             }
 
             const response = await apiClient.post('/Transactions/create', {
-                postId: transactionData.postId,
-                paymentMethod: transactionData.paymentMethod,
-                receiverName: transactionData.receiverName,
-                receiverPhone: transactionData.receiverPhone,
-                receiverAddress: transactionData.receiverAddress,
-                note: transactionData.note || ''
+                PostId: transactionData.postId,
+                PaymentMethod: transactionData.paymentMethod,
+                ReceiverName: transactionData.receiverName,
+                ReceiverPhone: transactionData.receiverPhone,
+                ReceiverAddress: transactionData.receiverAddress,
+                Note: transactionData.note || ''
             }, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -59,12 +59,12 @@ export const transactionAPI = {
             }
 
             const response = await apiClient.post('/Transactions/create-from-cart', {
-                cartId: cartTransactionData.cartId,
-                paymentMethod: cartTransactionData.paymentMethod,
-                receiverName: cartTransactionData.receiverName,
-                receiverPhone: cartTransactionData.receiverPhone,
-                receiverAddress: cartTransactionData.receiverAddress,
-                note: cartTransactionData.note || ''
+                CartId: cartTransactionData.cartId,
+                PaymentMethod: cartTransactionData.paymentMethod,
+                ReceiverName: cartTransactionData.receiverName,
+                ReceiverPhone: cartTransactionData.receiverPhone,
+                ReceiverAddress: cartTransactionData.receiverAddress,
+                Note: cartTransactionData.note || ''
             }, {
                 headers: {
                     'Authorization': `Bearer ${token}`

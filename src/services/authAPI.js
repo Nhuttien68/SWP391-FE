@@ -207,7 +207,7 @@ export const authAPI = {
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        window.location.href = '/home';
     },
 
     // Kiểm tra trạng thái đăng nhập

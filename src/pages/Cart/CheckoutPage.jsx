@@ -239,7 +239,7 @@ const CheckoutPage = () => {
                                                         <Text strong>Ví EV Marketplace</Text>
                                                         <br />
                                                         <Text type="secondary" className="text-sm">
-                                                            Thanh toán nhanh, an toàn
+                                                            Thanh toán nhanh chóng bằng số dư ví
                                                         </Text>
                                                     </div>
                                                 </Space>
@@ -247,9 +247,26 @@ const CheckoutPage = () => {
                                         </Card>
                                         <Card
                                             hoverable
-                                            className={paymentMethod === 'BANKING' ? 'border-blue-500 border-2' : ''}
+                                            className={paymentMethod === 'VNPAY' ? 'border-blue-500 border-2' : ''}
                                         >
-                                            <Radio value="BANKING">
+                                            <Radio value="VNPAY">
+                                                <Space>
+                                                    <CreditCardOutlined className="text-xl text-purple-600" />
+                                                    <div>
+                                                        <Text strong>VNPay</Text>
+                                                        <br />
+                                                        <Text type="secondary" className="text-sm">
+                                                            Thanh toán qua VNPay, an toàn và tiện lợi
+                                                        </Text>
+                                                    </div>
+                                                </Space>
+                                            </Radio>
+                                        </Card>
+                                        <Card
+                                            hoverable
+                                            className={paymentMethod === 'BANK_TRANSFER' ? 'border-blue-500 border-2' : ''}
+                                        >
+                                            <Radio value="BANK_TRANSFER">
                                                 <Space>
                                                     <CreditCardOutlined className="text-xl text-green-600" />
                                                     <div>

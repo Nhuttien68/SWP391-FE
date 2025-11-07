@@ -47,10 +47,8 @@ const quickFilters = [
 const highlightCategories = [
     { title: 'Xe điện', icon: '🚗', count: 234, color: 'blue' },
     { title: 'Pin xe điện', icon: '🔋', count: 156, color: 'green' },
-    { title: 'Phụ tùng', icon: '⚙️', count: 89, color: 'orange' },
     { title: 'Đấu giá', icon: '🔨', count: 45, color: 'red' },
-    { title: 'Sạc điện', icon: '⚡', count: 67, color: 'purple' },
-    { title: 'Phụ kiện', icon: '🎨', count: 123, color: 'pink' },
+
 ];
 
 const HomePage = () => {
@@ -259,7 +257,7 @@ const HomePage = () => {
                     <Row gutter={[24, 24]}>
                         {systemFeatures.map((feature, idx) => (
                             <Col xs={24} sm={12} md={6} key={idx}>
-                                <Card hoverable bordered={false} className="text-center h-full hover:shadow-lg transition">
+                                <Card hoverable variant="borderless" className="text-center h-full hover:shadow-lg transition">
                                     <div className="text-5xl mb-4">{feature.icon}</div>
                                     <Title level={4}>{feature.title}</Title>
                                     <Text type="secondary">{feature.description}</Text>
@@ -281,7 +279,7 @@ const HomePage = () => {
                             <Col xs={24} sm={12} md={12} lg={6} key={idx}>
                                 <Card
                                     hoverable
-                                    bordered={false}
+                                    variant="borderless"
                                     className="h-full hover:shadow-lg transition"
                                 >
                                     <div className="text-5xl mb-4 text-center">{feature.icon}</div>
@@ -333,7 +331,7 @@ const HomePage = () => {
                     <Row gutter={[16, 16]}>
                         {highlightCategories.map((cat) => (
                             <Col xs={12} sm={8} md={4} key={cat.title}>
-                                <Card hoverable bordered={false} className="text-center hover:shadow-md">
+                                <Card hoverable variant="borderless" className="text-center hover:shadow-md">
                                     <div className="text-4xl mb-2">{cat.icon}</div>
                                     <div className="font-semibold">{cat.title}</div>
                                     <Badge
@@ -395,7 +393,11 @@ const HomePage = () => {
 
                 {loading ? (
                     <div className="text-center py-20">
-                        <Spin size="large" tip="Đang tải sản phẩm..." />
+                        <Spin size="large" spinning={true}>
+                            <div className="py-12">
+                                <Text type="secondary">Đang tải sản phẩm...</Text>
+                            </div>
+                        </Spin>
                     </div>
                 ) : filteredPosts.length === 0 ? (
                     <Empty description="Không tìm thấy sản phẩm phù hợp" />
@@ -429,28 +431,28 @@ const HomePage = () => {
                     </Title>
                     <Row gutter={[32, 32]}>
                         <Col xs={24} sm={12} md={6}>
-                            <Card bordered={false} className="text-center h-full">
+                            <Card variant="borderless" className="text-center h-full">
                                 <div className="text-4xl mb-3">🛡️</div>
                                 <Title level={4}>An toàn</Title>
                                 <Text type="secondary">Giao dịch được bảo vệ 100%</Text>
                             </Card>
                         </Col>
                         <Col xs={24} sm={12} md={6}>
-                            <Card bordered={false} className="text-center h-full">
+                            <Card variant="borderless" className="text-center h-full">
                                 <div className="text-4xl mb-3">⚡</div>
                                 <Title level={4}>Nhanh chóng</Title>
                                 <Text type="secondary">Đăng bán chỉ trong 5 phút</Text>
                             </Card>
                         </Col>
                         <Col xs={24} sm={12} md={6}>
-                            <Card bordered={false} className="text-center h-full">
+                            <Card variant="borderless" className="text-center h-full">
                                 <div className="text-4xl mb-3">💰</div>
                                 <Title level={4}>Tiết kiệm</Title>
                                 <Text type="secondary">Không phí ẩn, tối ưu chi phí</Text>
                             </Card>
                         </Col>
                         <Col xs={24} sm={12} md={6}>
-                            <Card bordered={false} className="text-center h-full">
+                            <Card variant="borderless" className="text-center h-full">
                                 <div className="text-4xl mb-3">🤝</div>
                                 <Title level={4}>Hỗ trợ 24/7</Title>
                                 <Text type="secondary">Đội ngũ hỗ trợ luôn sẵn sàng</Text>
