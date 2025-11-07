@@ -85,17 +85,18 @@ const HeaderApp = () => {
             </div>
 
             {/* Navigation Menu */}
-            <Menu
-                mode="horizontal"
-                defaultSelectedKeys={["1"]}
-                items={[
-                    { key: "1", label: <Link to="/">Home</Link> },
-                    { key: "2", label: <Link to="/about">About</Link> },
-                    { key: "3", label: <Link to="/services">Services</Link> },
-                    { key: "4", label: <Link to="/contact">Contact</Link> },
-                ]}
-                className="flex-1 ml-10"
-            />
+                <Menu
+                    mode="horizontal"
+                    defaultSelectedKeys={["1"]}
+                    items={[
+                        { key: "1", label: <Link to="/">Home</Link> },
+                        { key: "market", label: <Link to="/market">Market</Link> },
+                        { key: "2", label: <Link to="/about">About</Link> },
+                        { key: "3", label: <Link to="/services">Services</Link> },
+                        { key: "4", label: <Link to="/contact">Contact</Link> },
+                    ]}
+                    className="flex-1 ml-10"
+                />
 
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">

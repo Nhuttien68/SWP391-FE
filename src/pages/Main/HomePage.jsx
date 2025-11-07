@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Row,
     Col,
@@ -346,82 +347,16 @@ const HomePage = () => {
                 </div>
             </section>
 
-            <section className="max-w-7xl mx-auto px-4 py-6 bg-gradient-to-r from-cyan-50 via-blue-50 to-cyan-50 rounded-lg">
-                <Card className="mb-6 shadow-sm bg-white/80">
-                    <Row gutter={[16, 16]} align="middle">
-                        <Col flex="auto">
-                            <Space wrap>
-                                <Select
-                                    placeholder="Thương hiệu"
-                                    allowClear
-                                    style={{ width: 200 }}
-                                    value={selectedBrand || undefined}
-                                    onChange={setSelectedBrand}
-                                    suffixIcon={<CarOutlined />}
-                                >
-                                    {brands.map((b) => (
-                                        <Option key={b.brandId ?? b.id} value={b.brandName ?? b.BrandName}>
-                                            {b.brandName ?? b.BrandName}
-                                        </Option>
-                                    ))}
-                                </Select>
-                                <Select placeholder="Khoảng giá" allowClear style={{ width: 180 }}>
-                                    <Option value="0-100">Dưới 100tr</Option>
-                                    <Option value="100-300">100tr - 300tr</Option>
-                                    <Option value="300-500">300tr - 500tr</Option>
-                                    <Option value="500+">Trên 500tr</Option>
-                                </Select>
-                                <Select placeholder="Khu vực" allowClear style={{ width: 180 }}>
-                                    <Option value="HN">Hà Nội</Option>
-                                    <Option value="HCM">TP.HCM</Option>
-                                    <Option value="DN">Đà Nẵng</Option>
-                                </Select>
-                            </Space>
-                        </Col>
-                        <Col>
-                            <Text type="secondary">
-                                Tìm thấy <strong>{filteredPosts.length}</strong> sản phẩm
-                            </Text>
-                        </Col>
-                    </Row>
-                </Card>
-
-                <Title level={3} className="!mb-6">
-                    <ThunderboltOutlined className="text-yellow-500 mr-2" />
-                    {postType === 'vehicle' ? 'Xe điện đang bán' : 'Pin xe điện nổi bật'}
-                </Title>
-
-                {loading ? (
-                    <div className="text-center py-20">
-                        <Spin size="large" spinning={true}>
-                            <div className="py-12">
-                                <Text type="secondary">Đang tải sản phẩm...</Text>
-                            </div>
-                        </Spin>
+            <section className="max-w-7xl mx-auto px-4 py-6">
+                <Card className="mb-6 shadow-sm bg-white/90 text-center">
+                    <Title level={3}>Khám phá thị trường xe & pin</Title>
+                    <Text className="block mb-4">Tìm kiếm xe điện, pin và phụ tùng trên trang thị trường chuyên biệt của chúng tôi.</Text>
+                    <div className="flex justify-center">
+                        <Link to="/market">
+                            <Button type="primary" size="large">Đi đến Thị trường</Button>
+                        </Link>
                     </div>
-                ) : filteredPosts.length === 0 ? (
-                    <Empty description="Không tìm thấy sản phẩm phù hợp" />
-                ) : (
-                    <>
-                        <Row gutter={[16, 16]}>
-                            {current.map((post) => (
-                                <Col xs={24} sm={12} md={8} lg={6} key={post.id ?? post.postId}>
-                                    <PostCard post={post} />
-                                </Col>
-                            ))}
-                        </Row>
-                        <div className="text-center mt-8">
-                            <Pagination
-                                current={currentPage}
-                                total={filteredPosts.length}
-                                pageSize={pageSize}
-                                onChange={(page) => setCurrentPage(page)}
-                                showSizeChanger={false}
-                                showTotal={(total) => `Tổng ${total} sản phẩm`}
-                            />
-                        </div>
-                    </>
-                )}
+                </Card>
             </section>
 
             <section className="bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 py-12">

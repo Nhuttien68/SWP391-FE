@@ -9,6 +9,7 @@ import ResetPassword from "./pages/Login/ResetPassword.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import HeaderApp from "./pages/Main/Header.jsx";
 import HomePage from "./pages/Main/HomePage.jsx";
+import MarketPage from "./pages/Market/MarketPage.jsx";
 import Profile from "./pages/Profile/Profile.jsx";
 import Register from "./pages/Login/Register.jsx";
 import VerifyOTP from "./pages/Login/VerifyOTP.jsx";
@@ -57,6 +58,7 @@ function App() {
           {/* Public Routes - Ai cũng có thể truy cập */}
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<HomePage />} />
+          <Route path="/market" element={<MarketPage />} />
           <Route path="/post/:id" element={<PostDetail />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
