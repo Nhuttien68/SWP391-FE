@@ -13,6 +13,7 @@ import {
     Divider,
     Steps,
     Result,
+    Modal,
 } from 'antd';
 import {
     ShoppingOutlined,
@@ -20,9 +21,11 @@ import {
     EnvironmentOutlined,
     CheckCircleOutlined,
     WalletOutlined,
+    ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { transactionAPI } from '../../services/transactionAPI';
+import { walletAPI } from '../../services/walletAPI';
 import { useAuth } from '../../context/AuthContext';
 
 const { Title, Text } = Typography;
@@ -35,6 +38,9 @@ const CheckoutPage = () => {
     const [paymentMethod, setPaymentMethod] = useState('WALLET');
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [orderId, setOrderId] = useState(null);
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+    const [pendingFormValues, setPendingFormValues] = useState(null);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -65,13 +71,31 @@ const CheckoutPage = () => {
         }).format(amount);
     };
 
-    const handleSubmit = async (values) => {
+    // Load wallet balance
+    React.useEffect(() => {
+        const fetchWalletBalance = async () => {
+            try {
+                const response = await walletAPI.getBalance();
+                if (response.success) {
+                    setWalletBalance(response.data.balance || 0);
+                }
+            } catch (error) {
+                console.error('Fetch wallet balance error:', error);
+            }
+        };
+
+        if (user) {
+            fetchWalletBalance();
+        }
+    }, [user]);
+
+    // Hàm xử lý thanh toán thực tế
+    const processPayment = async (values) => {
         setLoading(true);
         try {
             let response;
 
             if (cart) {
-                // Thanh toán giỏ hàng
                 response = await transactionAPI.createCartTransaction({
                     cartId: cart.cartId,
                     paymentMethod: paymentMethod,
@@ -81,7 +105,6 @@ const CheckoutPage = () => {
                     note: values.note || '',
                 });
             } else if (singlePost) {
-                // Thanh toán đơn lẻ
                 response = await transactionAPI.createTransaction({
                     postId: singlePost.postId || singlePost.id,
                     paymentMethod: paymentMethod,
@@ -98,14 +121,43 @@ const CheckoutPage = () => {
                 setOrderId(response.data?.transactionId || response.data?.data?.transactionId);
                 setCurrentStep(2);
             } else {
-                message.error(response.message);
+                Modal.error({
+                    title: 'Thanh toán thất bại',
+                    content: response.message || 'Đã có lỗi xảy ra trong quá trình thanh toán.',
+                    okText: 'Đã hiểu',
+                });
             }
         } catch (error) {
             console.error('Checkout error:', error);
-            message.error('Đặt hàng thất bại. Vui lòng thử lại!');
+            Modal.error({
+                title: 'Thanh toán thất bại',
+                content: error.response?.data?.message || error.message || 'Đặt hàng thất bại. Vui lòng thử lại!',
+                okText: 'Đã hiểu',
+            });
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = async (values) => {
+        // Nếu chọn WALLET, hiện modal xác nhận
+        if (paymentMethod === 'WALLET') {
+            setPendingFormValues(values);
+            setIsConfirmModalVisible(true);
+        } else {
+            // Các phương thức khác thanh toán trực tiếp
+            await processPayment(values);
+        }
+    };
+
+    const handleConfirmPayment = async () => {
+        setIsConfirmModalVisible(false);
+        await processPayment(pendingFormValues);
+    };
+
+    const handleCancelPayment = () => {
+        setIsConfirmModalVisible(false);
+        setPendingFormValues(null);
     };
 
     const steps = [
@@ -368,7 +420,7 @@ const CheckoutPage = () => {
                                         Đặt Hàng
                                     </Button>
 
-                                    <Button block onClick={() => navigate(-1)}>
+                                    <Button block onClick={() => navigate(-1)} className="mt-3">
                                         Quay Lại
                                     </Button>
                                 </Space>
@@ -376,6 +428,52 @@ const CheckoutPage = () => {
                         </Col>
                     </Row>
                 </Form>
+
+                {/* Modal xác nhận thanh toán WALLET */}
+                <Modal
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ExclamationCircleOutlined style={{ color: '#faad14', fontSize: '20px' }} />
+                            <span>Xác nhận thanh toán</span>
+                        </div>
+                    }
+                    open={isConfirmModalVisible}
+                    onOk={handleConfirmPayment}
+                    onCancel={handleCancelPayment}
+                    okText="Xác nhận thanh toán"
+                    cancelText="Hủy"
+                    okButtonProps={{
+                        disabled: walletBalance < calculateTotal(),
+                        loading: loading,
+                    }}
+                    centered
+                    width={500}
+                >
+                    <div>
+                        <p>Bạn có chắc chắn muốn thanh toán đơn hàng này?</p>
+                        <div style={{ marginTop: '16px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <span>Số dư ví hiện tại:</span>
+                                <span style={{ fontWeight: 'bold', color: '#52c41a' }}>{formatCurrency(walletBalance)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <span>Số tiền cần thanh toán:</span>
+                                <span style={{ fontWeight: 'bold', color: '#ff4d4f' }}>{formatCurrency(calculateTotal())}</span>
+                            </div>
+                            <div style={{ borderTop: '1px solid #d9d9d9', paddingTop: '8px', marginTop: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Số dư còn lại:</span>
+                                <span style={{ fontWeight: 'bold', color: walletBalance - calculateTotal() >= 0 ? '#1890ff' : '#ff4d4f' }}>
+                                    {formatCurrency(walletBalance - calculateTotal())}
+                                </span>
+                            </div>
+                        </div>
+                        {walletBalance < calculateTotal() && (
+                            <div style={{ marginTop: '12px', color: '#ff4d4f', fontWeight: 500 }}>
+                                ⚠️ Số dư không đủ. Cần thêm {formatCurrency(calculateTotal() - walletBalance)} nữa.
+                            </div>
+                        )}
+                    </div>
+                </Modal>
             </div>
         </div>
     );

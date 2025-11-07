@@ -24,16 +24,18 @@ const PaymentReturn = () => {
 
     useEffect(() => {
         const responseCode = query.get('vnp_ResponseCode');
+        const errorMessage = query.get('message'); // Lấy message lỗi từ backend
         const vnpAmount = query.get('vnp_Amount');
         const amountVND = vnpAmount ? parseInt(vnpAmount, 10) / 100 : 0;
         setAmount(amountVND);
 
-        if (responseCode === '00') {
+        if (responseCode === '00' && !errorMessage) {
+            // Chỉ thành công khi có code 00 VÀ KHÔNG có message lỗi
             setSuccess(true);
             setMessage('Nạp tiền thành công!');
         } else {
             setSuccess(false);
-            setMessage('Thanh toán thất bại hoặc bị hủy.');
+            setMessage(errorMessage || 'Thanh toán thất bại hoặc bị hủy.');
         }
         setLoading(false);
     }, [query]);

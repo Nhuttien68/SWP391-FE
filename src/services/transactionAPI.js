@@ -39,7 +39,7 @@ export const transactionAPI = {
             console.error('Create transaction error:', error);
             return {
                 success: false,
-                message: error.response?.data?.Message || 'Không thể tạo đơn hàng',
+                message: error.response?.data?.message || error.response?.data?.Message || 'Không thể tạo đơn hàng',
                 error: error.response?.data
             };
         }
@@ -80,7 +80,7 @@ export const transactionAPI = {
             console.error('Create cart transaction error:', error);
             return {
                 success: false,
-                message: error.response?.data?.Message || 'Không thể thanh toán giỏ hàng',
+                message: error.response?.data?.message || error.response?.data?.Message || 'Không thể thanh toán giỏ hàng',
                 error: error.response?.data
             };
         }

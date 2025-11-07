@@ -404,266 +404,250 @@ const WalletManagement = () => {
         },
     ];
 
-    return (
-        <div className="p-6 min-h-[80vh] bg-gray-50">
-            <div className="max-w-7xl mx-auto">
-                <div className="mb-6">
-                    <Title level={2} className="flex items-center gap-2">
-                        <WalletOutlined className="text-blue-500" />
-                        Quản lý ví điện tử
-                    </Title>
-                </div>
-
-                {!wallet ? (
-                    <div className="text-center py-16">
-                        <WalletOutlined className="text-6xl text-blue-500 mb-4" />
-                        <Title level={3} className="text-gray-700 mb-4">
-                            Chưa có ví điện tử
-                        </Title>
-                        <Text className="text-gray-500 mb-6 block">
-                            Bạn cần tạo ví để sử dụng các tính năng thanh toán và giao dịch
-                        </Text>
-                        <Button
-                            type="primary"
-                            size="large"
-                            onClick={() => setIsCreateWalletModalVisible(true)}
-                            icon={<PlusOutlined />}
-                            loading={loading}
-                        >
-                            Tạo ví ngay
-                        </Button>
-                    </div>
-                ) : (
-                    <>
-                        {/* Wallet Balance */}
-                        <Card className="mb-6 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 text-white border-0 shadow-xl">
-                            <div className="text-center">
-                                <Text className="text-white text-opacity-95 text-base block mb-2 font-medium">
-                                    Số dư hiện tại
-                                </Text>
-                                <Title level={2} className="!text-white m-0 drop-shadow-md">
-                                    {formatCurrency(walletBalance)}
-                                </Title>
-                            </div>
-                        </Card>
-
-                        {/* Statistics */}
-                        <Row gutter={[16, 16]} className="mb-6">
-                            <Col xs={24} sm={12}>
-                                <Card>
-                                    <Statistic
-                                        title="Tổng đơn mua"
-                                        value={purchases.length}
-                                        prefix={<ShoppingCartOutlined />}
-                                    />
-                                </Card>
-                            </Col>
-                            <Col xs={24} sm={12}>
-                                <Card>
-                                    <Statistic
-                                        title="Tổng đơn bán"
-                                        value={sales.length}
-                                        prefix={<TagOutlined />}
-                                    />
-                                </Card>
-                            </Col>
-                        </Row>
-
-                        {/* Action Buttons */}
-                        <Card className="mb-6">
-                            <Space size="large" className="w-full justify-center">
-                                <Button
-                                    type="primary"
-                                    icon={<PlusOutlined />}
-                                    size="large"
-                                    onClick={() => setIsDepositModalVisible(true)}
-                                    className="bg-green-500 hover:bg-green-600 border-green-500"
-                                >
-                                    Nạp tiền
-                                </Button>
-                                <Button
-                                    type="primary"
-                                    icon={<DownloadOutlined />}
-                                    size="large"
-                                    onClick={() => setIsWithdrawModalVisible(true)}
-                                    className="bg-red-500 hover:bg-red-600 border-red-500"
-                                >
-                                    Rút tiền
-                                </Button>
-                                <Button
-                                    icon={<ReloadOutlined />}
-                                    size="large"
-                                    onClick={handleRefresh}
-                                    loading={transactionsLoading}
-                                >
-                                    Làm mới
-                                </Button>
-                            </Space>
-                        </Card>
-
-                        {/* Transaction History */}
-                        <Card title="Lịch sử giao dịch" className="shadow-lg">
-                            <Tabs defaultActiveKey="purchases">
-                                <TabPane tab={`Đơn mua (${purchases.length})`} key="purchases">
-                                    {transactionsLoading ? (
-                                        <div className="text-center py-8">
-                                            <Spin size="large" />
-                                        </div>
-                                    ) : purchases.length > 0 ? (
-                                        <Table
-                                            columns={purchaseColumns}
-                                            dataSource={purchases}
-                                            rowKey="transactionId"
-                                            pagination={{ pageSize: 10 }}
-                                        />
-                                    ) : (
-                                        <Empty description="Chưa có giao dịch mua hàng" />
-                                    )}
-                                </TabPane>
-                                <TabPane tab={`Đơn bán (${sales.length})`} key="sales">
-                                    {transactionsLoading ? (
-                                        <div className="text-center py-8">
-                                            <Spin size="large" />
-                                        </div>
-                                    ) : sales.length > 0 ? (
-                                        <Table
-                                            columns={salesColumns}
-                                            dataSource={sales}
-                                            rowKey="transactionId"
-                                            pagination={{ pageSize: 10 }}
-                                        />
-                                    ) : (
-                                        <Empty description="Chưa có giao dịch bán hàng" />
-                                    )}
-                                </TabPane>
-                            </Tabs>
-                        </Card>
-                    </>
-                )}
-
-                {/* Deposit Modal */}
-                <Modal
-                    title="Nạp tiền vào ví"
-                    open={isDepositModalVisible}
-                    onCancel={() => setIsDepositModalVisible(false)}
-                    footer={null}
-                    width={500}
-                >
-                    <Form form={depositForm} layout="vertical" onFinish={handleDeposit}>
-                        <Form.Item
-                            name="amount"
-                            label="Số tiền cần nạp"
-                            rules={[
-                                { required: true, message: 'Vui lòng nhập số tiền!' },
-                                {
-                                    validator: (_, value) => {
-                                        const numValue = Number(value);
-                                        if (!value) return Promise.reject('Vui lòng nhập số tiền!');
-                                        if (isNaN(numValue) || numValue < 10000) {
-                                            return Promise.reject('Số tiền tối thiểu 10,000 VNĐ');
-                                        }
-                                        return Promise.resolve();
-                                    },
-                                },
-                            ]}
-                        >
-                            <Input
-                                type="number"
-                                placeholder="Nhập số tiền (tối thiểu 10,000 VNĐ)"
-                                suffix="VNĐ"
-                                className="text-lg"
-                            />
-                        </Form.Item>
-                        <Form.Item className="mb-0 text-right">
-                            <Space>
-                                <Button onClick={() => setIsDepositModalVisible(false)}>Hủy</Button>
-                                <Button type="primary" htmlType="submit" loading={loading}>
-                                    Thanh toán qua VNPay
-                                </Button>
-                            </Space>
-                        </Form.Item>
-                    </Form>
-                </Modal>
-
-                {/* Withdraw Modal */}
-                <Modal
-                    title="Rút tiền từ ví"
-                    open={isWithdrawModalVisible}
-                    onCancel={() => setIsWithdrawModalVisible(false)}
-                    footer={null}
-                    width={500}
-                >
-                    <Form form={withdrawForm} layout="vertical" onFinish={handleWithdraw}>
-                        <Form.Item
-                            name="bankAccount"
-                            label="Tài khoản ngân hàng"
-                            rules={[{ required: true, message: 'Vui lòng nhập số tài khoản!' }]}
-                        >
-                            <Input placeholder="Nhập số tài khoản ngân hàng" />
-                        </Form.Item>
-                        <Form.Item
-                            name="amount"
-                            label="Số tiền"
-                            rules={[
-                                { required: true, message: 'Vui lòng nhập số tiền!' },
-                                { type: 'number', min: 50000, message: 'Số tiền tối thiểu 50,000 VNĐ' },
-                            ]}
-                        >
-                            <Input
-                                type="number"
-                                placeholder="Nhập số tiền"
-                                suffix="VNĐ"
-                                className="text-lg"
-                            />
-                        </Form.Item>
-                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                            <Text type="warning">
-                                Số dư hiện tại: <strong>{formatCurrency(walletBalance)}</strong>
-                            </Text>
+    if (!isAccountActive) {
+        return (
+            <Card className="shadow-lg rounded-xl">
+                <Empty
+                    image={<WarningOutlined style={{ fontSize: 80, color: '#faad14' }} />}
+                    description={
+                        <div>
+                            <Title level={4}>Tài khoản chưa được kích hoạt</Title>
+                            <Text>Vui lòng xác thực email để sử dụng chức năng ví điện tử.</Text>
                         </div>
-                        <Form.Item className="mb-0 text-right">
-                            <Space>
-                                <Button onClick={() => setIsWithdrawModalVisible(false)}>Hủy</Button>
-                                <Button type="primary" htmlType="submit" loading={loading}>
-                                    Rút tiền
-                                </Button>
-                            </Space>
-                        </Form.Item>
-                    </Form>
-                </Modal>
+                    }
+                />
+            </Card>
+        );
+    }
 
-                {/* Create Wallet Modal */}
+    if (!wallet) {
+        return (
+            <Card className="shadow-lg rounded-xl">
+                <Empty
+                    image={<WalletOutlined style={{ fontSize: 80, color: '#1890ff' }} />}
+                    description={
+                        <div>
+                            <Title level={4}>Chưa có ví điện tử</Title>
+                            <Text>Tạo ví để bắt đầu sử dụng các dịch vụ thanh toán.</Text>
+                        </div>
+                    }
+                >
+                    <Button type="primary" size="large" onClick={() => setIsCreateWalletModalVisible(true)}>
+                        Tạo ví ngay
+                    </Button>
+                </Empty>
+
                 <Modal
                     title="Tạo ví điện tử"
                     open={isCreateWalletModalVisible}
+                    onOk={handleCreateWallet}
                     onCancel={() => setIsCreateWalletModalVisible(false)}
-                    footer={null}
-                    centered
+                    confirmLoading={loading}
                 >
-                    <div className="text-center mb-6">
-                        <WalletOutlined className="text-6xl text-blue-500 mb-4" />
-                        <Title level={4} className="mb-2">Xác nhận tạo ví</Title>
-                        <Text type="secondary">
-                            Bạn có chắc chắn muốn tạo ví điện tử? Ví sẽ được tạo với số dư ban đầu là 0 VNĐ.
-                        </Text>
-                    </div>
-
-                    <div className="flex gap-3">
-                        <Button onClick={() => setIsCreateWalletModalVisible(false)} block size="large">
-                            Hủy
-                        </Button>
-                        <Button
-                            type="primary"
-                            onClick={handleCreateWallet}
-                            block
-                            size="large"
-                            loading={loading}
-                        >
-                            Xác nhận tạo ví
-                        </Button>
-                    </div>
+                    <p>Bạn có chắc chắn muốn tạo ví điện tử không?</p>
                 </Modal>
+            </Card>
+        );
+    }
+
+    return (
+        <div className="p-6 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+                <Title level={2} className="!mb-0">
+                    <WalletOutlined className="mr-2" /> Quản lý ví điện tử
+                </Title>
+                <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
+                    Làm mới
+                </Button>
             </div>
+
+            {/* Balance Card */}
+            <Card className="mb-6 shadow-lg bg-gradient-to-r from-blue-500 to-purple-600 border-0">
+                <Row gutter={[24, 24]} align="middle">
+                    <Col xs={24} md={12}>
+                        <div className="text-white">
+                            <Text className="text-white opacity-90 text-base">Số dư hiện tại</Text>
+                            <Title level={2} className="!text-white !mt-2 !mb-0">
+                                {formatCurrency(walletBalance)}
+                            </Title>
+                        </div>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Space wrap>
+                            <Button
+                                type="primary"
+                                icon={<PlusOutlined />}
+                                onClick={() => setIsDepositModalVisible(true)}
+                                size="large"
+                                className="!bg-green-500 hover:!bg-green-600 border-0"
+                            >
+                                Nạp tiền
+                            </Button>
+                            <Button
+                                icon={<DownloadOutlined />}
+                                onClick={() => setIsWithdrawModalVisible(true)}
+                                size="large"
+                                className="!bg-white !text-gray-700"
+                            >
+                                Rút tiền
+                            </Button>
+                        </Space>
+                    </Col>
+                </Row>
+            </Card>
+
+            {/* Statistics */}
+            <Row gutter={[16, 16]} className="mb-6">
+                <Col xs={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Tổng nạp trong tháng"
+                            value={statistics.monthlyIn}
+                            prefix={<ArrowUpOutlined className="text-green-500" />}
+                            suffix="₫"
+                            valueStyle={{ color: '#52c41a' }}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Tổng chi trong tháng"
+                            value={statistics.monthlyOut}
+                            prefix={<ArrowDownOutlined className="text-red-500" />}
+                            suffix="₫"
+                            valueStyle={{ color: '#ff4d4f' }}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Đơn mua"
+                            value={purchases.length}
+                            prefix={<ShoppingCartOutlined />}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={12} md={6}>
+                    <Card>
+                        <Statistic
+                            title="Đơn bán"
+                            value={sales.length}
+                            prefix={<TagOutlined />}
+                        />
+                    </Card>
+                </Col>
+            </Row>
+
+            {/* Transaction History */}
+            <Card title="Lịch sử giao dịch" className="shadow-lg">
+                <Tabs defaultActiveKey="purchases">
+                    <TabPane tab={`Đơn mua (${purchases.length})`} key="purchases">
+                        {transactionsLoading ? (
+                            <div className="text-center py-12">
+                                <Spin size="large" />
+                            </div>
+                        ) : purchases.length > 0 ? (
+                            <Table
+                                dataSource={purchases}
+                                columns={purchaseColumns}
+                                rowKey="transactionId"
+                                pagination={{ pageSize: 10 }}
+                                scroll={{ x: 1000 }}
+                            />
+                        ) : (
+                            <Empty description="Chưa có giao dịch mua nào" />
+                        )}
+                    </TabPane>
+                    <TabPane tab={`Đơn bán (${sales.length})`} key="sales">
+                        {transactionsLoading ? (
+                            <div className="text-center py-12">
+                                <Spin size="large" />
+                            </div>
+                        ) : sales.length > 0 ? (
+                            <Table
+                                dataSource={sales}
+                                columns={salesColumns}
+                                rowKey="transactionId"
+                                pagination={{ pageSize: 10 }}
+                                scroll={{ x: 1000 }}
+                            />
+                        ) : (
+                            <Empty description="Chưa có giao dịch bán nào" />
+                        )}
+                    </TabPane>
+                </Tabs>
+            </Card>
+
+            {/* Deposit Modal */}
+            <Modal
+                title="Nạp tiền vào ví"
+                open={isDepositModalVisible}
+                onCancel={() => {
+                    setIsDepositModalVisible(false);
+                    depositForm.resetFields();
+                }}
+                footer={null}
+            >
+                <Form form={depositForm} onFinish={handleDeposit} layout="vertical">
+                    <Form.Item
+                        label="Số tiền cần nạp"
+                        name="amount"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập số tiền!' },
+                            { pattern: /^[0-9]+$/, message: 'Số tiền phải là số!' },
+                        ]}
+                    >
+                        <Input
+                            prefix={<DollarOutlined />}
+                            suffix="VNĐ"
+                            placeholder="Nhập số tiền (tối thiểu 10,000)"
+                            size="large"
+                        />
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit" loading={loading} block size="large">
+                            Nạp tiền qua VNPay
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* Withdraw Modal */}
+            <Modal
+                title="Rút tiền từ ví"
+                open={isWithdrawModalVisible}
+                onCancel={() => {
+                    setIsWithdrawModalVisible(false);
+                    withdrawForm.resetFields();
+                }}
+                footer={null}
+            >
+                <Form form={withdrawForm} onFinish={handleWithdraw} layout="vertical">
+                    <Form.Item
+                        label="Số tiền cần rút"
+                        name="amount"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập số tiền!' },
+                            { pattern: /^[0-9]+$/, message: 'Số tiền phải là số!' },
+                        ]}
+                    >
+                        <Input
+                            prefix={<DollarOutlined />}
+                            suffix="VNĐ"
+                            placeholder={`Số dư: ${formatCurrency(walletBalance)}`}
+                            size="large"
+                        />
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit" loading={loading} block size="large" danger>
+                            Rút tiền
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };
