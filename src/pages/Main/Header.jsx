@@ -1,6 +1,6 @@
 
 import { Layout, Menu, Button, Dropdown, Avatar, Badge } from "antd";
-import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined, HeartOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useState, useEffect } from "react";
@@ -51,6 +51,12 @@ const HeaderApp = () => {
             icon: <ShoppingOutlined />,
             label: 'Thông tin đơn hàng',
             onClick: () => navigate('/orders')
+        },
+        {
+            key: 'favorites',
+            icon: <HeartOutlined />,
+            label: 'Sản phẩm yêu thích',
+            onClick: () => navigate('/profile?view=favorites')
         },
         {
             key: 'wallet',
