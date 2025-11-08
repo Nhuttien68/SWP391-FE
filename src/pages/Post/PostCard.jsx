@@ -18,7 +18,29 @@ const { Text, Title } = Typography;
 
 const PostCard = ({ post, onViewDetail }) => {
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
+
+    // Determine whether the current authenticated user is the owner of this post.
+    const getOwnerId = () => {
+        return (
+            post.user?.id ?? post.user?.userId ?? post.user?.userID ?? post.userId ?? post.user?.Id ?? post.ownerId ?? null
+        );
+    };
+
+    const getCurrentUserId = () => {
+        return user?.userId
+    };
+
+    const isPostOwner = (() => {
+        try {
+            const owner = getOwnerId();
+            const cur = getCurrentUserId();
+            if (!owner || !cur) return false;
+            return String(owner) === String(cur);
+        } catch (e) {
+            return false;
+        }
+    })();
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('vi-VN', {
@@ -154,6 +176,11 @@ const PostCard = ({ post, onViewDetail }) => {
             return;
         }
 
+        if (isPostOwner) {
+            message.warning('Bạn không thể thêm bài đăng của chính mình vào giỏ hàng');
+            return;
+        }
+
         try {
             const response = await cartAPI.addToCart(post.id || post.postId, 1);
             if (response.success) {
@@ -173,6 +200,11 @@ const PostCard = ({ post, onViewDetail }) => {
         if (!isAuthenticated) {
             message.warning('Vui lòng đăng nhập để mua hàng');
             navigate('/login');
+            return;
+        }
+
+        if (isPostOwner) {
+            message.warning('Bạn không thể mua bài đăng của chính mình');
             return;
         }
 
@@ -249,11 +281,12 @@ const PostCard = ({ post, onViewDetail }) => {
                             />
                         </Tooltip>
                         <div className="flex-1" />
-                        <Tooltip title="Thêm vào giỏ">
+                        <Tooltip title={isPostOwner ? 'Không thể thêm vào giỏ hàng (bài đăng của bạn)' : 'Thêm vào giỏ'}>
                             <Button
                                 shape="circle"
                                 icon={<ShoppingCartOutlined />}
                                 onClick={handleAddToCart}
+                                disabled={isPostOwner}
                                 className="bg-white/95 hover:!bg-orange-500 hover:!text-white hover:!border-orange-500 transition-all"
                             />
                         </Tooltip>
@@ -347,21 +380,34 @@ const PostCard = ({ post, onViewDetail }) => {
 
                 {/* Nút hành động */}
                 <div className="flex gap-2 pt-2">
-                    <Button
-                        type="primary"
-                        danger
-                        icon={<ShoppingOutlined />}
-                        onClick={handleBuyNow}
-                        block
-                        size="large"
-                        className="!font-semibold !h-10 !rounded-lg shadow-md hover:shadow-lg transition-all"
-                    >
-                        Mua ngay
-                    </Button>
-                    <Tooltip title="Thêm vào giỏ hàng">
+                    {isPostOwner ? (
+                        <Button
+                            type="default"
+                            block
+                            size="large"
+                            disabled
+                            className="!font-semibold !h-10 !rounded-lg shadow-md transition-all"
+                        >
+                            Bài đăng của bạn
+                        </Button>
+                    ) : (
+                        <Button
+                            type="primary"
+                            danger
+                            icon={<ShoppingOutlined />}
+                            onClick={handleBuyNow}
+                            block
+                            size="large"
+                            className="!font-semibold !h-10 !rounded-lg shadow-md hover:shadow-lg transition-all"
+                        >
+                            Mua ngay
+                        </Button>
+                    )}
+                    <Tooltip title={isPostOwner ? 'Không thể thêm vào giỏ hàng (bài đăng của bạn)' : 'Thêm vào giỏ hàng'}>
                         <Button
                             icon={<ShoppingCartOutlined />}
                             onClick={handleAddToCart}
+                            disabled={isPostOwner}
                             size="large"
                             className="!h-10 !w-10 !rounded-lg hover:!bg-orange-50 hover:!text-orange-600 hover:!border-orange-400 transition-all"
                         />

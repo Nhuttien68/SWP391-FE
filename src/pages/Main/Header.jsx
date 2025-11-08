@@ -1,6 +1,6 @@
 
 import { Layout, Menu, Button, Dropdown, Avatar, Badge } from "antd";
-import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined, FileTextOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useState, useEffect } from "react";
@@ -45,6 +45,12 @@ const HeaderApp = () => {
             icon: <UserOutlined />,
             label: 'Thông tin cá nhân',
             onClick: () => navigate('/profile?view=profile')
+        },
+        {
+            key: 'posts',
+            icon: <FileTextOutlined />,
+            label: 'Bài đăng của tôi',
+            onClick: () => navigate('/profile?view=posts')
         },
         {
             key: 'wallet',
@@ -119,6 +125,14 @@ const HeaderApp = () => {
                     </Link>
                 )}
                 {/* Nút Đăng tin - luôn hiển thị */}
+                {isAuthenticated && (
+                    <Link to="/profile?view=posts">
+                        <Button type="default" className="mr-3">
+                            Bài đăng của tôi
+                        </Button>
+                    </Link>
+                )}
+
                 <Link to={isAuthenticated ? "/createPost" : "/login"}>
                     <Button type="primary" className="mr-3">
                         Đăng tin

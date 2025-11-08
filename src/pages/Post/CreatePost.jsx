@@ -20,7 +20,8 @@ import {
     Divider,
     Row,
     Col,
-    Alert
+    Alert,
+    Modal
 } from 'antd';
 import {
     UploadOutlined,
@@ -183,12 +184,10 @@ const CreatePost = () => {
 
             if (response.success) {
                 console.log('✅ POST CREATED SUCCESSFULLY!');
+                // Ensure user sees feedback: show toast and render an explicit Modal component
                 message.success('Tạo bài đăng thành công! Bài đăng đang chờ phê duyệt.');
-                form.resetFields();
-                setImageList([]);
-                setTimeout(() => {
-                    navigate('/profile');
-                }, 1500);
+                // Navigate to market and request the market page to show the pending modal
+                navigate('/market', { state: { showPendingModal: true } });
             } else {
                 console.error('❌ POST CREATION FAILED:', response);
                 message.error(response.message || 'Có lỗi xảy ra khi tạo bài đăng');
@@ -631,6 +630,7 @@ const CreatePost = () => {
                                 showIcon
                             />
                         )}
+                        {/* Modal is displayed on the Market page after navigation */}
                     </Form>
                 </Card>
             </div>

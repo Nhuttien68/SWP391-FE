@@ -1,4 +1,6 @@
 import apiClient from './apiClient';
+import { postAPI } from './postAPI';
+import { authAPI } from './authAPI';
 
 /**
  * Cart API - Quản lý giỏ hàng
@@ -9,6 +11,24 @@ export const cartAPI = {
      */
     addToCart: async (postId, quantity = 1) => {
         try {
+            // Defensive client-side check: prevent adding your own post to cart
+            try {
+                const currentUserId = authAPI.getCurrentUserId();
+                if (currentUserId) {
+                    const postRes = await postAPI.getPostById(postId);
+                    const owner = postRes?.data?.user?.id ?? postRes?.data?.userId ?? postRes?.data?.user?.userId ?? postRes?.data?.user?.Id ?? postRes?.data?.ownerId ?? null;
+                    if (owner && String(owner) === String(currentUserId)) {
+                        return {
+                            success: false,
+                            message: 'Bạn không thể thêm bài đăng của chính mình vào giỏ hàng'
+                        };
+                    }
+                }
+            } catch (e) {
+                // If the defensive check fails for any reason, fall back to normal flow
+                console.debug('Owner check failed in addToCart:', e);
+            }
+
             const token = localStorage.getItem('token');
             if (!token) {
                 return {

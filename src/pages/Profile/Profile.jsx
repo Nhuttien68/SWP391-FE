@@ -5,6 +5,9 @@ import { UserOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSearchParams } from 'react-router-dom';
 import WalletManagement from './WalletManagement.jsx';
+import PostCard from '../Post/PostCard.jsx';
+import { postAPI } from '../../services/postAPI';
+import { Empty, Pagination } from 'antd';
 
 const { Title } = Typography;
 
@@ -24,10 +27,37 @@ const Profile = () => {
     const getCurrentViewTitle = () => {
         switch (currentView) {
             case 'profile': return 'Thông tin cá nhân';
+            case 'posts': return 'Bài đăng của tôi';
             case 'wallet': return 'Quản lý ví điện tử';
             case 'history': return 'Lịch sử giao dịch';
             case 'settings': return 'Cài đặt tài khoản';
             default: return 'Tài khoản của tôi';
+        }
+    };
+
+    // State for My Posts view
+    const [myPosts, setMyPosts] = React.useState([]);
+    const [loadingPosts, setLoadingPosts] = React.useState(false);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const pageSize = 12;
+
+    useEffect(() => {
+        if (currentView === 'posts') {
+            loadMyPosts();
+        }
+    }, [currentView]);
+
+    const loadMyPosts = async () => {
+        setLoadingPosts(true);
+        try {
+            const res = await postAPI.getMyPosts({ page: 1, pageSize: 200 });
+            const postsData = res?.data?.data || res?.data || [];
+            const normalized = postsData.map((p) => ({ ...p, id: p.id ?? p.postId ?? p.postID }));
+            setMyPosts(normalized);
+        } catch (err) {
+            console.error('Error loading my posts', err);
+        } finally {
+            setLoadingPosts(false);
         }
     };
 
@@ -147,6 +177,38 @@ const Profile = () => {
                             <p>Tính năng này đang được phát triển...</p>
                         </div>
                     </Card>
+                );
+
+            case 'posts':
+                return (
+                    <div>
+                        <Card>
+                            <div className="mb-4 flex justify-between items-center">
+                                <Title level={4} className="!mb-0">Bài đăng của tôi</Title>
+                            </div>
+                            {myPosts.length === 0 ? (
+                                <Empty description="Bạn chưa có bài đăng nào" />
+                            ) : (
+                                <>
+                                    <Row gutter={[16, 16]}>
+                                        {myPosts.slice((currentPage - 1) * pageSize, (currentPage - 1) * pageSize + pageSize).map(post => (
+                                            <Col xs={24} sm={12} md={8} lg={6} key={post.id}>
+                                                <PostCard post={post} />
+                                            </Col>
+                                        ))}
+                                    </Row>
+                                    <div className="text-center mt-6">
+                                        <Pagination
+                                            current={currentPage}
+                                            total={myPosts.length}
+                                            pageSize={pageSize}
+                                            onChange={(p) => setCurrentPage(p)}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </Card>
+                    </div>
                 );
 
             default:

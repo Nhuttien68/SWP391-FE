@@ -26,6 +26,8 @@ import {
     ShareAltOutlined,
     PhoneOutlined,
     MessageOutlined,
+    ShoppingCartOutlined,
+    ShoppingOutlined,
     CalendarOutlined,
     EnvironmentOutlined,
     SafetyOutlined,
@@ -33,6 +35,8 @@ import {
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { postAPI } from '../../services/postAPI';
+import { cartAPI } from '../../services/cartAPI';
+import { useAuth } from '../../context/AuthContext';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -42,6 +46,28 @@ const PostDetail = () => {
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [liked, setLiked] = useState(false);
+    const { isAuthenticated, user } = useAuth();
+
+    const getOwnerId = () => {
+        return (
+            post?.user?.id ?? post?.user?.userId ?? post?.user?.userID ?? post?.userId ?? post?.user?.Id ?? post?.ownerId ?? null
+        );
+    };
+
+    const getCurrentUserId = () => {
+        return user?.id ?? user?.userId ?? user?.userID ?? user?.Id ?? null;
+    };
+
+    const isPostOwner = (() => {
+        try {
+            const owner = getOwnerId();
+            const cur = getCurrentUserId();
+            if (!owner || !cur) return false;
+            return String(owner) === String(cur);
+        } catch (e) {
+            return false;
+        }
+    })();
 
     useEffect(() => {
         if (id) {
@@ -199,6 +225,46 @@ const PostDetail = () => {
     const handleContact = () => {
         // TODO: Open contact modal or redirect to chat
         message.info('Chức năng liên hệ đang được phát triển');
+    };
+
+    const handleAddToCart = async () => {
+        if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để thêm vào giỏ hàng');
+            navigate('/login');
+            return;
+        }
+
+        if (isPostOwner) {
+            message.warning('Bạn không thể thêm bài đăng của chính mình vào giỏ hàng');
+            return;
+        }
+
+        try {
+            const response = await cartAPI.addToCart(post.id || post.postId, 1);
+            if (response.success) {
+                message.success('Đã thêm vào giỏ hàng!');
+            } else {
+                message.error(response.message || 'Không thể thêm vào giỏ hàng');
+            }
+        } catch (error) {
+            console.error('Add to cart error:', error);
+            message.error('Không thể thêm vào giỏ hàng');
+        }
+    };
+
+    const handleBuyNow = () => {
+        if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để mua hàng');
+            navigate('/login');
+            return;
+        }
+
+        if (isPostOwner) {
+            message.warning('Bạn không thể mua bài đăng của chính mình');
+            return;
+        }
+
+        navigate('/checkout', { state: { post: post } });
     };
 
     const handleCall = () => {
@@ -361,6 +427,22 @@ const PostDetail = () => {
                                     Nhắn tin cho người bán
                                 </Button>
                                 <Space className="w-full">
+                                        {/* Buy and Add-to-cart buttons */}
+                                        <Button
+                                            type={isPostOwner ? 'default' : 'primary'}
+                                            danger={!isPostOwner}
+                                            onClick={handleBuyNow}
+                                            disabled={isPostOwner}
+                                            className="!h-10 !font-semibold mr-2"
+                                        >
+                                            {isPostOwner ? 'Bài đăng của bạn' : 'Mua ngay'}
+                                        </Button>
+                                        <Button
+                                            icon={<ShoppingCartOutlined />}
+                                            onClick={handleAddToCart}
+                                            disabled={isPostOwner}
+                                            className="!h-10 !w-10 !rounded-lg"
+                                        />
                                     <Button
                                         icon={<HeartOutlined />}
                                         onClick={handleLike}
