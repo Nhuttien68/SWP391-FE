@@ -5,13 +5,16 @@ import {
     ThunderboltOutlined,
     EyeOutlined,
     HeartOutlined,
+    HeartFilled,
     ShoppingCartOutlined,
     ShoppingOutlined,
     CalendarOutlined,
     ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { cartAPI } from '../../services/cartAPI';
+import { favoriteAPI } from '../../services/favoriteAPI';
 import { useAuth } from '../../context/AuthContext';
 
 const { Text, Title } = Typography;
@@ -19,28 +22,46 @@ const { Text, Title } = Typography;
 const PostCard = ({ post, onViewDetail }) => {
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
+    const [isFavorited, setIsFavorited] = useState(false);
+    const [favoriteId, setFavoriteId] = useState(null);
+    const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
-    // Determine whether the current authenticated user is the owner of this post.
-    const getOwnerId = () => {
-        return (
-            post.user?.id ?? post.user?.userId ?? post.user?.userID ?? post.userId ?? post.user?.Id ?? post.ownerId ?? null
-        );
-    };
+    // Kiểm tra xem post này đã được yêu thích chưa
+    useEffect(() => {
+        const checkFavoriteStatus = async () => {
+            if (!isAuthenticated) {
+                setIsFavorited(false);
+                setFavoriteId(null);
+                return;
+            }
 
-    const getCurrentUserId = () => {
-        return user?.userId
-    };
+            try {
+                const response = await favoriteAPI.getAllFavorites();
+                if (response.success && response.data) {
+                    const favorites = Array.isArray(response.data) ? response.data : [];
+                    const currentPostId = post.id || post.postId;
+                    
+                    // Tìm favorite có postId trùng với post hiện tại
+                    const favorite = favorites.find(fav => {
+                        const favPostId = fav.post?.postId || fav.postId;
+                        return favPostId === currentPostId;
+                    });
 
-    const isPostOwner = (() => {
-        try {
-            const owner = getOwnerId();
-            const cur = getCurrentUserId();
-            if (!owner || !cur) return false;
-            return String(owner) === String(cur);
-        } catch (e) {
-            return false;
-        }
-    })();
+                    if (favorite) {
+                        setIsFavorited(true);
+                        setFavoriteId(favorite.favoriteId || favorite.id);
+                    } else {
+                        setIsFavorited(false);
+                        setFavoriteId(null);
+                    }
+                }
+            } catch (error) {
+                console.error('Check favorite status error:', error);
+            }
+        };
+
+        checkFavoriteStatus();
+    }, [isAuthenticated, post.id, post.postId]);
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('vi-VN', {
@@ -97,6 +118,23 @@ const PostCard = ({ post, onViewDetail }) => {
         }
         return String(val);
     };
+
+    // Determine if current authenticated user is the owner of this post
+    const getOwnerIdFromPost = (p) => {
+        if (!p) return null;
+        return (
+            p.user?.id || p.userId || p.ownerId || p.sellerId || p.user?.userId || p.postedBy || p.createdBy || p.authorId || p.author?.id || p.Id || p.id
+        );
+    };
+
+    const getCurrentUserId = (u) => {
+        if (!u) return null;
+        return (u.id || u.userId || u.userID || u._id || u.data?.id || u.user?.id || u.Id);
+    };
+
+    const ownerId = getOwnerIdFromPost(post);
+    const currentUserId = getCurrentUserId(user);
+    const isPostOwner = Boolean(currentUserId && ownerId && String(currentUserId) === String(ownerId));
 
     const getPriceValue = () => Number(post.price ?? post.Price ?? 0);
 
@@ -161,10 +199,51 @@ const PostCard = ({ post, onViewDetail }) => {
         }
     };
 
-    const handleLike = (e) => {
+    const handleLike = async (e) => {
         e.stopPropagation();
-        // TODO: Implement like functionality
-        console.log('Liked post:', post.id);
+
+        if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để thêm vào yêu thích');
+            navigate('/login');
+            return;
+        }
+
+        if (isLoadingFavorite) return;
+
+        setIsLoadingFavorite(true);
+
+        try {
+            if (isFavorited && favoriteId) {
+                // Xóa khỏi yêu thích
+                const response = await favoriteAPI.removeFavorite(favoriteId);
+                if (response.success) {
+                    setIsFavorited(false);
+                    setFavoriteId(null);
+                    message.success('Đã xóa khỏi yêu thích');
+                } else {
+                    message.error(response.message || 'Không thể xóa khỏi yêu thích');
+                }
+            } else {
+                // Thêm vào yêu thích
+                const currentPostId = post.id || post.postId;
+                const response = await favoriteAPI.addFavorite(currentPostId);
+                if (response.success) {
+                    setIsFavorited(true);
+                    // Lấy favoriteId từ response để có thể xóa sau
+                    if (response.data?.favoriteId || response.data?.id) {
+                        setFavoriteId(response.data.favoriteId || response.data.id);
+                    }
+                    message.success('Đã thêm vào yêu thích');
+                } else {
+                    message.error(response.message || 'Không thể thêm vào yêu thích');
+                }
+            }
+        } catch (error) {
+            console.error('Favorite error:', error);
+            message.error('Có lỗi xảy ra');
+        } finally {
+            setIsLoadingFavorite(false);
+        }
     };
 
     const handleAddToCart = async (e) => {
@@ -261,12 +340,17 @@ const PostCard = ({ post, onViewDetail }) => {
 
                     {/* Quick action buttons khi hover */}
                     <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                        <Tooltip title="Yêu thích">
+                        <Tooltip title={isFavorited ? "Bỏ yêu thích" : "Yêu thích"}>
                             <Button
                                 shape="circle"
-                                icon={<HeartOutlined />}
+                                icon={isFavorited ? <HeartFilled /> : <HeartOutlined />}
                                 onClick={handleLike}
-                                className="bg-white/95 hover:!bg-red-500 hover:!text-white hover:!border-red-500 transition-all"
+                                loading={isLoadingFavorite}
+                                className={`transition-all ${
+                                    isFavorited 
+                                        ? 'bg-red-500 !text-white !border-red-500 hover:!bg-red-600' 
+                                        : 'bg-white/95 hover:!bg-red-500 hover:!text-white hover:!border-red-500'
+                                }`}
                             />
                         </Tooltip>
                         <Tooltip title="Xem chi tiết">

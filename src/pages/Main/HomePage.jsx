@@ -329,9 +329,9 @@ const HomePage = () => {
                     <Title level={3} className="!mb-6">
                         <FireOutlined className="text-orange-500 mr-2" /> Danh mục nổi bật
                     </Title>
-                    <Row gutter={[16, 16]}>
+                    <Row gutter={[16, 16]} justify="center">
                         {highlightCategories.map((cat) => (
-                            <Col xs={12} sm={8} md={4} key={cat.title}>
+                            <Col xs={24} sm={12} md={8} lg={6} key={cat.title}>
                                 <Card hoverable variant="borderless" className="text-center hover:shadow-md">
                                     <div className="text-4xl mb-2">{cat.icon}</div>
                                     <div className="font-semibold">{cat.title}</div>

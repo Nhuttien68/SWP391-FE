@@ -5,9 +5,8 @@ import { UserOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSearchParams } from 'react-router-dom';
 import WalletManagement from './WalletManagement.jsx';
-import PostCard from '../Post/PostCard.jsx';
-import { postAPI } from '../../services/postAPI';
-import { Empty, Pagination } from 'antd';
+import OrdersPage from './OrdersPage.jsx';
+import FavoritesPage from './FavoritesPage.jsx';
 
 const { Title } = Typography;
 
@@ -27,7 +26,8 @@ const Profile = () => {
     const getCurrentViewTitle = () => {
         switch (currentView) {
             case 'profile': return 'Thông tin cá nhân';
-            case 'posts': return 'Bài đăng của tôi';
+            case 'purchases': return 'Thông tin đơn hàng';
+            case 'favorites': return 'Sản phẩm yêu thích';
             case 'wallet': return 'Quản lý ví điện tử';
             case 'history': return 'Lịch sử giao dịch';
             case 'settings': return 'Cài đặt tài khoản';
@@ -106,6 +106,12 @@ const Profile = () => {
 
     const renderCurrentView = () => {
         switch (currentView) {
+            case 'purchases':
+                return <OrdersPage />;
+            
+            case 'favorites':
+                return <FavoritesPage />;
+                
             case 'wallet':
                 return <WalletManagement />;
 

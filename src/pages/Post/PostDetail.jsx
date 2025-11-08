@@ -48,26 +48,22 @@ const PostDetail = () => {
     const [liked, setLiked] = useState(false);
     const { isAuthenticated, user } = useAuth();
 
-    const getOwnerId = () => {
+    // Robust owner detection to handle multiple API shapes
+    const getOwnerId = (p) => {
+        if (!p) return null;
         return (
-            post?.user?.id ?? post?.user?.userId ?? post?.user?.userID ?? post?.userId ?? post?.user?.Id ?? post?.ownerId ?? null
+            p.user?.id ?? p.userId ?? p.ownerId ?? p.sellerId ?? p.user?.userId ?? p.postedBy ?? p.createdBy ?? p.authorId ?? p.author?.id ?? p.Id ?? p.id ?? null
         );
     };
 
-    const getCurrentUserId = () => {
-        return user?.id ?? user?.userId ?? user?.userID ?? user?.Id ?? null;
+    const getCurrentUserId = (u) => {
+        if (!u) return null;
+        return (u.id ?? u.userId ?? u.userID ?? u._id ?? u.data?.id ?? u.user?.id ?? u.Id ?? null);
     };
 
-    const isPostOwner = (() => {
-        try {
-            const owner = getOwnerId();
-            const cur = getCurrentUserId();
-            if (!owner || !cur) return false;
-            return String(owner) === String(cur);
-        } catch (e) {
-            return false;
-        }
-    })();
+    const ownerId = getOwnerId(post);
+    const currentUserId = getCurrentUserId(user);
+    const isPostOwner = Boolean(currentUserId && ownerId && String(currentUserId) === String(ownerId));
 
     useEffect(() => {
         if (id) {
