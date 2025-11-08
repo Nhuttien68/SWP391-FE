@@ -82,10 +82,10 @@ const Profile = () => {
         switch (currentView) {
             case 'purchases':
                 return <OrdersPage />;
-            
+
             case 'favorites':
                 return <FavoritesPage />;
-                
+
             case 'wallet':
                 return <WalletManagement />;
 

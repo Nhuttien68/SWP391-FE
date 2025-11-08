@@ -23,6 +23,7 @@ import {
     ThunderboltOutlined,
     EyeOutlined,
     HeartOutlined,
+    HeartFilled,
     ShareAltOutlined,
     PhoneOutlined,
     MessageOutlined,
@@ -33,21 +34,58 @@ import {
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { postAPI } from '../../services/postAPI';
+import { favoriteAPI } from '../../services/favoriteAPI';
+import { useAuth } from '../../context/AuthContext';
 
 const { Title, Text, Paragraph } = Typography;
 
 const PostDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [liked, setLiked] = useState(false);
+    const [favoriteId, setFavoriteId] = useState(null);
+    const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
     useEffect(() => {
         if (id) {
             fetchPostDetail(id);
+            checkFavoriteStatus();
         }
     }, [id]);
+
+    const checkFavoriteStatus = async () => {
+        if (!isAuthenticated) {
+            setLiked(false);
+            setFavoriteId(null);
+            return;
+        }
+
+        try {
+            const response = await favoriteAPI.getAllFavorites();
+            if (response.success && response.data) {
+                const favorites = Array.isArray(response.data) ? response.data : [];
+
+                // Tìm favorite có postId trùng với post hiện tại
+                const favorite = favorites.find(fav => {
+                    const favPostId = fav.post?.postId || fav.postId;
+                    return favPostId === id;
+                });
+
+                if (favorite) {
+                    setLiked(true);
+                    setFavoriteId(favorite.favoriteId || favorite.id);
+                } else {
+                    setLiked(false);
+                    setFavoriteId(null);
+                }
+            }
+        } catch (error) {
+            console.error('Check favorite status error:', error);
+        }
+    };
 
     const fetchPostDetail = async (postId) => {
         setLoading(true);
@@ -191,9 +229,48 @@ const PostDetail = () => {
         }
     };
 
-    const handleLike = () => {
-        setLiked(!liked);
-        // TODO: Call API to like/unlike
+    const handleLike = async () => {
+        if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để thêm vào yêu thích');
+            navigate('/login');
+            return;
+        }
+
+        if (isLoadingFavorite) return;
+
+        setIsLoadingFavorite(true);
+
+        try {
+            if (liked && favoriteId) {
+                // Xóa khỏi yêu thích
+                const response = await favoriteAPI.removeFavorite(favoriteId);
+                if (response.success) {
+                    setLiked(false);
+                    setFavoriteId(null);
+                    message.success('Đã xóa khỏi yêu thích');
+                } else {
+                    message.error(response.message || 'Không thể xóa khỏi yêu thích');
+                }
+            } else {
+                // Thêm vào yêu thích
+                const response = await favoriteAPI.addFavorite(id);
+                if (response.success) {
+                    setLiked(true);
+                    // Lấy favoriteId từ response
+                    if (response.data?.favoriteId || response.data?.id) {
+                        setFavoriteId(response.data.favoriteId || response.data.id);
+                    }
+                    message.success('Đã thêm vào yêu thích');
+                } else {
+                    message.error(response.message || 'Không thể thêm vào yêu thích');
+                }
+            }
+        } catch (error) {
+            console.error('Favorite error:', error);
+            message.error('Có lỗi xảy ra');
+        } finally {
+            setIsLoadingFavorite(false);
+        }
     };
 
     const handleContact = () => {
@@ -362,9 +439,10 @@ const PostDetail = () => {
                                 </Button>
                                 <Space className="w-full">
                                     <Button
-                                        icon={<HeartOutlined />}
+                                        icon={liked ? <HeartFilled /> : <HeartOutlined />}
                                         onClick={handleLike}
-                                        className={liked ? 'text-red-500' : ''}
+                                        loading={isLoadingFavorite}
+                                        className={liked ? 'text-red-500 border-red-500' : ''}
                                     >
                                         {liked ? 'Đã thích' : 'Yêu thích'}
                                     </Button>
@@ -399,9 +477,6 @@ const PostDetail = () => {
                                         defaultValue={post.seller?.rating}
                                         className="mb-1"
                                     />
-                                    <div className="text-sm text-gray-500">
-                                        {post.seller?.totalSales} giao dịch thành công
-                                    </div>
                                 </div>
                             </div>
 

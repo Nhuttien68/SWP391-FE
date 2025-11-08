@@ -19,7 +19,7 @@ const FavoritesPage = () => {
         setLoading(true);
         try {
             const response = await favoriteAPI.getAllFavorites();
-            
+
             if (response.success) {
                 setFavorites(response.data || []);
             } else {
@@ -42,7 +42,7 @@ const FavoritesPage = () => {
     const removeFavorite = async (favoriteId) => {
         try {
             const response = await favoriteAPI.removeFavorite(favoriteId);
-            
+
             if (response.success) {
                 setFavorites(favorites.filter(fav => fav.favoriteId !== favoriteId));
                 message.success('Đã xóa khỏi danh sách yêu thích');
@@ -112,7 +112,7 @@ const FavoritesPage = () => {
                         {favorites.map((favorite) => {
                             const post = favorite.post;
                             if (!post) return null;
-                            
+
                             return (
                                 <Col xs={24} sm={12} md={8} lg={6} key={favorite.favoriteId}>
                                     <Card
