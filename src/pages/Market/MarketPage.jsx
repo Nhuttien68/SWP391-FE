@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Select, Button, Typography, Spin, Empty, Pagination, Space, Card } from 'antd';
+import { Row, Col, Select, Button, Typography, Spin, Empty, Pagination, Space, Card, Modal } from 'antd';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ThunderboltOutlined, CarOutlined } from '@ant-design/icons';
 import PostCard from '../Post/PostCard';
 import { postAPI } from '../../services/postAPI';
@@ -9,6 +10,8 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const MarketPage = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [posts, setPosts] = useState([]);
     const [searchText, setSearchText] = useState('');
@@ -17,6 +20,7 @@ const MarketPage = () => {
     const [brands, setBrands] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 12;
+    const [pendingModalVisible, setPendingModalVisible] = useState(false);
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -42,6 +46,12 @@ const MarketPage = () => {
         };
 
         loadInitialData();
+        // If navigated here with state to show pending-modal, show it then clear history state
+        if (location?.state?.showPendingModal) {
+            setPendingModalVisible(true);
+            // Replace the history entry to avoid re-showing on refresh/back
+            navigate(location.pathname, { replace: true, state: {} });
+        }
     }, []);
 
     const filteredPosts = useMemo(() => {
@@ -177,6 +187,21 @@ const MarketPage = () => {
                     </>
                 )}
             </div>
+            <Modal
+                title="Bài đăng đã được gửi"
+                open={pendingModalVisible}
+                onOk={() => {
+                    setPendingModalVisible(false);
+                    navigate('/profile?view=posts');
+                }}
+                onCancel={() => setPendingModalVisible(false)}
+                okText="Xem bài đăng của tôi"
+            >
+                <div>
+                    <p>Bài đăng của bạn đã được tạo và sẽ được kiểm duyệt bởi quản trị viên trước khi hiển thị công khai.</p>
+                    <p>Bạn có thể xem trạng thái bài đăng trong trang hồ sơ của mình.</p>
+                </div>
+            </Modal>
         </div>
     );
 };

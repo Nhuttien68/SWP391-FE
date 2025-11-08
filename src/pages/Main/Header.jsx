@@ -131,6 +131,14 @@ const HeaderApp = () => {
                     </Link>
                 )}
                 {/* Nút Đăng tin - luôn hiển thị */}
+                {isAuthenticated && (
+                    <Link to="/profile?view=posts">
+                        <Button type="default" className="mr-3">
+                            Bài đăng của tôi
+                        </Button>
+                    </Link>
+                )}
+
                 <Link to={isAuthenticated ? "/createPost" : "/login"}>
                     <Button type="primary" className="mr-3">
                         Đăng tin
