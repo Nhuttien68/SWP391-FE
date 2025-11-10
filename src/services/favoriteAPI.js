@@ -5,9 +5,10 @@ export const favoriteAPI = {
     addFavorite: async (postId) => {
         try {
             const response = await apiClient.post(`/Favorite/create/${postId}`);
+            const data = response?.data || response;
             return {
                 success: true,
-                data: response.data,
+                data: data?.data || data,
                 message: 'Đã thêm vào yêu thích'
             };
         } catch (error) {
@@ -24,9 +25,10 @@ export const favoriteAPI = {
     removeFavorite: async (favoriteId) => {
         try {
             const response = await apiClient.delete(`/Favorite/delete/${favoriteId}`);
+            const data = response?.data || response;
             return {
                 success: true,
-                data: response.data,
+                data: data?.data || data,
                 message: 'Đã xóa khỏi yêu thích'
             };
         } catch (error) {
@@ -43,9 +45,10 @@ export const favoriteAPI = {
     getAllFavorites: async () => {
         try {
             const response = await apiClient.get('/Favorite/getall');
+            const data = response?.data || response;
             return {
                 success: true,
-                data: response.data?.data || response.data,
+                data: data?.data || data,
                 message: 'Lấy danh sách yêu thích thành công'
             };
         } catch (error) {
@@ -62,9 +65,10 @@ export const favoriteAPI = {
     getFavoriteById: async (favoriteId) => {
         try {
             const response = await apiClient.get(`/Favorite/getbyid/${favoriteId}`);
+            const data = response?.data || response;
             return {
                 success: true,
-                data: response.data?.data || response.data,
+                data: data?.data || data,
                 message: 'Lấy thông tin yêu thích thành công'
             };
         } catch (error) {

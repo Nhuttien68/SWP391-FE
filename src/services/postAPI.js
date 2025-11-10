@@ -213,18 +213,8 @@ export const postAPI = {
     getMyPosts: async (params = {}) => {
         try {
             const token = localStorage.getItem('token');
-            if (!token) {
-                return {
-                    success: false,
-                    message: 'Chưa đăng nhập'
-                };
-            }
 
-            const queryParams = new URLSearchParams();
-            if (params.page) queryParams.append('page', params.page);
-            if (params.pageSize) queryParams.append('pageSize', params.pageSize);
-
-            const response = await apiClient.get(`/Posts/my-posts?${queryParams.toString()}`, {
+            const response = await apiClient.get(`/Posts/Get-Posts-By-UserId`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

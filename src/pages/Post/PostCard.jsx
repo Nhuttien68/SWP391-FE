@@ -40,7 +40,7 @@ const PostCard = ({ post, onViewDetail }) => {
                 if (response.success && response.data) {
                     const favorites = Array.isArray(response.data) ? response.data : [];
                     const currentPostId = post.id || post.postId;
-                    
+
                     // Tìm favorite có postId trùng với post hiện tại
                     const favorite = favorites.find(fav => {
                         const favPostId = fav.post?.postId || fav.postId;
@@ -346,11 +346,10 @@ const PostCard = ({ post, onViewDetail }) => {
                                 icon={isFavorited ? <HeartFilled /> : <HeartOutlined />}
                                 onClick={handleLike}
                                 loading={isLoadingFavorite}
-                                className={`transition-all ${
-                                    isFavorited 
-                                        ? 'bg-red-500 !text-white !border-red-500 hover:!bg-red-600' 
+                                className={`transition-all ${isFavorited
+                                        ? 'bg-red-500 !text-white !border-red-500 hover:!bg-red-600'
                                         : 'bg-white/95 hover:!bg-red-500 hover:!text-white hover:!border-red-500'
-                                }`}
+                                    }`}
                             />
                         </Tooltip>
                         <Tooltip title="Xem chi tiết">

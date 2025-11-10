@@ -123,9 +123,8 @@ const OrdersPage = () => {
     };
 
     const OrderCard = ({ order, isPurchase }) => {
-        const post = order.post;
-        const images = post?.postImages || [];
-        const firstImage = images[0]?.imageUrl || 'https://via.placeholder.com/100';
+        // Backend transaction DTO returns flat fields (postTitle, postImageUrl, amount, etc.)
+        const firstImage = order.postImageUrl || 'https://via.placeholder.com/100';
 
         return (
             <Card className="mb-4 shadow-sm hover:shadow-md transition">
@@ -145,7 +144,7 @@ const OrdersPage = () => {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <Title level={5} className="!mb-1">
-                                        {post?.title || 'Không có tiêu đề'}
+                                        {order.postTitle || 'Không có tiêu đề'}
                                     </Title>
                                     <Text type="secondary" className="text-sm">
                                         Mã đơn: {order.transactionId?.substring(0, 8)}...
@@ -165,7 +164,7 @@ const OrdersPage = () => {
                                     <Text strong>
                                         {isPurchase
                                             ? order.sellerName || 'N/A'
-                                            : order.receiverName || 'N/A'}
+                                            : order.buyerName || 'N/A'}
                                     </Text>
                                 </Col>
                                 <Col xs={24} sm={12}>
@@ -181,7 +180,7 @@ const OrdersPage = () => {
                                     </Text>
                                     <br />
                                     <Text strong className="text-lg text-red-600">
-                                        {formatCurrency(order.totalAmount || 0)}
+                                        {formatCurrency(order.amount || 0)}
                                     </Text>
                                 </Col>
                                 <Col xs={24} sm={12}>
@@ -190,7 +189,7 @@ const OrdersPage = () => {
                                     </Text>
                                     <br />
                                     <Text>
-                                        {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : ''}
                                     </Text>
                                 </Col>
                             </Row>
@@ -242,12 +241,12 @@ const OrdersPage = () => {
             >
                 <Space direction="vertical" className="w-full" size="middle">
                     <Card size="small" title="Thông tin sản phẩm">
-                        <Text strong>{post?.title || 'N/A'}</Text>
+                        <Text strong>{selectedOrder.postTitle || 'N/A'}</Text>
                         <br />
-                        <Text type="secondary">{post?.description || 'Không có mô tả'}</Text>
+                        <Text type="secondary">{selectedOrder.postDescription || selectedOrder.note || 'Không có mô tả'}</Text>
                         <br />
                         <Text strong className="text-lg text-red-600">
-                            {formatCurrency(selectedOrder.totalAmount || 0)}
+                            {formatCurrency(selectedOrder.amount || 0)}
                         </Text>
                     </Card>
 
@@ -256,7 +255,7 @@ const OrdersPage = () => {
                             <Col span={12}>
                                 <Text type="secondary">Tên:</Text>
                                 <br />
-                                <Text strong>{selectedOrder.receiverName}</Text>
+                                <Text strong>{selectedOrder.receiverName || selectedOrder.buyerName}</Text>
                             </Col>
                             <Col span={12}>
                                 <Text type="secondary">SĐT:</Text>

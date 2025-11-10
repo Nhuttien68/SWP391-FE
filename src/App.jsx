@@ -9,8 +9,10 @@ import ResetPassword from "./pages/Login/ResetPassword.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import HeaderApp from "./pages/Main/Header.jsx";
 import HomePage from "./pages/Main/HomePage.jsx";
-import MarketPage from "./pages/Market/MarketPage.jsx";
+import MarketPage from "./pages/Post/MarketPage.jsx";
 import Profile from "./pages/Profile/Profile.jsx";
+import ProfileInfo from "./pages/Profile/ProfileInfo.jsx";
+import ProfilePosts from "./pages/Profile/ProfilePosts.jsx";
 import Register from "./pages/Login/Register.jsx";
 import VerifyOTP from "./pages/Login/VerifyOTP.jsx";
 import Otp from "./pages/Login/Otp.jsx";
@@ -18,11 +20,14 @@ import PostDetail from "./pages/Post/PostDetail.jsx";
 import CreatePost from "./pages/Post/CreatePost.jsx";
 import CartPage from "./pages/Cart/CartPage.jsx";
 import CheckoutPage from "./pages/Cart/CheckoutPage.jsx";
-import OrdersPage from "./pages/Profile/OrdersPage.jsx";
+import OrdersPage from "./pages/Transaction/OrdersPage.jsx";
+import WalletManagement from "./pages/Transaction/WalletManagement.jsx";
+import TransactionManagement from "./pages/Transaction/TransactionManagement.jsx";
+import FavoritesPage from "./pages/Post/FavoritesPage.jsx";
 
-import AdminLayout from "./pages/admin/AdminLayout.jsx";
+import AdminLayout from "./pages/Admin/AdminLayout.jsx";
 import FooterApp from "./pages/Main/FooterApp.jsx"
-import PaymentReturn from "./pages/Profile/PaymentReturn.jsx";
+import PaymentReturn from "./pages/Transaction/PaymentReturn.jsx";
 
 function App() {
   return (
@@ -69,7 +74,12 @@ function App() {
 
           {/* Protected Routes - Chỉ truy cập khi đã đăng nhập */}
           <Route path="/createPost" element={<CreatePost />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<ProfileInfo />} />
+          <Route path="/posts" element={<ProfilePosts />} />
+          <Route path="/wallet" element={<WalletManagement />} />
+          <Route path="/history" element={<TransactionManagement />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/settings" element={<Profile />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/admin" element={<AdminLayout />} />
 

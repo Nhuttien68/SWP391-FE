@@ -46,6 +46,16 @@ export const cartAPI = {
                 }
             });
 
+            // After successfully adding, fetch updated cart and emit event so header and other components can react
+            try {
+                const updated = await cartAPI.getCart();
+                const items = updated.data?.data?.cartItems || updated.data?.cartItems || [];
+                const count = Array.isArray(items) ? items.length : 0;
+                window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count } }));
+            } catch (e) {
+                // ignore errors from fetching updated cart
+            }
+
             return {
                 success: true,
                 data: response.data,
@@ -80,9 +90,16 @@ export const cartAPI = {
                 }
             });
 
+            // apiClient returns the parsed response body. Backend wraps payload inside { Status, Message, Data }
+            // prefer Data, but support both shapes.
+            const payload = response?.Data ?? response?.data ?? response;
+
+            // If payload itself is a BaseResponse (has Data), unwrap again
+            const cart = payload?.Data ?? payload?.data ?? payload;
+
             return {
                 success: true,
-                data: response.data,
+                data: cart,
                 message: 'Lấy giỏ hàng thành công'
             };
         } catch (error) {
@@ -116,6 +133,14 @@ export const cartAPI = {
                     'Authorization': `Bearer ${token}`
                 }
             });
+
+            // emit cartUpdated event after update
+            try {
+                const updated = await cartAPI.getCart();
+                const items = updated.data?.data?.cartItems || updated.data?.cartItems || [];
+                const count = Array.isArray(items) ? items.length : 0;
+                window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count } }));
+            } catch (e) {}
 
             return {
                 success: true,
@@ -187,6 +212,11 @@ export const cartAPI = {
                     'Authorization': `Bearer ${token}`
                 }
             });
+
+            // emit cartUpdated with zero count
+            try {
+                window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: 0 } }));
+            } catch (e) {}
 
             return {
                 success: true,
