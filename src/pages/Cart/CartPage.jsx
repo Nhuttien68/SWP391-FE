@@ -128,11 +128,13 @@ const CartPage = () => {
     };
 
     const calculateTotal = () => {
-        if (!cartData?.cartItems) return 0;
-        return cartData.cartItems.reduce((sum, item) => {
-            const price = item.post?.price || 0;
-            const quantity = item.quantity || 1;
-            return sum + (price * quantity);
+        const items = cartData?.cartItems || cartData?.CartItems || [];
+        return items.reduce((sum, item) => {
+            // normalize price & quantity same as item rendering
+            const quantity = item.quantity ?? item.Quantity ?? 1;
+            const price = item.price ?? item.Price ?? (item.post?.price ?? 0);
+            const subtotal = item.subtotal ?? item.Subtotal ?? (price * quantity);
+            return sum + (Number(subtotal) || 0);
         }, 0);
     };
 

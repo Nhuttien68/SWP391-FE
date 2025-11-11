@@ -46,10 +46,15 @@ export const cartAPI = {
                 }
             });
 
-            // After successfully adding, fetch updated cart and emit event so header and other components can react
+            // Normalize backend signals: some backends return a message indicating "already exists".
+            const rawMessage = (response?.Message || response?.message || response?.data?.message || '') + '';
+            const lower = rawMessage.toLowerCase();
+            const alreadyInCart = lower.includes('already') || lower.includes('exists') || lower.includes('đã có') || lower.includes('tồn tại') || lower.includes('already in cart');
+
+            // After adding, try to refresh cart and emit an event so header and other components can react
             try {
                 const updated = await cartAPI.getCart();
-                const items = updated.data?.data?.cartItems || updated.data?.cartItems || [];
+                const items = updated.data?.data?.cartItems || updated.data?.cartItems || updated?.data || [];
                 const count = Array.isArray(items) ? items.length : 0;
                 window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count } }));
             } catch (e) {
@@ -58,8 +63,9 @@ export const cartAPI = {
 
             return {
                 success: true,
-                data: response.data,
-                message: 'Đã thêm vào giỏ hàng thành công!'
+                alreadyInCart,
+                data: response,
+                message: rawMessage || 'Đã thêm vào giỏ hàng thành công!'
             };
         } catch (error) {
             console.error('Add to cart error:', error);

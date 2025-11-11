@@ -192,7 +192,7 @@ const MarketPage = () => {
                 open={pendingModalVisible}
                 onOk={() => {
                     setPendingModalVisible(false);
-                    navigate('/profile/posts');
+                    navigate('/posts');
                 }}
                 onCancel={() => setPendingModalVisible(false)}
                 okText="Xem bài đăng của tôi"

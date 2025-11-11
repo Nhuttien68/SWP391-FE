@@ -13,6 +13,7 @@ import MarketPage from "./pages/Post/MarketPage.jsx";
 import Profile from "./pages/Profile/Profile.jsx";
 import ProfileInfo from "./pages/Profile/ProfileInfo.jsx";
 import ProfilePosts from "./pages/Profile/ProfilePosts.jsx";
+import SellerProfile from "./pages/Profile/SellerProfile.jsx";
 import Register from "./pages/Login/Register.jsx";
 import VerifyOTP from "./pages/Login/VerifyOTP.jsx";
 import Otp from "./pages/Login/Otp.jsx";
@@ -65,6 +66,7 @@ function App() {
           <Route path="/home" element={<HomePage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/seller" element={<SellerProfile />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
 
