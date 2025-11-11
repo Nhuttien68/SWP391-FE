@@ -498,22 +498,22 @@ const PostDetail = () => {
                                     Nhắn tin cho người bán
                                 </Button>
                                 <Space className="w-full">
-                                        {/* Buy and Add-to-cart buttons */}
-                                        <Button
-                                            type={isPostOwner ? 'default' : 'primary'}
-                                            danger={!isPostOwner}
-                                            onClick={handleBuyNow}
-                                            disabled={isPostOwner}
-                                            className="!h-10 !font-semibold mr-2"
-                                        >
-                                            {isPostOwner ? 'Bài đăng của bạn' : 'Mua ngay'}
-                                        </Button>
-                                        <Button
-                                            icon={<ShoppingCartOutlined />}
-                                            onClick={handleAddToCart}
-                                            disabled={isPostOwner}
-                                            className="!h-10 !w-10 !rounded-lg"
-                                        />
+                                    {/* Buy and Add-to-cart buttons */}
+                                    <Button
+                                        type={isPostOwner ? 'default' : 'primary'}
+                                        danger={!isPostOwner}
+                                        onClick={handleBuyNow}
+                                        disabled={isPostOwner}
+                                        className="!h-10 !font-semibold mr-2"
+                                    >
+                                        {isPostOwner ? 'Bài đăng của bạn' : 'Mua ngay'}
+                                    </Button>
+                                    <Button
+                                        icon={<ShoppingCartOutlined />}
+                                        onClick={handleAddToCart}
+                                        disabled={isPostOwner}
+                                        className="!h-10 !w-10 !rounded-lg"
+                                    />
                                     <Button
                                         icon={liked ? <HeartFilled /> : <HeartOutlined />}
                                         onClick={handleLike}
