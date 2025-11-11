@@ -621,7 +621,7 @@ const CreatePost = () => {
                                 description={
                                     <Space direction="vertical">
                                         <Text>Vui lòng nạp tiền vào ví để đăng tin.</Text>
-                                        <Button type="link" onClick={() => navigate('/profile?view=wallet')}>
+                                        <Button type="link" onClick={() => navigate('/profile/wallet')}>
                                             Đi đến trang ví
                                         </Button>
                                     </Space>

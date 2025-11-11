@@ -26,6 +26,8 @@ import {
 } from '@ant-design/icons';
 import { transactionAPI } from '../../services/transactionAPI';
 import { useAuth } from '../../context/AuthContext';
+import ReviewForm from '../../components/ReviewForm';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -37,7 +39,12 @@ const OrdersPage = () => {
     const [activeTab, setActiveTab] = useState('purchases');
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [detailVisible, setDetailVisible] = useState(false);
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [reviewSellerId, setReviewSellerId] = useState(null);
+    const [reviewPostId, setReviewPostId] = useState(null);
+    const [reviewTransactionId, setReviewTransactionId] = useState(null);
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchOrders();
@@ -123,9 +130,46 @@ const OrdersPage = () => {
     };
 
     const OrderCard = ({ order, isPurchase }) => {
-        const post = order.post;
-        const images = post?.postImages || [];
-        const firstImage = images[0]?.imageUrl || 'https://via.placeholder.com/100';
+        // Resolve image and seller name defensively because backend DTOs vary.
+        const resolvePostImage = (o) => {
+            const candidates = [
+                o.postImageUrl,
+                o.PostImageUrl,
+                o.imageUrl,
+                o.ImageUrl,
+                o.image,
+                o.post?.imageUrl,
+                o.post?.image,
+                o.post?.postImages?.[0]?.imageUrl,
+                o.post?.postImages?.[0]?.ImageUrl,
+                o.postImages?.[0]?.imageUrl,
+                o.postImages?.[0]?.ImageUrl,
+                o.post?.images?.[0]?.url,
+                o.post?.images?.[0]?.src,
+            ];
+            return candidates.find((c) => !!c) || 'https://via.placeholder.com/150';
+        };
+
+        const resolveSellerName = (o) => {
+            const s = o.seller || o.sellerInfo || o.sellerUser || o.user || o.buyer || null;
+            return (
+                o.sellerName ||
+                o.SellerName ||
+                o.seller?.fullName ||
+                o.seller?.name ||
+                o.seller?.username ||
+                o.seller?.displayName ||
+                o.seller?.user?.fullName ||
+                o.seller?.user?.name ||
+                s?.fullName ||
+                s?.name ||
+                s?.username ||
+                'N/A'
+            );
+        };
+
+        const firstImage = resolvePostImage(order);
+        const sellerDisplay = resolveSellerName(order);
 
         return (
             <Card className="mb-4 shadow-sm hover:shadow-md transition">
@@ -133,7 +177,7 @@ const OrdersPage = () => {
                     <Col xs={24} sm={6}>
                         <Image
                             src={firstImage}
-                            alt={post?.title}
+                            alt={order.postTitle || 'product image'}
                             className="rounded-lg object-cover"
                             width="100%"
                             height={120}
@@ -145,7 +189,7 @@ const OrdersPage = () => {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <Title level={5} className="!mb-1">
-                                        {post?.title || 'Không có tiêu đề'}
+                                        {order.postTitle || 'Không có tiêu đề'}
                                     </Title>
                                     <Text type="secondary" className="text-sm">
                                         Mã đơn: {order.transactionId?.substring(0, 8)}...
@@ -163,9 +207,7 @@ const OrdersPage = () => {
                                     </Text>
                                     <br />
                                     <Text strong>
-                                        {isPurchase
-                                            ? order.sellerName || 'N/A'
-                                            : order.receiverName || 'N/A'}
+                                        {isPurchase ? sellerDisplay : (order.buyerName || 'N/A')}
                                     </Text>
                                 </Col>
                                 <Col xs={24} sm={12}>
@@ -181,7 +223,7 @@ const OrdersPage = () => {
                                     </Text>
                                     <br />
                                     <Text strong className="text-lg text-red-600">
-                                        {formatCurrency(order.totalAmount || 0)}
+                                        {formatCurrency(order.amount || 0)}
                                     </Text>
                                 </Col>
                                 <Col xs={24} sm={12}>
@@ -190,7 +232,7 @@ const OrdersPage = () => {
                                     </Text>
                                     <br />
                                     <Text>
-                                        {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : ''}
                                     </Text>
                                 </Col>
                             </Row>
@@ -204,6 +246,20 @@ const OrdersPage = () => {
                                 >
                                     Chi tiết
                                 </Button>
+                                {isPurchase && String(order.status || '').toUpperCase() === 'COMPLETED' && (
+                                    <Button type="primary" onClick={() => {
+                                        const sellerId = order.sellerId || order.seller?.userId || order.seller?.id || order.sellerId;
+                                        const postId = order.postId || order.post?.postId || order.postId;
+                                        const txId = order.transactionId || order.TransactionId || order.transactionId;
+                                        setReviewSellerId(sellerId);
+                                        setReviewPostId(postId);
+                                        setReviewTransactionId(txId);
+                                        setReviewModalOpen(true);
+                                        message.info('Mở form gửi đánh giá...');
+                                    }}>
+                                        Gửi đánh giá
+                                    </Button>
+                                )}
                                 {isPurchase && order.status === 'PENDING' && (
                                     <Popconfirm
                                         title="Hủy đơn hàng?"
@@ -242,34 +298,16 @@ const OrdersPage = () => {
             >
                 <Space direction="vertical" className="w-full" size="middle">
                     <Card size="small" title="Thông tin sản phẩm">
-                        <Text strong>{post?.title || 'N/A'}</Text>
+                        <Text strong>{selectedOrder.postTitle || 'N/A'}</Text>
                         <br />
-                        <Text type="secondary">{post?.description || 'Không có mô tả'}</Text>
+                        <Text type="secondary">{selectedOrder.transactionId}</Text>
                         <br />
                         <Text strong className="text-lg text-red-600">
-                            {formatCurrency(selectedOrder.totalAmount || 0)}
+                            {formatCurrency(selectedOrder.amount || 0)}
                         </Text>
                     </Card>
 
-                    <Card size="small" title="Thông tin người nhận">
-                        <Row gutter={[16, 8]}>
-                            <Col span={12}>
-                                <Text type="secondary">Tên:</Text>
-                                <br />
-                                <Text strong>{selectedOrder.receiverName}</Text>
-                            </Col>
-                            <Col span={12}>
-                                <Text type="secondary">SĐT:</Text>
-                                <br />
-                                <Text strong>{selectedOrder.receiverPhone}</Text>
-                            </Col>
-                            <Col span={24}>
-                                <Text type="secondary">Địa chỉ:</Text>
-                                <br />
-                                <Text strong>{selectedOrder.receiverAddress}</Text>
-                            </Col>
-                        </Row>
-                    </Card>
+                    
 
                     <Card size="small" title="Thông tin giao dịch">
                         <Row gutter={[16, 8]}>
@@ -351,6 +389,45 @@ const OrdersPage = () => {
                 </Card>
 
                 <OrderDetailModal />
+                <ReviewForm
+                    open={reviewModalOpen}
+                    sellerId={reviewSellerId}
+                    postId={reviewPostId}
+                    transactionIdFromOrder={reviewTransactionId}
+                    onClose={() => setReviewModalOpen(false)}
+                    onSubmitted={async (info) => {
+                            console.log('[OrdersPage] onSubmitted received', info);
+                            // refresh orders and close modal after submitting review
+                            fetchOrders();
+                            console.log('[OrdersPage] fetchOrders called');
+                            setReviewModalOpen(false);
+                            setReviewTransactionId(null);
+
+                            // If parent was given a postId, navigate to the post detail page.
+                            // If postId is missing, try to resolve it from the transaction id returned by the child.
+                            try {
+                                let pid = info?.postId;
+                                if (!pid && info?.transactionId) {
+                                    console.log('[OrdersPage] postId missing, attempting to fetch transaction to resolve postId', info.transactionId);
+                                    try {
+                                        const txResp = await transactionAPI.getTransactionById(info.transactionId);
+                                        // transactionAPI returns { success, data }
+                                        const tx = txResp?.data || txResp?.data?.data || txResp;
+                                        pid = tx?.postId || tx?.PostId || tx?.post?.postId || tx?.post?.id || tx?.post?._id || tx?.postId;
+                                        console.log('[OrdersPage] resolved postId from transaction:', pid);
+                                    } catch (err) {
+                                        console.error('[OrdersPage] error fetching transaction to resolve postId', err);
+                                    }
+                                }
+
+                                console.log('[OrdersPage] navigating to post', pid);
+                                if (pid) {
+                                    navigate(`/post/${pid}`);
+                                    console.log('[OrdersPage] navigate called');
+                                }
+                            } catch (e) { console.error('[OrdersPage] navigation error', e); }
+                        }}
+                />
             </div>
         </div>
     );

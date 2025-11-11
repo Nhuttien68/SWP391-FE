@@ -127,7 +127,7 @@ const PaymentReturn = () => {
                             <Button
                                 size="large"
                                 icon={<WalletOutlined />}
-                                onClick={() => navigate('/profile?view=wallet')}
+                                onClick={() => navigate('/profile/wallet')}
                                 className="h-12 font-semibold"
                             >
                                 Quản lý ví

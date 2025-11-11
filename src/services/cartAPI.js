@@ -46,10 +46,26 @@ export const cartAPI = {
                 }
             });
 
+            // Normalize backend signals: some backends return a message indicating "already exists".
+            const rawMessage = (response?.Message || response?.message || response?.data?.message || '') + '';
+            const lower = rawMessage.toLowerCase();
+            const alreadyInCart = lower.includes('already') || lower.includes('exists') || lower.includes('đã có') || lower.includes('tồn tại') || lower.includes('already in cart');
+
+            // After adding, try to refresh cart and emit an event so header and other components can react
+            try {
+                const updated = await cartAPI.getCart();
+                const items = updated.data?.data?.cartItems || updated.data?.cartItems || updated?.data || [];
+                const count = Array.isArray(items) ? items.length : 0;
+                window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count } }));
+            } catch (e) {
+                // ignore errors from fetching updated cart
+            }
+
             return {
                 success: true,
-                data: response.data,
-                message: 'Đã thêm vào giỏ hàng thành công!'
+                alreadyInCart,
+                data: response,
+                message: rawMessage || 'Đã thêm vào giỏ hàng thành công!'
             };
         } catch (error) {
             console.error('Add to cart error:', error);
@@ -80,9 +96,16 @@ export const cartAPI = {
                 }
             });
 
+            // apiClient returns the parsed response body. Backend wraps payload inside { Status, Message, Data }
+            // prefer Data, but support both shapes.
+            const payload = response?.Data ?? response?.data ?? response;
+
+            // If payload itself is a BaseResponse (has Data), unwrap again
+            const cart = payload?.Data ?? payload?.data ?? payload;
+
             return {
                 success: true,
-                data: response.data,
+                data: cart,
                 message: 'Lấy giỏ hàng thành công'
             };
         } catch (error) {
@@ -116,6 +139,14 @@ export const cartAPI = {
                     'Authorization': `Bearer ${token}`
                 }
             });
+
+            // emit cartUpdated event after update
+            try {
+                const updated = await cartAPI.getCart();
+                const items = updated.data?.data?.cartItems || updated.data?.cartItems || [];
+                const count = Array.isArray(items) ? items.length : 0;
+                window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count } }));
+            } catch (e) {}
 
             return {
                 success: true,
@@ -187,6 +218,11 @@ export const cartAPI = {
                     'Authorization': `Bearer ${token}`
                 }
             });
+
+            // emit cartUpdated with zero count
+            try {
+                window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: 0 } }));
+            } catch (e) {}
 
             return {
                 success: true,

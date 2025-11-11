@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, Avatar, Descriptions, Button, Row, Col, Typography, Dropdown } from 'antd';
+import { Card, Avatar, Descriptions, Button, Row, Col, Typography, Dropdown, Empty } from 'antd';
 import { UserOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSearchParams } from 'react-router-dom';
-import WalletManagement from './WalletManagement.jsx';
-import OrdersPage from './OrdersPage.jsx';
-import FavoritesPage from './FavoritesPage.jsx';
+import WalletManagement from '../Transaction/WalletManagement.jsx';
+import OrdersPage from '../Transaction/OrdersPage.jsx';
+import FavoritesPage from '../Post/FavoritesPage.jsx';
+import postAPI from '../../services/postAPI.js';
 
 const { Title } = Typography;
 

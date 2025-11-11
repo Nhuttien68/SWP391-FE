@@ -246,6 +246,9 @@ const PostCard = ({ post, onViewDetail }) => {
         }
     };
 
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [inCart, setInCart] = useState(false);
+
     const handleAddToCart = async (e) => {
         e.stopPropagation();
 
@@ -260,18 +263,89 @@ const PostCard = ({ post, onViewDetail }) => {
             return;
         }
 
+        if (isAddingToCart) return;
+
+        // If we already know it's in cart, short-circuit and inform the user
+        if (inCart) {
+            message.info('Sản phẩm đã có trong giỏ hàng');
+            return;
+        }
+
+        setIsAddingToCart(true);
+        // show a short loading toast so user sees feedback immediately
+        const hide = message.loading({ content: 'Đang thêm vào giỏ hàng...', key: 'addCart' });
         try {
             const response = await cartAPI.addToCart(post.id || post.postId, 1);
             if (response.success) {
-                message.success('Đã thêm vào giỏ hàng!');
+                if (response.alreadyInCart) {
+                    message.open({ content: 'Sản phẩm đã có trong giỏ hàng', type: 'info', key: 'addCart', duration: 2 });
+                } else {
+                    message.open({ content: response.message || 'Đã thêm vào giỏ hàng!', type: 'success', key: 'addCart', duration: 2 });
+                }
             } else {
-                message.error(response.message);
+                // If API returned success:false (rare), show message
+                if (response.alreadyInCart) {
+                    message.open({ content: 'Sản phẩm đã có trong giỏ hàng', type: 'info', key: 'addCart', duration: 2 });
+                } else {
+                    message.open({ content: response.message || 'Không thể thêm vào giỏ hàng', type: 'error', key: 'addCart', duration: 2 });
+                }
             }
         } catch (error) {
             console.error('Add to cart error:', error);
-            message.error('Không thể thêm vào giỏ hàng');
+            const errMsg = error?.response?.data?.Message || error?.message || '';
+            const lower = (errMsg || '').toString().toLowerCase();
+            if (lower.includes('already') || lower.includes('exists') || lower.includes('đã có') || lower.includes('tồn tại')) {
+                message.open({ content: 'Sản phẩm đã có trong giỏ hàng', type: 'info', key: 'addCart', duration: 2 });
+            } else {
+                message.open({ content: 'Không thể thêm vào giỏ hàng', type: 'error', key: 'addCart', duration: 2 });
+            }
+        } finally {
+            setIsAddingToCart(false);
         }
     };
+
+    // Load current cart and detect whether this post is already in cart
+    useEffect(() => {
+        let mounted = true;
+        const checkInCart = async () => {
+            if (!isAuthenticated) {
+                if (mounted) setInCart(false);
+                return;
+            }
+            try {
+                const res = await cartAPI.getCart();
+                // cartAPI.getCart returns { success, data }
+                const cart = res?.data ?? res?.data?.Data ?? res?.data?.data ?? res?.data ?? res;
+                const items = cart?.cartItems || cart?.CartItems || cart || [];
+                const currentPostId = post.id || post.postId;
+                const exists = Array.isArray(items) && items.some(item => {
+                    const pid = item.postId ?? item.PostId ?? item.post?.id ?? item.post?.postId ?? item.postId ?? item.post?.PostId;
+                    // Some backends return nested post object
+                    if (!pid && item.post) {
+                        return String(item.post?.id || item.post?.postId) === String(currentPostId);
+                    }
+                    return String(pid) === String(currentPostId);
+                });
+                if (mounted) setInCart(Boolean(exists));
+            } catch (err) {
+                // don't block UX on cart fetch errors
+                if (mounted) setInCart(false);
+            }
+        };
+
+        checkInCart();
+
+        const onCartUpdated = (ev) => {
+            // Re-check when cart updates elsewhere
+            checkInCart();
+        };
+
+        window.addEventListener('cartUpdated', onCartUpdated);
+        return () => {
+            mounted = false;
+            window.removeEventListener('cartUpdated', onCartUpdated);
+        };
+    }, [isAuthenticated, post.id, post.postId]);
 
     const handleBuyNow = (e) => {
         e.stopPropagation();

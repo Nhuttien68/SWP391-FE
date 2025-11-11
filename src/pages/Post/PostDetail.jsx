@@ -39,6 +39,8 @@ import { postAPI } from '../../services/postAPI';
 import { favoriteAPI } from '../../services/favoriteAPI';
 import { cartAPI } from '../../services/cartAPI';
 import { useAuth } from '../../context/AuthContext';
+import ReviewList from '../../components/ReviewList';
+import ReviewForm from '../../components/ReviewForm';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -298,6 +300,10 @@ const PostDetail = () => {
         message.info('Chức năng liên hệ đang được phát triển');
     };
 
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [inCart, setInCart] = useState(false);
+    
+
     const handleAddToCart = async () => {
         if (!isAuthenticated) {
             message.warning('Vui lòng đăng nhập để thêm vào giỏ hàng');
@@ -310,18 +316,80 @@ const PostDetail = () => {
             return;
         }
 
+        if (isAddingToCart) return;
+
+        // If we already know it's in cart, short-circuit
+        if (inCart) {
+            message.info('Sản phẩm đã có trong giỏ hàng');
+            return;
+        }
+
+        setIsAddingToCart(true);
+        const hide = message.loading({ content: 'Đang thêm vào giỏ hàng...', key: 'addCart' });
         try {
             const response = await cartAPI.addToCart(post.id || post.postId, 1);
             if (response.success) {
-                message.success('Đã thêm vào giỏ hàng!');
+                if (response.alreadyInCart) {
+                    message.open({ content: 'Sản phẩm đã có trong giỏ hàng', type: 'info', key: 'addCart', duration: 2 });
+                } else {
+                    message.open({ content: response.message || 'Đã thêm vào giỏ hàng!', type: 'success', key: 'addCart', duration: 2 });
+                }
             } else {
-                message.error(response.message || 'Không thể thêm vào giỏ hàng');
+                if (response.alreadyInCart) {
+                    message.open({ content: 'Sản phẩm đã có trong giỏ hàng', type: 'info', key: 'addCart', duration: 2 });
+                } else {
+                    message.open({ content: response.message || 'Không thể thêm vào giỏ hàng', type: 'error', key: 'addCart', duration: 2 });
+                }
             }
         } catch (error) {
             console.error('Add to cart error:', error);
-            message.error('Không thể thêm vào giỏ hàng');
+            const errMsg = error?.response?.data?.Message || error?.message || '';
+            const lower = (errMsg || '').toString().toLowerCase();
+            if (lower.includes('already') || lower.includes('exists') || lower.includes('đã có') || lower.includes('tồn tại')) {
+                message.open({ content: 'Sản phẩm đã có trong giỏ hàng', type: 'info', key: 'addCart', duration: 2 });
+            } else {
+                message.open({ content: 'Không thể thêm vào giỏ hàng', type: 'error', key: 'addCart', duration: 2 });
+            }
+        } finally {
+            setIsAddingToCart(false);
         }
     };
+
+    // Check if this post is already in cart; re-run on cartUpdated events
+    useEffect(() => {
+        let mounted = true;
+        const checkInCart = async () => {
+            if (!isAuthenticated) {
+                if (mounted) setInCart(false);
+                return;
+            }
+            try {
+                const res = await cartAPI.getCart();
+                const cart = res?.data ?? res?.data?.Data ?? res?.data?.data ?? res?.data ?? res;
+                const items = cart?.cartItems || cart?.CartItems || cart || [];
+                const currentPostId = post?.id || post?.postId || id;
+                const exists = Array.isArray(items) && items.some(item => {
+                    const pid = item.postId ?? item.PostId ?? item.post?.id ?? item.post?.postId ?? item.postId ?? item.post?.PostId;
+                    if (!pid && item.post) {
+                        return String(item.post?.id || item.post?.postId) === String(currentPostId);
+                    }
+                    return String(pid) === String(currentPostId);
+                });
+                if (mounted) setInCart(Boolean(exists));
+            } catch (err) {
+                if (mounted) setInCart(false);
+            }
+        };
+
+        checkInCart();
+
+        const onCartUpdated = () => checkInCart();
+        window.addEventListener('cartUpdated', onCartUpdated);
+        return () => {
+            mounted = false;
+            window.removeEventListener('cartUpdated', onCartUpdated);
+        };
+    }, [isAuthenticated, id, post]);
 
     const handleBuyNow = () => {
         if (!isAuthenticated) {
@@ -417,6 +485,7 @@ const PostDetail = () => {
                                     </div>
                                 </div>
                             )}
+                            
                         </Card>
 
                         {/* Specifications */}
@@ -437,6 +506,10 @@ const PostDetail = () => {
                                     </>
                                 )}
                             </Descriptions>
+                        </Card>
+                        {/* Reviews - placed under specifications as requested */}
+                        <Card title="Đánh giá" className="mt-4">
+                            <ReviewList userId={post.user?.userId || post.user?.id || post.seller?.userId || post.seller?.id || id} />
                         </Card>
                     </Col>
 
@@ -539,9 +612,20 @@ const PostDetail = () => {
                                 />
                                 <div>
                                     <div className="flex items-center mb-1">
-                                        <Text strong className="text-lg mr-2">
+                                        <Button
+                                            type="link"
+                                            onClick={() => {
+                                                // Prefer passing the full user object from post to avoid extra server fetch
+                                                const sellerObj = post.user || post.seller || {
+                                                    userId: post.user?.userId || post.user?.id || post.seller?.id || id,
+                                                    fullName: post.user?.fullName || post.seller?.name || 'Người bán'
+                                                };
+                                                navigate('/seller', { state: { user: sellerObj } });
+                                            }}
+                                            className="p-0 !text-lg"
+                                        >
                                             {post.user?.fullName}
-                                        </Text>
+                                        </Button>
                                         {post.user?.status == 'ACTIVE' && (
                                             <Tag color="blue" icon={<SafetyOutlined />}>
                                                 Đã xác minh
@@ -578,6 +662,7 @@ const PostDetail = () => {
                         </Card>
                     </Col>
                 </Row>
+                {/* Review form moved to Orders page - creation should be done from Orders */}
             </div>
 
             <FloatButton.BackTop />

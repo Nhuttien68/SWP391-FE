@@ -49,7 +49,9 @@ const CartPage = () => {
         try {
             const response = await cartAPI.getCart();
             if (response.success) {
-                setCartData(response.data?.data || response.data);
+                // cartAPI returns the CartResponseDTO in camelCase (cartItems etc.)
+                const cartPayload = response.data?.Data ?? response.data?.data ?? response.data ?? response;
+                setCartData(cartPayload);
             } else {
                 message.error(response.message);
             }
@@ -126,11 +128,13 @@ const CartPage = () => {
     };
 
     const calculateTotal = () => {
-        if (!cartData?.cartItems) return 0;
-        return cartData.cartItems.reduce((sum, item) => {
-            const price = item.post?.price || 0;
-            const quantity = item.quantity || 1;
-            return sum + (price * quantity);
+        const items = cartData?.cartItems || cartData?.CartItems || [];
+        return items.reduce((sum, item) => {
+            // normalize price & quantity same as item rendering
+            const quantity = item.quantity ?? item.Quantity ?? 1;
+            const price = item.price ?? item.Price ?? (item.post?.price ?? 0);
+            const subtotal = item.subtotal ?? item.Subtotal ?? (price * quantity);
+            return sum + (Number(subtotal) || 0);
         }, 0);
     };
 
@@ -149,7 +153,7 @@ const CartPage = () => {
         );
     }
 
-    const cartItems = cartData?.cartItems || [];
+    const cartItems = cartData?.cartItems || cartData?.CartItems || [];
     const isEmpty = cartItems.length === 0;
 
     return (
@@ -203,22 +207,23 @@ const CartPage = () => {
                             >
                                 <Space direction="vertical" className="w-full" size="middle">
                                     {cartItems.map((item) => {
-                                        const post = item.post;
-                                        const vehicle = post?.vehicle;
-                                        const battery = post?.battery;
-                                        const images = post?.postImages || [];
-                                        const firstImage = images[0]?.imageUrl || 'https://via.placeholder.com/150';
-                                        const price = post?.price || 0;
-                                        const quantity = item.quantity || 1;
+                                        // Support backend CartItemResponseDTO (flat fields) and legacy nested shape
+                                        const cartItemId = item.cartItemId || item.CartItemId || item.id || item.cartItemID;
+                                        const quantity = item.quantity ?? item.Quantity ?? 1;
+                                        const price = item.price ?? item.Price ?? (item.post?.price ?? 0);
+                                        const title = item.postTitle ?? item.PostTitle ?? item.post?.title ?? item.post?.postTitle;
+                                        const description = item.postDescription ?? item.PostDescription ?? item.post?.description;
+                                        const subtotal = item.subtotal ?? item.Subtotal ?? item.price * quantity ?? 0;
+                                        const imageUrl = item.imageUrl ?? item.ImageUrl ?? (item.post?.postImages?.[0]?.imageUrl) ?? 'https://via.placeholder.com/150';
 
                                         return (
-                                            <Card key={item.cartItemId} className="shadow-sm">
+                                            <Card key={cartItemId} className="shadow-sm">
                                                 <Row gutter={[16, 16]} align="middle">
                                                     {/* Image */}
                                                     <Col xs={24} sm={6}>
                                                         <Image
-                                                            src={firstImage}
-                                                            alt={post?.title}
+                                                            src={imageUrl}
+                                                            alt={title}
                                                             className="rounded-lg object-cover"
                                                             width="100%"
                                                             height={120}
@@ -230,17 +235,11 @@ const CartPage = () => {
                                                     <Col xs={24} sm={10}>
                                                         <Space direction="vertical" size="small">
                                                             <Title level={5} className="!mb-0">
-                                                                {post?.title || 'Không có tiêu đề'}
+                                                                {title || 'Không có tiêu đề'}
                                                             </Title>
                                                             <Text type="secondary">
-                                                                {vehicle?.brandName || battery?.brandName || 'N/A'}
+                                                                {description || 'N/A'}
                                                             </Text>
-                                                            {vehicle && (
-                                                                <Tag color="blue">Xe điện</Tag>
-                                                            )}
-                                                            {battery && (
-                                                                <Tag color="green">Pin xe điện</Tag>
-                                                            )}
                                                             <Text strong className="text-lg text-blue-600">
                                                                 {formatCurrency(price)}
                                                             </Text>
@@ -254,30 +253,30 @@ const CartPage = () => {
                                                                 <Button
                                                                     icon={<MinusOutlined />}
                                                                     size="small"
-                                                                    onClick={() => handleUpdateQuantity(item.cartItemId, quantity - 1)}
+                                                                    onClick={() => handleUpdateQuantity(cartItemId, Math.max(1, quantity - 1))}
                                                                     disabled={quantity <= 1 || updating}
                                                                 />
                                                                 <InputNumber
                                                                     min={1}
                                                                     value={quantity}
-                                                                    onChange={(val) => handleUpdateQuantity(item.cartItemId, val)}
+                                                                    onChange={(val) => handleUpdateQuantity(cartItemId, val)}
                                                                     disabled={updating}
                                                                     className="w-16"
                                                                 />
                                                                 <Button
                                                                     icon={<PlusOutlined />}
                                                                     size="small"
-                                                                    onClick={() => handleUpdateQuantity(item.cartItemId, quantity + 1)}
+                                                                    onClick={() => handleUpdateQuantity(cartItemId, quantity + 1)}
                                                                     disabled={updating}
                                                                 />
                                                             </Space>
                                                             <Text strong className="text-base">
-                                                                Tổng: {formatCurrency(price * quantity)}
+                                                                Tổng: {formatCurrency(subtotal || (price * quantity))}
                                                             </Text>
                                                             <Popconfirm
                                                                 title="Xóa sản phẩm?"
                                                                 description="Bạn có chắc muốn xóa sản phẩm này?"
-                                                                onConfirm={() => handleRemoveItem(item.cartItemId)}
+                                                                onConfirm={() => handleRemoveItem(cartItemId)}
                                                                 okText="Xóa"
                                                                 cancelText="Hủy"
                                                             >
