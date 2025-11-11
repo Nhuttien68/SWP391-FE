@@ -184,13 +184,13 @@ const CheckoutPage = () => {
                         title="Đặt Hàng Thành Công!"
                         subTitle={`Mã đơn hàng: ${orderId || 'N/A'}. Chúng tôi sẽ liên hệ với bạn sớm nhất.`}
                         extra={[
-                            <Button type="primary" key="orders" onClick={() => navigate('/profile?view=purchases')}>
-                                Xem Đơn Hàng
-                            </Button>,
-                            <Button key="home" onClick={() => navigate('/')}>
-                                Về Trang Chủ
-                            </Button>,
-                        ]}
+                                    <Button type="primary" key="orders" onClick={() => navigate('/orders')}>
+                                        Xem Đơn Hàng
+                                    </Button>,
+                                    <Button key="home" onClick={() => navigate('/')}>
+                                        Về Trang Chủ
+                                    </Button>,
+                                ]}
                     />
                 </div>
             </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Select, Button, Typography, Spin, Empty, Pagination, Space, Card, Modal } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ThunderboltOutlined, CarOutlined } from '@ant-design/icons';
-import PostCard from '../Post/PostCard';
+import PostCard from './PostCard';
 import { postAPI } from '../../services/postAPI';
 import { brandAPI } from '../../services/brandAPI';
 
@@ -192,7 +192,7 @@ const MarketPage = () => {
                 open={pendingModalVisible}
                 onOk={() => {
                     setPendingModalVisible(false);
-                    navigate('/profile?view=posts');
+                    navigate('/posts');
                 }}
                 onCancel={() => setPendingModalVisible(false)}
                 okText="Xem bài đăng của tôi"

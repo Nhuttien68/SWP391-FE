@@ -1,9 +1,9 @@
 
-import { Layout, Menu, Button, Dropdown, Avatar, Badge } from "antd";
-import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined, HeartOutlined } from "@ant-design/icons";
+import { Layout, Menu, Button, Dropdown, Avatar, Badge, Tooltip } from "antd";
+import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined, HeartOutlined, FileTextOutlined, PlusOutlined, LoginOutlined, UserAddOutlined, MenuOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cartAPI } from "../../services/cartAPI.js";
 
 const { Header } = Layout;
@@ -12,6 +12,8 @@ const HeaderApp = () => {
     const { user, isAuthenticated, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
     const [cartCount, setCartCount] = useState(0);
+    // Whether header should use compact (mobile) layout. Determined by width/height ratio.
+    const [isCompact, setIsCompact] = useState(false);
 
     useEffect(() => {
         if (isAuthenticated && user) {
@@ -20,6 +22,22 @@ const HeaderApp = () => {
             setCartCount(0);
         }
     }, [isAuthenticated, user]);
+
+    // Listen for cart updates emitted by cartAPI so header count stays in sync
+    useEffect(() => {
+        const handler = (e) => {
+            try {
+                const count = e?.detail?.count;
+                if (typeof count === 'number') setCartCount(count);
+                else fetchCartCount();
+            } catch (err) {
+                fetchCartCount();
+            }
+        };
+
+        window.addEventListener('cartUpdated', handler);
+        return () => window.removeEventListener('cartUpdated', handler);
+    }, []);
 
     const fetchCartCount = async () => {
         try {
@@ -38,43 +56,131 @@ const HeaderApp = () => {
         navigate('/');
     };
 
+    // Determine compact mode based on width/height ratio.
+    useEffect(() => {
+        const RATIO_THRESHOLD = 1.6; // width/height ratios below this will enable compact header
+
+        const evaluate = () => {
+            try {
+                const w = window.innerWidth || document.documentElement.clientWidth;
+                const h = window.innerHeight || document.documentElement.clientHeight;
+                if (!w || !h) return;
+                const ratio = w / h;
+                setIsCompact(ratio < RATIO_THRESHOLD);
+            } catch (e) {
+                // ignore
+            }
+        };
+
+        evaluate();
+        window.addEventListener('resize', evaluate);
+        window.addEventListener('orientationchange', evaluate);
+        return () => {
+            window.removeEventListener('resize', evaluate);
+            window.removeEventListener('orientationchange', evaluate);
+        };
+    }, []);
+
+    // Overflow handling for action buttons: measure available width and move excess into More menu
+    const actionsContainerRef = useRef(null);
+    const actionButtonRefs = useRef({});
+    const [visibleActionsCount, setVisibleActionsCount] = useState(null);
+
+    const actionsList = [
+        { key: 'posts', label: 'Bài đăng', icon: <FileTextOutlined />, to: '/posts' },
+        { key: 'favorites', label: 'Yêu thích', icon: <HeartOutlined />, to: '/favorites' },
+        { key: 'cart', label: 'Giỏ hàng', icon: <ShoppingCartOutlined />, to: '/cart', badge: cartCount },
+        { key: 'wallet', label: 'Ví', icon: <WalletOutlined />, to: '/wallet' },
+    ];
+
+    useEffect(() => {
+        const measure = () => {
+            try {
+                const container = actionsContainerRef.current;
+                if (!container) return;
+                const containerWidth = container.clientWidth;
+                // measure each button width (including margin approx)
+                const widths = actionsList.map(a => {
+                    const el = actionButtonRefs.current[a.key];
+                    if (!el) return 0;
+                    return el.offsetWidth + 8; // small gap allowance
+                });
+
+                let sum = 0;
+                let count = widths.length;
+                for (let i = 0; i < widths.length; i++) {
+                    sum += widths[i];
+                    if (sum > containerWidth) {
+                        count = i; break;
+                    }
+                }
+                setVisibleActionsCount(count);
+            } catch (e) {
+                // ignore
+            }
+        };
+
+        measure();
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    // recompute when cartCount or auth changes which may affect labels
+    }, [cartCount, isAuthenticated]);
+
     // Menu dropdown cho user đã đăng nhập
     const userMenuItems = [
         {
             key: 'profile',
             icon: <UserOutlined />,
             label: 'Thông tin cá nhân',
-            onClick: () => navigate('/profile?view=profile')
-        },
-        {
-            key: 'orders',
-            icon: <ShoppingOutlined />,
-            label: 'Thông tin đơn hàng',
-            onClick: () => navigate('/orders')
+            onClick: () => navigate('/profile')
         },
         {
             key: 'favorites',
             icon: <HeartOutlined />,
-            label: 'Sản phẩm yêu thích',
-            onClick: () => navigate('/profile?view=favorites')
+            label: 'Bài đăng yêu thích',
+            onClick: () => navigate('/favorites')
+        },
+        // moved back into dropdown: posts, favorites, cart, wallet
+        {
+            key: 'posts',
+            icon: <FileTextOutlined />,
+            label: 'Bài đăng của tôi',
+            onClick: () => navigate('/posts')
+        },
+        {
+            key: 'cart',
+            icon: <ShoppingCartOutlined />,
+            label: (
+                <span>
+                    Giỏ hàng&nbsp;
+                    <Badge count={cartCount} offset={[6, 0]} />
+                </span>
+            ),
+            onClick: () => navigate('/cart')
         },
         {
             key: 'wallet',
             icon: <WalletOutlined />,
             label: 'Quản lý ví',
-            onClick: () => navigate('/profile?view=wallet')
+            onClick: () => navigate('/wallet')
+        },
+        {
+            key: 'orders',
+            icon: <ShoppingOutlined />,
+            label: 'Quản lý đơn hàng',
+            onClick: () => navigate('/orders')
         },
         {
             key: 'history',
             icon: <HistoryOutlined />,
             label: 'Lịch sử giao dịch',
-            onClick: () => navigate('/profile?view=history')
+            onClick: () => navigate('/history')
         },
         {
             key: 'settings',
             icon: <SettingOutlined />,
             label: 'Cài đặt',
-            onClick: () => navigate('/profile?view=settings')
+            onClick: () => navigate('/settings')
         },
         {
             type: 'divider',
@@ -97,32 +203,43 @@ const HeaderApp = () => {
             </div>
 
             {/* Navigation Menu */}
-            <Menu
-                mode="horizontal"
-                defaultSelectedKeys={["1"]}
-                items={[
-                    { key: "1", label: <Link to="/">Home</Link> },
-                    { key: "market", label: <Link to="/market">Market</Link> },
-                    { key: "2", label: <Link to="/about">About</Link> },
-                    { key: "3", label: <Link to="/services">Services</Link> },
-                    { key: "4", label: <Link to="/contact">Contact</Link> },
-                ]}
-                className="flex-1 ml-10"
-            />
+            {/* Navigation: show horizontal menu when not compact, otherwise show a mobile dropdown */}
+            {!isCompact ? (
+                <div className="flex-1 ml-10">
+                    <Menu
+                        mode="horizontal"
+                        defaultSelectedKeys={["1"]}
+                        items={[
+                            { key: "1", label: <Link to="/">Home</Link> },
+                            { key: "market", label: <Link to="/market">Market</Link> },
+                            { key: "2", label: <Link to="/about">About</Link> },
+                            { key: "3", label: <Link to="/services">Services</Link> },
+                            { key: "4", label: <Link to="/contact">Contact</Link> },
+                        ]}
+                    />
+                </div>
+            ) : (
+                <div>
+                    <Dropdown
+                        menu={{
+                            items: [
+                                { key: "1", label: <Link to="/">Home</Link> },
+                                { key: "market", label: <Link to="/market">Market</Link> },
+                                { key: "2", label: <Link to="/about">About</Link> },
+                                { key: "3", label: <Link to="/services">Services</Link> },
+                                { key: "4", label: <Link to="/contact">Contact</Link> },
+                            ]
+                        }}
+                        trigger={["click"]}
+                        placement="bottomRight"
+                    >
+                        <Button type="text" icon={<MenuOutlined />} />
+                    </Dropdown>
+                </div>
+            )}
 
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">
-                {isAuthenticated && (
-                    <Link to="/cart">
-                        <Badge count={cartCount} offset={[-5, 5]}>
-                            <Button
-                                type="text"
-                                icon={<ShoppingCartOutlined className="text-xl" />}
-                                className="mr-2"
-                            />
-                        </Badge>
-                    </Link>
-                )}
                 {isAdmin && (
                     <Link to="/admin">
                         <Button type="default" className="mr-3">
@@ -130,20 +247,30 @@ const HeaderApp = () => {
                         </Button>
                     </Link>
                 )}
-                {/* Nút Đăng tin - luôn hiển thị */}
+
+                {/* Keep only admin and create-post visible in header; others live in dropdown */}
                 {isAuthenticated && (
-                    <Link to="/profile?view=posts">
-                        <Button type="default" className="mr-3">
-                            Bài đăng của tôi
-                        </Button>
+                    <Link to={isAuthenticated ? "/createPost" : "/login"}>
+                        <Button type="primary" className="mr-3">Đăng tin</Button>
                     </Link>
                 )}
 
-                <Link to={isAuthenticated ? "/createPost" : "/login"}>
-                    <Button type="primary" className="mr-3">
-                        Đăng tin
-                    </Button>
-                </Link>
+                {/* When not authenticated, show compact login/register icons */}
+                {!isAuthenticated && (
+                    <>
+                        <Link to="/login">
+                            <Button type="default" className="mr-2">
+                                Đăng nhập
+                            </Button>
+                        </Link>
+                        <Link to="/register">
+                            <Button type="primary">
+                                Đăng ký
+                            </Button>
+                        </Link>
+                    </>
+                )}
+
                 {isAuthenticated ? (
                     // Hiển thị avatar và dropdown khi đã đăng nhập
                     <Dropdown
@@ -152,26 +279,20 @@ const HeaderApp = () => {
                         arrow
                     >
                         <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded">
-                            <Avatar
-                                size="default"
-                                icon={<UserOutlined />}
-                                src={user?.avatar} // Nếu có avatar URL
-                            />
-                            <span className="text-gray-700 font-medium">
-                                {user?.fullName || user?.email || 'User'}
-                            </span>
-                        </div>
+                                <Avatar
+                                    size="default"
+                                    icon={<UserOutlined />}
+                                    src={user?.avatar} // Nếu có avatar URL
+                                />
+                                {/* Show user's name next to avatar when available */}
+                                <span className="hidden sm:inline-block font-medium text-sm">
+                                    {user?.fullName || user?.email || ''}
+                                </span>
+                            </div>
                     </Dropdown>
                 ) : (
-                    // Hiển thị Login/Signup khi chưa đăng nhập
-                    <>
-                        <Link to="/login">
-                            <Button type="default">Đăng nhập</Button>
-                        </Link>
-                        <Link to="/register">
-                            <Button type="primary">Đăng ký</Button>
-                        </Link>
-                    </>
+                    // unauthenticated login/register icons shown above
+                    null
                 )}
             </div>
         </Header>

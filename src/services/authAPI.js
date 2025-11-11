@@ -227,6 +227,17 @@ export const authAPI = {
         return userStr ? JSON.parse(userStr) : null;
     },
 
+    // Lấy id của user hiện tại (hỗ trợ nhiều trường id khác nhau)
+    getCurrentUserId: () => {
+        const u = (() => {
+            const userStr = localStorage.getItem('user');
+            return userStr ? JSON.parse(userStr) : null;
+        })();
+
+        if (!u) return null;
+        return u.userId || u.userId || u.userId || u.id || u.accountId || u.userID || null;
+    },
+
     // Tạo ví điện tử
     createWallet: async () => {
         try {
