@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
             if (result.success) {
                 const userData = authAPI.getCurrentUser();
                 userData.status = result.data.status;
-                
+
                 setUser(userData);
                 setIsAuthenticated(true);
                 setIsAdmin(userData.role === 'ADMIN');

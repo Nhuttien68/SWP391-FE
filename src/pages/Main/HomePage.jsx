@@ -194,9 +194,19 @@ const HomePage = () => {
             title: 'Chào Mừng Đến EV Marketplace',
             subtitle: 'Nền tảng trao đổi xe điện và phụ tùng hàng đầu Việt Nam',
             description: 'Kết nối người mua và người bán trong cộng đồng xe điện uy tín',
-            image: '🚗',
+            image: '/images/ev-car-1.jpg',
+            isRealImage: true,
             bgColor: 'from-blue-600 to-blue-800',
             cta: 'Khám Phá Ngay',
+        },
+        {
+            title: 'Pin Xe Điện',
+            subtitle: 'Công nghệ pin tiên tiến - An toàn và bền bỉ',
+            description: 'Mua bán pin xe điện chính hãng với giá tốt nhất thị trường',
+            image: '/images/ev-pin.png',
+            isRealImage: true,
+            bgColor: 'from-green-600 to-green-800',
+            cta: 'Xem Pin Ngay',
         },
         {
             title: 'An Toàn & Bảo Vệ',
@@ -205,14 +215,6 @@ const HomePage = () => {
             image: '🔒',
             bgColor: 'from-green-600 to-green-800',
             cta: 'Tìm Hiểu Thêm',
-        },
-        {
-            title: 'Cộng Đồng Xe Điện',
-            subtitle: 'Chia sẻ kinh nghiệm, thông tin sản phẩm',
-            description: 'Tham gia diễn đàn, nhận tư vấn từ các chuyên gia',
-            image: '👥',
-            bgColor: 'from-purple-600 to-purple-800',
-            cta: 'Tham Gia Ngay',
         },
     ];
 
@@ -223,27 +225,62 @@ const HomePage = () => {
                 <Carousel autoplay dotPosition="bottom" className="w-full">
                     {introSlides.map((slide, idx) => (
                         <div key={idx}>
-                            <div className={`bg-gradient-to-r ${slide.bgColor} py-20 md:py-32 text-center`}>
-                                <div className="max-w-4xl mx-auto px-4">
-                                    <div className="text-6xl md:text-8xl mb-6">{slide.image}</div>
-                                    <Title level={1} className="!text-white !mb-3 !text-3xl md:!text-5xl">
-                                        {slide.title}
-                                    </Title>
-                                    <Text className="text-blue-100 text-lg md:text-xl block mb-4">
-                                        {slide.subtitle}
-                                    </Text>
-                                    <Text className="text-blue-50 text-base md:text-lg block mb-8">
-                                        {slide.description}
-                                    </Text>
-                                    <Button
-                                        type="primary"
-                                        size="large"
-                                        className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
-                                    >
-                                        {slide.cta}
-                                    </Button>
+                            {slide.isRealImage ? (
+                                // Slide với ảnh thật
+                                <div className="relative h-[500px] md:h-[600px] overflow-hidden">
+                                    <img
+                                        src={slide.image}
+                                        alt={slide.title}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    {/* Overlay gradient */}
+                                    <div className="absolute inset-0 bg-gradient-to-b from-blue-900/70 via-blue-900/50 to-blue-900/70"></div>
+
+                                    {/* Content overlay */}
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+
+                                        <Title level={1} className="!text-white !mb-3 !text-3xl md:!text-5xl">
+                                            {slide.title}
+                                        </Title>
+                                        <Text className="text-blue-100 text-lg md:text-xl block mb-4">
+                                            {slide.subtitle}
+                                        </Text>
+                                        <Text className="text-blue-50 text-base md:text-lg block mb-8">
+                                            {slide.description}
+                                        </Text>
+                                        <Button
+                                            type="primary"
+                                            size="large"
+                                            className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
+                                        >
+                                            {slide.cta}
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                // Slide với emoji
+                                <div className={`bg-gradient-to-r ${slide.bgColor} py-20 md:py-32 text-center`}>
+                                    <div className="max-w-4xl mx-auto px-4">
+                                        <div className="text-6xl md:text-8xl mb-6">{slide.image}</div>
+                                        <Title level={1} className="!text-white !mb-3 !text-3xl md:!text-5xl">
+                                            {slide.title}
+                                        </Title>
+                                        <Text className="text-blue-100 text-lg md:text-xl block mb-4">
+                                            {slide.subtitle}
+                                        </Text>
+                                        <Text className="text-blue-50 text-base md:text-lg block mb-8">
+                                            {slide.description}
+                                        </Text>
+                                        <Button
+                                            type="primary"
+                                            size="large"
+                                            className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
+                                        >
+                                            {slide.cta}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </Carousel>

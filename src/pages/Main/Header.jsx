@@ -123,7 +123,7 @@ const HeaderApp = () => {
         measure();
         window.addEventListener('resize', measure);
         return () => window.removeEventListener('resize', measure);
-    // recompute when cartCount or auth changes which may affect labels
+        // recompute when cartCount or auth changes which may affect labels
     }, [cartCount, isAuthenticated]);
 
     // Menu dropdown cho user đã đăng nhập
@@ -133,30 +133,6 @@ const HeaderApp = () => {
             icon: <UserOutlined />,
             label: 'Thông tin cá nhân',
             onClick: () => navigate('/profile')
-        },
-        {
-            key: 'favorites',
-            icon: <HeartOutlined />,
-            label: 'Bài đăng yêu thích',
-            onClick: () => navigate('/favorites')
-        },
-        // moved back into dropdown: posts, favorites, cart, wallet
-        {
-            key: 'posts',
-            icon: <FileTextOutlined />,
-            label: 'Bài đăng của tôi',
-            onClick: () => navigate('/posts')
-        },
-        {
-            key: 'cart',
-            icon: <ShoppingCartOutlined />,
-            label: (
-                <span>
-                    Giỏ hàng&nbsp;
-                    <Badge count={cartCount} offset={[6, 0]} />
-                </span>
-            ),
-            onClick: () => navigate('/cart')
         },
         {
             key: 'wallet',
@@ -237,13 +213,50 @@ const HeaderApp = () => {
                     </Dropdown>
                 </div>
             )}
-
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">
+                {/* Quản lý tin - hiện cho tất cả user đã đăng nhập */}
+                {isAuthenticated && (
+                    <Link to="/posts">
+                        <Button type="default" className="mr-3">
+                            Quản lý tin
+                        </Button>
+                    </Link>
+                )}
+
+                {/* Bài đăng yêu thích - chỉ hiện icon trái tim */}
+                {isAuthenticated && (
+                    <Link to="/favorites">
+                        <Tooltip title="Bài đăng yêu thích">
+                            <Button
+                                type="text"
+                                icon={<HeartOutlined style={{ fontSize: '20px', color: '#ff4d4f' }} />}
+                                className="mr-2"
+                            />
+                        </Tooltip>
+                    </Link>
+                )}
+
+                {/* Giỏ hàng - chỉ hiện icon với badge */}
+                {isAuthenticated && (
+                    <Link to="/cart">
+                        <Tooltip title="Giỏ hàng">
+                            <Badge count={cartCount} offset={[0, 0]} size="small">
+                                <Button
+                                    type="text"
+                                    icon={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
+                                    className="mr-2"
+                                />
+                            </Badge>
+                        </Tooltip>
+                    </Link>
+                )}
+
+                {/* Admin button */}
                 {isAdmin && (
                     <Link to="/admin">
                         <Button type="default" className="mr-3">
-                            Quản lý bài đăng
+                            Admin
                         </Button>
                     </Link>
                 )}
@@ -279,16 +292,16 @@ const HeaderApp = () => {
                         arrow
                     >
                         <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded">
-                                <Avatar
-                                    size="default"
-                                    icon={<UserOutlined />}
-                                    src={user?.avatar} // Nếu có avatar URL
-                                />
-                                {/* Show user's name next to avatar when available */}
-                                <span className="hidden sm:inline-block font-medium text-sm">
-                                    {user?.fullName || user?.email || ''}
-                                </span>
-                            </div>
+                            <Avatar
+                                size="default"
+                                icon={<UserOutlined />}
+                                src={user?.avatar} // Nếu có avatar URL
+                            />
+                            {/* Show user's name next to avatar when available */}
+                            <span className="hidden sm:inline-block font-medium text-sm">
+                                {user?.fullName || user?.email || ''}
+                            </span>
+                        </div>
                     </Dropdown>
                 ) : (
                     // unauthenticated login/register icons shown above

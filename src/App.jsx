@@ -26,7 +26,7 @@ import WalletManagement from "./pages/Transaction/WalletManagement.jsx";
 import TransactionManagement from "./pages/Transaction/TransactionManagement.jsx";
 import FavoritesPage from "./pages/Post/FavoritesPage.jsx";
 
-import AdminLayout from "./pages/Admin/AdminLayout.jsx";
+import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import FooterApp from "./pages/Main/FooterApp.jsx"
 import PaymentReturn from "./pages/Transaction/PaymentReturn.jsx";
 

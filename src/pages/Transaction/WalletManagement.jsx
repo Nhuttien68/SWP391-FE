@@ -283,20 +283,20 @@ const WalletManagement = () => {
         },
         {
             title: 'Sản phẩm',
-            dataIndex: 'post',
-            key: 'post',
-            render: (post) => post?.title || 'N/A',
+            dataIndex: 'postTitle',
+            key: 'postTitle',
+            render: (title) => title || 'N/A',
         },
         {
             title: 'Người bán',
-            dataIndex: 'seller',
-            key: 'seller',
-            render: (seller) => seller?.fullName || 'N/A',
+            dataIndex: 'sellerName',
+            key: 'sellerName',
+            render: (name) => name || 'N/A',
         },
         {
             title: 'Số tiền',
-            dataIndex: 'totalAmount',
-            key: 'totalAmount',
+            dataIndex: 'amount',
+            key: 'amount',
             render: (amount) => (
                 <Text strong className="text-red-600">
                     {formatCurrency(amount)}
@@ -322,13 +322,14 @@ const WalletManagement = () => {
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
-                const colors = {
-                    COMPLETED: 'success',
-                    PENDING: 'processing',
-                    CANCELLED: 'error',
-                    REFUNDED: 'warning',
+                const statusMap = {
+                    COMPLETED: { text: 'Hoàn thành', color: 'success' },
+                    PENDING: { text: 'Đang xử lý', color: 'processing' },
+                    CANCELLED: { text: 'Đã hủy', color: 'error' },
+                    REFUNDED: { text: 'Đã hoàn tiền', color: 'warning' },
                 };
-                return <Tag color={colors[status] || 'default'}>{status}</Tag>;
+                const statusInfo = statusMap[status] || { text: status, color: 'default' };
+                return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
             },
         },
         {
@@ -348,20 +349,20 @@ const WalletManagement = () => {
         },
         {
             title: 'Sản phẩm',
-            dataIndex: 'post',
-            key: 'post',
-            render: (post) => post?.title || 'N/A',
+            dataIndex: 'postTitle',
+            key: 'postTitle',
+            render: (title) => title || 'N/A',
         },
         {
             title: 'Người mua',
-            dataIndex: 'buyer',
-            key: 'buyer',
-            render: (buyer) => buyer?.fullName || 'N/A',
+            dataIndex: 'buyerName',
+            key: 'buyerName',
+            render: (name) => name || 'N/A',
         },
         {
             title: 'Số tiền',
-            dataIndex: 'totalAmount',
-            key: 'totalAmount',
+            dataIndex: 'amount',
+            key: 'amount',
             render: (amount) => (
                 <Text strong className="text-green-600">
                     {formatCurrency(amount)}
@@ -387,13 +388,14 @@ const WalletManagement = () => {
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
-                const colors = {
-                    COMPLETED: 'success',
-                    PENDING: 'processing',
-                    CANCELLED: 'error',
-                    REFUNDED: 'warning',
+                const statusMap = {
+                    COMPLETED: { text: 'Hoàn thành', color: 'success' },
+                    PENDING: { text: 'Đang xử lý', color: 'processing' },
+                    CANCELLED: { text: 'Đã hủy', color: 'error' },
+                    REFUNDED: { text: 'Đã hoàn tiền', color: 'warning' },
                 };
-                return <Tag color={colors[status] || 'default'}>{status}</Tag>;
+                const statusInfo = statusMap[status] || { text: status, color: 'default' };
+                return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
             },
         },
         {
@@ -499,29 +501,7 @@ const WalletManagement = () => {
 
             {/* Statistics */}
             <Row gutter={[16, 16]} className="mb-6">
-                <Col xs={12} md={6}>
-                    <Card>
-                        <Statistic
-                            title="Tổng nạp trong tháng"
-                            value={statistics.monthlyIn}
-                            prefix={<ArrowUpOutlined className="text-green-500" />}
-                            suffix="₫"
-                            valueStyle={{ color: '#52c41a' }}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                    <Card>
-                        <Statistic
-                            title="Tổng chi trong tháng"
-                            value={statistics.monthlyOut}
-                            prefix={<ArrowDownOutlined className="text-red-500" />}
-                            suffix="₫"
-                            valueStyle={{ color: '#ff4d4f' }}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={12} md={6}>
+                <Col xs={12} md={12}>
                     <Card>
                         <Statistic
                             title="Đơn mua"
@@ -530,7 +510,7 @@ const WalletManagement = () => {
                         />
                     </Card>
                 </Col>
-                <Col xs={12} md={6}>
+                <Col xs={12} md={12}>
                     <Card>
                         <Statistic
                             title="Đơn bán"

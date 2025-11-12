@@ -9,7 +9,7 @@ const reviewAPI = {
     const payload = { ...dto };
     if (payload.TransactionId) payload.TransactionId = payload.TransactionId.toString().toUpperCase();
     if (payload.TransactionId === undefined && payload.transactionId) payload.transactionId = payload.transactionId.toString().toUpperCase();
-    return apiClient.post('/Review/Crate-review-for-Seller', payload);
+    return apiClient.post('/Review/Create-review-for-Seller', payload);
   },
   updateReview: (dto) => {
     const payload = { ...dto };
