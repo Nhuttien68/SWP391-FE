@@ -186,11 +186,9 @@ const HeaderApp = () => {
                         mode="horizontal"
                         defaultSelectedKeys={["1"]}
                         items={[
-                            { key: "1", label: <Link to="/">Home</Link> },
-                            { key: "market", label: <Link to="/market">Market</Link> },
-                            { key: "2", label: <Link to="/about">About</Link> },
-                            { key: "3", label: <Link to="/services">Services</Link> },
-                            { key: "4", label: <Link to="/contact">Contact</Link> },
+                            { key: "1", label: <Link to="/">Trang chủ</Link> },
+                            { key: "market", label: <Link to="/market">Chợ</Link> },
+                            { key: "auction", label: <Link to="/auction">Đấu giá</Link> },
                         ]}
                     />
                 </div>
@@ -199,11 +197,9 @@ const HeaderApp = () => {
                     <Dropdown
                         menu={{
                             items: [
-                                { key: "1", label: <Link to="/">Home</Link> },
-                                { key: "market", label: <Link to="/market">Market</Link> },
-                                { key: "2", label: <Link to="/about">About</Link> },
-                                { key: "3", label: <Link to="/services">Services</Link> },
-                                { key: "4", label: <Link to="/contact">Contact</Link> },
+                                { key: "1", label: <Link to="/">Trang chủ</Link> },
+                                { key: "market", label: <Link to="/market">Chợ xe điện</Link> },
+                                { key: "auction", label: <Link to="/auction">Đấu giá</Link> },
                             ]
                         }}
                         trigger={["click"]}

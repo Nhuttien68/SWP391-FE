@@ -19,6 +19,7 @@ import VerifyOTP from "./pages/Login/VerifyOTP.jsx";
 import Otp from "./pages/Login/Otp.jsx";
 import PostDetail from "./pages/Post/PostDetail.jsx";
 import CreatePost from "./pages/Post/CreatePost.jsx";
+import Compare from "./pages/Post/Compare.jsx";
 import CartPage from "./pages/Cart/CartPage.jsx";
 import CheckoutPage from "./pages/Cart/CheckoutPage.jsx";
 import OrdersPage from "./pages/Transaction/OrdersPage.jsx";
@@ -65,6 +66,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/market" element={<MarketPage />} />
+          <Route path="/compare" element={<Compare />} />
           <Route path="/post/:id" element={<PostDetail />} />
           <Route path="/seller" element={<SellerProfile />} />
           <Route path="/cart" element={<CartPage />} />

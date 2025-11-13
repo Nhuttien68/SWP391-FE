@@ -16,7 +16,6 @@ const SellerProfile = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    // If a user object was passed via navigation state, use it and skip server fetch
     if (passedUser) {
       setSeller(passedUser);
       loadPostsForSeller(passedUser);
@@ -26,7 +25,7 @@ const SellerProfile = () => {
     if (userId) {
       loadSeller();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [userId, passedUser]);
 
   const loadSeller = async () => {

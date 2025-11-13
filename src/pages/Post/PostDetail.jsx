@@ -32,7 +32,8 @@ import {
     CalendarOutlined,
     EnvironmentOutlined,
     SafetyOutlined,
-    DollarCircleOutlined
+    DollarCircleOutlined,
+    SwapOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { postAPI } from '../../services/postAPI';
@@ -98,7 +99,8 @@ const PostDetail = () => {
 
                 if (favorite) {
                     setLiked(true);
-                    setFavoriteId(favorite.favoriteId || favorite.id);
+                    const fId = favorite.favoriteId || favorite.id;
+                    setFavoriteId(fId);
                 } else {
                     setLiked(false);
                     setFavoriteId(null);
@@ -266,6 +268,7 @@ const PostDetail = () => {
             if (liked && favoriteId) {
                 // Xóa khỏi yêu thích
                 const response = await favoriteAPI.removeFavorite(favoriteId);
+
                 if (response.success) {
                     setLiked(false);
                     setFavoriteId(null);
@@ -276,12 +279,12 @@ const PostDetail = () => {
             } else {
                 // Thêm vào yêu thích
                 const response = await favoriteAPI.addFavorite(id);
+
                 if (response.success) {
                     setLiked(true);
                     // Lấy favoriteId từ response
-                    if (response.data?.favoriteId || response.data?.id) {
-                        setFavoriteId(response.data.favoriteId || response.data.id);
-                    }
+                    const fId = response.data?.favoriteId || response.data?.id;
+                    setFavoriteId(fId);
                     message.success('Đã thêm vào yêu thích');
                 } else {
                     message.error(response.message || 'Không thể thêm vào yêu thích');
@@ -300,9 +303,38 @@ const PostDetail = () => {
         message.info('Chức năng liên hệ đang được phát triển');
     };
 
+    const handleCompare = () => {
+        // Chuyển trực tiếp đến trang so sánh với sản phẩm hiện tại
+        const params = new URLSearchParams(window.location.search);
+        const currentPost1 = params.get('post1');
+        const currentPost2 = params.get('post2');
+
+        // Nếu chưa có sản phẩm nào, đặt làm post1
+        if (!currentPost1) {
+            navigate(`/compare?post1=${id}`);
+        }
+        // Nếu đã có post1 nhưng chưa có post2, đặt làm post2
+        else if (!currentPost2) {
+            // Kiểm tra xem post1 có trùng với sản phẩm hiện tại không
+            if (currentPost1 === id) {
+                message.info('Sản phẩm này đã được chọn để so sánh');
+                navigate(`/compare?post1=${id}`);
+            } else {
+                navigate(`/compare?post1=${currentPost1}&post2=${id}`);
+            }
+        }
+        // Nếu đã có đủ 2 sản phẩm
+        else {
+            message.warning('Đã có 2 sản phẩm để so sánh. Vui lòng xóa bớt sản phẩm trong trang so sánh.');
+            navigate(`/compare?post1=${currentPost1}&post2=${currentPost2}`);
+        }
+
+        message.success('Đã thêm vào danh sách so sánh');
+    };
+
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [inCart, setInCart] = useState(false);
-    
+
 
     const handleAddToCart = async () => {
         if (!isAuthenticated) {
@@ -485,7 +517,7 @@ const PostDetail = () => {
                                     </div>
                                 </div>
                             )}
-                            
+
                         </Card>
 
                         {/* Specifications */}
@@ -593,7 +625,13 @@ const PostDetail = () => {
                                         loading={isLoadingFavorite}
                                         className={liked ? 'text-red-500 border-red-500' : ''}
                                     >
-                                        {liked ? 'Đã thích' : 'Yêu thích'}
+
+                                    </Button>
+                                    <Button
+                                        icon={<SwapOutlined />}
+                                        onClick={handleCompare}
+                                    >
+                                        So sánh
                                     </Button>
                                     <Button icon={<ShareAltOutlined />}>
                                         Chia sẻ

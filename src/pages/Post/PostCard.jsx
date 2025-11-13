@@ -10,6 +10,7 @@ import {
     ShoppingOutlined,
     CalendarOutlined,
     ClockCircleOutlined,
+    SwapOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -421,8 +422,8 @@ const PostCard = ({ post, onViewDetail }) => {
                                 onClick={handleLike}
                                 loading={isLoadingFavorite}
                                 className={`transition-all ${isFavorited
-                                        ? 'bg-red-500 !text-white !border-red-500 hover:!bg-red-600'
-                                        : 'bg-white/95 hover:!bg-red-500 hover:!text-white hover:!border-red-500'
+                                    ? 'bg-red-500 !text-white !border-red-500 hover:!bg-red-600'
+                                    : 'bg-white/95 hover:!bg-red-500 hover:!text-white hover:!border-red-500'
                                     }`}
                             />
                         </Tooltip>
@@ -438,13 +439,15 @@ const PostCard = ({ post, onViewDetail }) => {
                             />
                         </Tooltip>
                         <div className="flex-1" />
-                        <Tooltip title={isPostOwner ? 'Không thể thêm vào giỏ hàng (bài đăng của bạn)' : 'Thêm vào giỏ'}>
+                        <Tooltip title="So sánh sản phẩm">
                             <Button
                                 shape="circle"
-                                icon={<ShoppingCartOutlined />}
-                                onClick={handleAddToCart}
-                                disabled={isPostOwner}
-                                className="bg-white/95 hover:!bg-orange-500 hover:!text-white hover:!border-orange-500 transition-all"
+                                icon={<SwapOutlined />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/compare?post1=${post.id || post.postId}`);
+                                }}
+                                className="bg-white/95 hover:!bg-purple-500 hover:!text-white hover:!border-purple-500 transition-all"
                             />
                         </Tooltip>
                     </div>
@@ -560,13 +563,15 @@ const PostCard = ({ post, onViewDetail }) => {
                             Mua ngay
                         </Button>
                     )}
-                    <Tooltip title={isPostOwner ? 'Không thể thêm vào giỏ hàng (bài đăng của bạn)' : 'Thêm vào giỏ hàng'}>
+                    <Tooltip title="So sánh sản phẩm">
                         <Button
-                            icon={<ShoppingCartOutlined />}
-                            onClick={handleAddToCart}
-                            disabled={isPostOwner}
+                            icon={<SwapOutlined />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/compare?post1=${post.id || post.postId}`);
+                            }}
                             size="large"
-                            className="!h-10 !w-10 !rounded-lg hover:!bg-orange-50 hover:!text-orange-600 hover:!border-orange-400 transition-all"
+                            className="!h-10 !w-10 !rounded-lg hover:!bg-purple-50 hover:!text-purple-600 hover:!border-purple-400 transition-all"
                         />
                     </Tooltip>
                 </div>

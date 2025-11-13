@@ -46,9 +46,9 @@ const quickFilters = [
 ];
 
 const highlightCategories = [
-    { title: 'Xe điện', icon: '🚗', count: 234, color: 'blue' },
-    { title: 'Pin xe điện', icon: '🔋', count: 156, color: 'green' },
-    { title: 'Đấu giá', icon: '🔨', count: 45, color: 'red' },
+    { title: 'Xe điện', icon: <CarOutlined style={{ fontSize: '48px' }} />, count: 234, color: 'blue' },
+    { title: 'Pin xe điện', icon: <ThunderboltOutlined style={{ fontSize: '48px' }} />, count: 156, color: 'green' },
+    { title: 'Đấu giá', icon: <FireOutlined style={{ fontSize: '48px' }} />, count: 45, color: 'red' },
 
 ];
 
@@ -370,7 +370,9 @@ const HomePage = () => {
                         {highlightCategories.map((cat) => (
                             <Col xs={24} sm={12} md={8} lg={6} key={cat.title}>
                                 <Card hoverable variant="borderless" className="text-center hover:shadow-md">
-                                    <div className="text-4xl mb-2">{cat.icon}</div>
+                                    <div className="text-4xl mb-2" style={{ color: `var(--ant-${cat.color}-6)` }}>
+                                        {cat.icon}
+                                    </div>
                                     <div className="font-semibold">{cat.title}</div>
                                     <Badge
                                         count={cat.count}
