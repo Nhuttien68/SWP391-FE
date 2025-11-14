@@ -35,18 +35,19 @@ apiClient.interceptors.response.use(
         if (error.response?.status === 401) {
             // Xóa token hết hạn
             const hadToken = localStorage.getItem('token');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
 
             // Chỉ redirect về login nếu KHÔNG phải ở trang public
             const currentPath = window.location.pathname;
-            const publicPaths = ['/', '/home', '/login', '/register', '/post', '/cart', '/checkout'];
+            const publicPaths = ['/', '/home', '/login', '/register', '/post', '/cart', '/checkout', '/auction', '/market'];
 
             const isPublicPath = publicPaths.some(path =>
                 currentPath === path || currentPath.startsWith(path)
             );
 
+            // Chỉ xóa token và redirect khi KHÔNG phải đang ở public path
             if (!isPublicPath && hadToken) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 // Đang ở trang protected VÀ có token cũ, redirect về login
                 window.location.href = '/login';
             }

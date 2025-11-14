@@ -26,6 +26,8 @@ import OrdersPage from "./pages/Transaction/OrdersPage.jsx";
 import WalletManagement from "./pages/Transaction/WalletManagement.jsx";
 import TransactionManagement from "./pages/Transaction/TransactionManagement.jsx";
 import FavoritesPage from "./pages/Post/FavoritesPage.jsx";
+import AuctionList from "./pages/Auction/AuctionList.jsx";
+import AuctionDetail from "./pages/Auction/AuctionDetail.jsx";
 
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import FooterApp from "./pages/Main/FooterApp.jsx"
@@ -71,6 +73,8 @@ function App() {
           <Route path="/seller" element={<SellerProfile />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/auction" element={<AuctionList />} />
+          <Route path="/auction/:id" element={<AuctionDetail />} />
 
 
           {/* Payment return/callback route */}

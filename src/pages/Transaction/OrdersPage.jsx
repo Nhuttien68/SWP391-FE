@@ -30,7 +30,6 @@ import ReviewForm from '../../components/ReviewForm';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
 
 const OrdersPage = () => {
     const [loading, setLoading] = useState(false);
@@ -43,6 +42,7 @@ const OrdersPage = () => {
     const [reviewSellerId, setReviewSellerId] = useState(null);
     const [reviewPostId, setReviewPostId] = useState(null);
     const [reviewTransactionId, setReviewTransactionId] = useState(null);
+    const [reviewedTransactions, setReviewedTransactions] = useState(new Set());
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -56,14 +56,18 @@ const OrdersPage = () => {
             if (activeTab === 'purchases') {
                 const response = await transactionAPI.getMyPurchases();
                 if (response.success) {
-                    setPurchases(response.data?.data || response.data || []);
+                    const orders = response.data?.data || response.data || [];
+                    console.log('[OrdersPage] Fetched purchases:', orders);
+                    setPurchases(orders);
                 } else {
                     message.error(response.message);
                 }
             } else {
                 const response = await transactionAPI.getMySales();
                 if (response.success) {
-                    setSales(response.data?.data || response.data || []);
+                    const orders = response.data?.data || response.data || [];
+                    console.log('[OrdersPage] Fetched sales:', orders);
+                    setSales(orders);
                 } else {
                     message.error(response.message);
                 }
@@ -130,6 +134,25 @@ const OrdersPage = () => {
     };
 
     const OrderCard = ({ order, isPurchase }) => {
+        // Helper to extract postId from postImageUrl if postId is not provided
+        const getPostId = (o) => {
+            // Try direct fields first
+            if (o.postId || o.PostId) {
+                console.log('[OrdersPage] Found postId directly:', o.postId || o.PostId);
+                return o.postId || o.PostId;
+            }
+            if (o.post?.postId || o.post?.id) {
+                console.log('[OrdersPage] Found postId in post object:', o.post.postId || o.post.id);
+                return o.post.postId || o.post.id;
+            }
+            
+            // Cannot reliably extract postId from Firebase URL
+            // Backend needs to include PostId in transaction response
+            console.error('[OrdersPage] PostId not found in transaction response. Backend needs to add PostId field.');
+            console.log('[OrdersPage] Order object:', o);
+            return null;
+        };
+        
         // Resolve image and seller name defensively because backend DTOs vary.
         const resolvePostImage = (o) => {
             const candidates = [
@@ -178,17 +201,36 @@ const OrdersPage = () => {
                         <Image
                             src={firstImage}
                             alt={order.postTitle || 'product image'}
-                            className="rounded-lg object-cover"
+                            className="rounded-lg object-cover cursor-pointer"
                             width="100%"
                             height={120}
                             preview={false}
+                            onClick={() => {
+                                const postId = getPostId(order);
+                                if (postId) {
+                                    navigate(`/post/${postId}`);
+                                } else {
+                                    message.error('Backend chưa trả về PostId. Vui lòng liên hệ admin để sửa API.');
+                                }
+                            }}
                         />
                     </Col>
                     <Col xs={24} sm={18}>
                         <Space direction="vertical" className="w-full" size="small">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <Title level={5} className="!mb-1">
+                                    <Title 
+                                        level={5} 
+                                        className="!mb-1 cursor-pointer hover:text-blue-600"
+                                        onClick={() => {
+                                            const postId = getPostId(order);
+                                            if (postId) {
+                                                navigate(`/post/${postId}`);
+                                            } else {
+                                                message.error('Backend chưa trả về PostId. Vui lòng liên hệ admin để sửa API.');
+                                            }
+                                        }}
+                                    >
                                         {order.postTitle || 'Không có tiêu đề'}
                                     </Title>
                                     <Text type="secondary" className="text-sm">
@@ -247,18 +289,25 @@ const OrdersPage = () => {
                                     Chi tiết
                                 </Button>
                                 {isPurchase && String(order.status || '').toUpperCase() === 'COMPLETED' && (
-                                    <Button type="primary" onClick={() => {
-                                        const sellerId = order.sellerId || order.seller?.userId || order.seller?.id || order.sellerId;
-                                        const postId = order.postId || order.post?.postId || order.postId;
-                                        const txId = order.transactionId || order.TransactionId || order.transactionId;
-                                        setReviewSellerId(sellerId);
-                                        setReviewPostId(postId);
-                                        setReviewTransactionId(txId);
-                                        setReviewModalOpen(true);
-                                        message.info('Mở form gửi đánh giá...');
-                                    }}>
-                                        Gửi đánh giá
-                                    </Button>
+                                    <>
+                                        {reviewedTransactions.has(order.transactionId) ? (
+                                            <Button disabled>
+                                                Đã đánh giá
+                                            </Button>
+                                        ) : (
+                                            <Button type="primary" onClick={() => {
+                                                const sellerId = order.sellerId || order.seller?.userId || order.seller?.id || order.sellerId;
+                                                const postId = order.postId || order.post?.postId || order.postId;
+                                                const txId = order.transactionId || order.TransactionId || order.transactionId;
+                                                setReviewSellerId(sellerId);
+                                                setReviewPostId(postId);
+                                                setReviewTransactionId(txId);
+                                                setReviewModalOpen(true);
+                                            }}>
+                                                Gửi đánh giá
+                                            </Button>
+                                        )}
+                                    </>
                                 )}
                                 {isPurchase && order.status === 'PENDING' && (
                                     <Popconfirm
@@ -307,7 +356,7 @@ const OrdersPage = () => {
                         </Text>
                     </Card>
 
-                    
+
 
                     <Card size="small" title="Thông tin giao dịch">
                         <Row gutter={[16, 8]}>
@@ -337,55 +386,56 @@ const OrdersPage = () => {
         <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8">
             <div className="max-w-7xl mx-auto px-4">
                 <Title level={2} className="mb-6">
-                    Quản Lý Đơn Hàng
+                    Đơn Hàng Đã Mua
                 </Title>
 
                 <Card>
-                    <Tabs activeKey={activeTab} onChange={setActiveTab}>
-                        <TabPane
-                            tab={
-                                <span>
-                                    <ShoppingOutlined />
-                                    Đơn Mua ({purchases.length})
-                                </span>
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        items={[
+                            {
+                                key: 'purchases',
+                                label: (
+                                    <span>
+                                        <ShoppingOutlined />
+                                        Đơn Đã Mua ({purchases.length})
+                                    </span>
+                                ),
+                                children: loading ? (
+                                    <div className="text-center py-20">
+                                        <Spin size="large" tip="Đang tải đơn hàng..." />
+                                    </div>
+                                ) : purchases.length === 0 ? (
+                                    <Empty description="Chưa có đơn mua nào" />
+                                ) : (
+                                    purchases.map((order) => (
+                                        <OrderCard key={order.transactionId} order={order} isPurchase={true} />
+                                    ))
+                                )
+                            },
+                            {
+                                key: 'sales',
+                                label: (
+                                    <span>
+                                        <ShopOutlined />
+                                        Đơn Bán ({sales.length})
+                                    </span>
+                                ),
+                                children: loading ? (
+                                    <div className="text-center py-20">
+                                        <Spin size="large" tip="Đang tải đơn hàng..." />
+                                    </div>
+                                ) : sales.length === 0 ? (
+                                    <Empty description="Chưa có đơn bán nào" />
+                                ) : (
+                                    sales.map((order) => (
+                                        <OrderCard key={order.transactionId} order={order} isPurchase={false} />
+                                    ))
+                                )
                             }
-                            key="purchases"
-                        >
-                            {loading ? (
-                                <div className="text-center py-20">
-                                    <Spin size="large" tip="Đang tải đơn hàng..." />
-                                </div>
-                            ) : purchases.length === 0 ? (
-                                <Empty description="Chưa có đơn mua nào" />
-                            ) : (
-                                purchases.map((order) => (
-                                    <OrderCard key={order.transactionId} order={order} isPurchase={true} />
-                                ))
-                            )}
-                        </TabPane>
-
-                        <TabPane
-                            tab={
-                                <span>
-                                    <ShopOutlined />
-                                    Đơn Bán ({sales.length})
-                                </span>
-                            }
-                            key="sales"
-                        >
-                            {loading ? (
-                                <div className="text-center py-20">
-                                    <Spin size="large" tip="Đang tải đơn hàng..." />
-                                </div>
-                            ) : sales.length === 0 ? (
-                                <Empty description="Chưa có đơn bán nào" />
-                            ) : (
-                                sales.map((order) => (
-                                    <OrderCard key={order.transactionId} order={order} isPurchase={false} />
-                                ))
-                            )}
-                        </TabPane>
-                    </Tabs>
+                        ]}
+                    />
                 </Card>
 
                 <OrderDetailModal />
@@ -396,37 +446,44 @@ const OrdersPage = () => {
                     transactionIdFromOrder={reviewTransactionId}
                     onClose={() => setReviewModalOpen(false)}
                     onSubmitted={async (info) => {
-                            console.log('[OrdersPage] onSubmitted received', info);
-                            // refresh orders and close modal after submitting review
-                            fetchOrders();
-                            console.log('[OrdersPage] fetchOrders called');
-                            setReviewModalOpen(false);
-                            setReviewTransactionId(null);
+                        console.log('[OrdersPage] onSubmitted received', info);
 
-                            // If parent was given a postId, navigate to the post detail page.
-                            // If postId is missing, try to resolve it from the transaction id returned by the child.
-                            try {
-                                let pid = info?.postId;
-                                if (!pid && info?.transactionId) {
-                                    console.log('[OrdersPage] postId missing, attempting to fetch transaction to resolve postId', info.transactionId);
-                                    try {
-                                        const txResp = await transactionAPI.getTransactionById(info.transactionId);
-                                        // transactionAPI returns { success, data }
-                                        const tx = txResp?.data || txResp?.data?.data || txResp;
-                                        pid = tx?.postId || tx?.PostId || tx?.post?.postId || tx?.post?.id || tx?.post?._id || tx?.postId;
-                                        console.log('[OrdersPage] resolved postId from transaction:', pid);
-                                    } catch (err) {
-                                        console.error('[OrdersPage] error fetching transaction to resolve postId', err);
-                                    }
-                                }
+                        // Đánh dấu transaction này đã được review
+                        if (info?.transactionId || reviewTransactionId) {
+                            const txId = info?.transactionId || reviewTransactionId;
+                            setReviewedTransactions(prev => new Set([...prev, txId]));
+                        }
 
-                                console.log('[OrdersPage] navigating to post', pid);
-                                if (pid) {
-                                    navigate(`/post/${pid}`);
-                                    console.log('[OrdersPage] navigate called');
+                        // refresh orders and close modal after submitting review
+                        fetchOrders();
+                        console.log('[OrdersPage] fetchOrders called');
+                        setReviewModalOpen(false);
+                        setReviewTransactionId(null);
+
+                        // If parent was given a postId, navigate to the post detail page.
+                        // If postId is missing, try to resolve it from the transaction id returned by the child.
+                        try {
+                            let pid = info?.postId;
+                            if (!pid && info?.transactionId) {
+                                console.log('[OrdersPage] postId missing, attempting to fetch transaction to resolve postId', info.transactionId);
+                                try {
+                                    const txResp = await transactionAPI.getTransactionById(info.transactionId);
+                                    // transactionAPI returns { success, data }
+                                    const tx = txResp?.data || txResp?.data?.data || txResp;
+                                    pid = tx?.postId || tx?.PostId || tx?.post?.postId || tx?.post?.id || tx?.post?._id || tx?.postId;
+                                    console.log('[OrdersPage] resolved postId from transaction:', pid);
+                                } catch (err) {
+                                    console.error('[OrdersPage] error fetching transaction to resolve postId', err);
                                 }
-                            } catch (e) { console.error('[OrdersPage] navigation error', e); }
-                        }}
+                            }
+
+                            console.log('[OrdersPage] navigating to post', pid);
+                            if (pid) {
+                                navigate(`/post/${pid}`);
+                                console.log('[OrdersPage] navigate called');
+                            }
+                        } catch (e) { console.error('[OrdersPage] navigation error', e); }
+                    }}
                 />
             </div>
         </div>

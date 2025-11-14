@@ -35,7 +35,16 @@ const Login = () => {
 
             if (result.success) {
                 toast.success('Đăng nhập thành công!');
-                navigate("/home");
+
+                // Lấy thông tin user sau khi login
+                const userData = JSON.parse(localStorage.getItem('user'));
+
+                // Kiểm tra role và redirect
+                if (userData?.role === 'ADMIN') {
+                    navigate("/admin");
+                } else {
+                    navigate("/home");
+                }
             } else {
                 // Kiểm tra nếu tài khoản chưa kích hoạt
                 if (result.message && result.message.includes("chưa được kích hoạt")) {

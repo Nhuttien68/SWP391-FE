@@ -36,7 +36,6 @@ import { paymentAPI } from '../../services/paymentAPI';
 import { transactionAPI } from '../../services/transactionAPI';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
 
 const WalletManagement = () => {
     const navigate = useNavigate();
@@ -523,42 +522,49 @@ const WalletManagement = () => {
 
             {/* Transaction History */}
             <Card title="Lịch sử giao dịch" className="shadow-lg">
-                <Tabs defaultActiveKey="purchases">
-                    <TabPane tab={`Đơn mua (${purchases.length})`} key="purchases">
-                        {transactionsLoading ? (
-                            <div className="text-center py-12">
-                                <Spin size="large" />
-                            </div>
-                        ) : purchases.length > 0 ? (
-                            <Table
-                                dataSource={purchases}
-                                columns={purchaseColumns}
-                                rowKey="transactionId"
-                                pagination={{ pageSize: 10 }}
-                                scroll={{ x: 1000 }}
-                            />
-                        ) : (
-                            <Empty description="Chưa có giao dịch mua nào" />
-                        )}
-                    </TabPane>
-                    <TabPane tab={`Đơn bán (${sales.length})`} key="sales">
-                        {transactionsLoading ? (
-                            <div className="text-center py-12">
-                                <Spin size="large" />
-                            </div>
-                        ) : sales.length > 0 ? (
-                            <Table
-                                dataSource={sales}
-                                columns={salesColumns}
-                                rowKey="transactionId"
-                                pagination={{ pageSize: 10 }}
-                                scroll={{ x: 1000 }}
-                            />
-                        ) : (
-                            <Empty description="Chưa có giao dịch bán nào" />
-                        )}
-                    </TabPane>
-                </Tabs>
+                <Tabs
+                    defaultActiveKey="purchases"
+                    items={[
+                        {
+                            key: 'purchases',
+                            label: `Đơn mua (${purchases.length})`,
+                            children: transactionsLoading ? (
+                                <div className="text-center py-12">
+                                    <Spin size="large" />
+                                </div>
+                            ) : purchases.length > 0 ? (
+                                <Table
+                                    dataSource={purchases}
+                                    columns={purchaseColumns}
+                                    rowKey="transactionId"
+                                    pagination={{ pageSize: 10 }}
+                                    scroll={{ x: 1000 }}
+                                />
+                            ) : (
+                                <Empty description="Chưa có giao dịch mua nào" />
+                            )
+                        },
+                        {
+                            key: 'sales',
+                            label: `Đơn bán (${sales.length})`,
+                            children: transactionsLoading ? (
+                                <div className="text-center py-12">
+                                    <Spin size="large" />
+                                </div>
+                            ) : sales.length > 0 ? (
+                                <Table
+                                    dataSource={sales}
+                                    columns={salesColumns}
+                                    rowKey="transactionId"
+                                    pagination={{ pageSize: 10 }}
+                                    scroll={{ x: 1000 }}
+                                />
+                            ) : (
+                                <Empty description="Chưa có giao dịch bán nào" />
+                            )
+                        }
+                    ]}
+                />
             </Card>
 
             {/* Deposit Modal */}

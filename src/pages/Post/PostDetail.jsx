@@ -15,7 +15,11 @@ import {
     Space,
     Spin,
     FloatButton,
-    message
+    message,
+    Modal,
+    Form,
+    DatePicker,
+    InputNumber
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -33,12 +37,14 @@ import {
     EnvironmentOutlined,
     SafetyOutlined,
     DollarCircleOutlined,
-    SwapOutlined
+    SwapOutlined,
+    FireOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { postAPI } from '../../services/postAPI';
 import { favoriteAPI } from '../../services/favoriteAPI';
 import { cartAPI } from '../../services/cartAPI';
+import { createAuction } from '../../services/auctionAPI';
 import { useAuth } from '../../context/AuthContext';
 import ReviewList from '../../components/ReviewList';
 import ReviewForm from '../../components/ReviewForm';
@@ -54,6 +60,11 @@ const PostDetail = () => {
     const [liked, setLiked] = useState(false);
     const [favoriteId, setFavoriteId] = useState(null);
     const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+
+    // Auction modal state
+    const [isAuctionModalVisible, setIsAuctionModalVisible] = useState(false);
+    const [auctionForm] = Form.useForm();
+    const [creatingAuction, setCreatingAuction] = useState(false);
 
     // Robust owner detection to handle multiple API shapes
     const getOwnerId = (p) => {
@@ -332,6 +343,58 @@ const PostDetail = () => {
         message.success('Đã thêm vào danh sách so sánh');
     };
 
+    // Handle create auction
+    const handleCreateAuction = async (values) => {
+        // Check authentication first
+        if (!isAuthenticated) {
+            message.warning('Vui lòng đăng nhập để tạo đấu giá');
+            navigate('/login');
+            return;
+        }
+
+        setCreatingAuction(true);
+        try {
+            const auctionData = {
+                postId: post.id || post.postId,
+                startPrice: values.startPrice,
+                endTime: values.endTime.toISOString(),
+            };
+
+            console.log('Creating auction with data:', auctionData);
+            const response = await createAuction(auctionData);
+            console.log('Create auction response:', response);
+
+            // Backend trả về object với status string "201"
+            if (response && (response.status === '201' || response.status === 201)) {
+                message.success('Tạo phiên đấu giá thành công!');
+                setIsAuctionModalVisible(false);
+                auctionForm.resetFields();
+
+                // Navigate to auction detail
+                const auctionId = response.data?.auctionId || response.auctionId;
+                if (auctionId) {
+                    navigate(`/auction/${auctionId}`);
+                } else {
+                    // Nếu không có auctionId, về trang danh sách
+                    navigate('/auction');
+                }
+            } else {
+                message.error(response?.message || 'Tạo đấu giá thất bại');
+            }
+        } catch (error) {
+            console.error('Error creating auction:', error);
+            // Chỉ xử lý lỗi 401 thực sự, không xóa token vì lỗi khác
+            if (error.response?.status === 401) {
+                message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
+                // Không navigate ở đây, để interceptor xử lý
+            } else {
+                message.error(error.response?.data?.message || error.message || 'Không thể tạo phiên đấu giá');
+            }
+        } finally {
+            setCreatingAuction(false);
+        }
+    };
+
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [inCart, setInCart] = useState(false);
 
@@ -602,6 +665,25 @@ const PostDetail = () => {
                                 >
                                     Nhắn tin cho người bán
                                 </Button>
+
+                                {/* Create Auction Button - Only for post owner */}
+                                {isPostOwner && isAuthenticated && (
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        block
+                                        icon={<FireOutlined />}
+                                        onClick={() => {
+                                            console.log('Opening auction modal, isAuthenticated:', isAuthenticated);
+                                            console.log('Token exists:', !!localStorage.getItem('token'));
+                                            setIsAuctionModalVisible(true);
+                                        }}
+                                        className="bg-red-500 hover:bg-red-600"
+                                    >
+                                        Tạo đấu giá cho sản phẩm này
+                                    </Button>
+                                )}
+
                                 <Space className="w-full">
                                     {/* Buy and Add-to-cart buttons */}
                                     <Button
@@ -702,6 +784,107 @@ const PostDetail = () => {
                 </Row>
                 {/* Review form moved to Orders page - creation should be done from Orders */}
             </div>
+
+            {/* Auction Creation Modal */}
+            <Modal
+                title={
+                    <Space>
+                        <FireOutlined className="text-red-500" />
+                        <span>Tạo phiên đấu giá</span>
+                    </Space>
+                }
+                open={isAuctionModalVisible}
+                onCancel={() => {
+                    setIsAuctionModalVisible(false);
+                    auctionForm.resetFields();
+                }}
+                footer={null}
+                width={600}
+            >
+                <Form
+                    form={auctionForm}
+                    layout="vertical"
+                    onFinish={handleCreateAuction}
+                >
+                    <Form.Item
+                        label="Giá khởi điểm (VNĐ)"
+                        name="startPrice"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập giá khởi điểm' },
+                            { type: 'number', min: 1000000, message: 'Giá tối thiểu 1,000,000 VNĐ' }
+                        ]}
+                    >
+                        <InputNumber
+                            style={{ width: '100%' }}
+                            placeholder="Nhập giá khởi điểm"
+                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            parser={(value) => value.replace(/,/g, '')}
+                            min={1000000}
+                            step={100000}
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Thời gian kết thúc"
+                        name="endTime"
+                        rules={[
+                            { required: true, message: 'Vui lòng chọn thời gian kết thúc' },
+                            {
+                                validator: (_, value) => {
+                                    if (!value) return Promise.resolve();
+                                    const now = new Date();
+                                    const minEndTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+                                    if (value.toDate() < minEndTime) {
+                                        return Promise.reject('Thời gian kết thúc phải ít nhất 1 giờ từ bây giờ');
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
+                    >
+                        <DatePicker
+                            showTime
+                            format="DD/MM/YYYY HH:mm"
+                            style={{ width: '100%' }}
+                            placeholder="Chọn thời gian kết thúc"
+                            disabledDate={(current) => {
+                                return current && current < new Date();
+                            }}
+                        />
+                    </Form.Item>
+
+                    <div className="bg-blue-50 p-4 rounded mb-4">
+                        <Text type="secondary" className="text-xs">
+                            <strong>📌 Lưu ý:</strong>
+                            <ul className="mt-2 space-y-1">
+                                <li>• Phiên đấu giá phải kéo dài ít nhất 1 giờ</li>
+                                <li>• Người thắng sẽ tự động bị trừ tiền từ ví</li>
+                                <li>• Bạn không thể hủy phiên đấu giá sau khi tạo</li>
+                                <li>• Giá khởi điểm nên hợp lý để thu hút người mua</li>
+                            </ul>
+                        </Text>
+                    </div>
+
+                    <Form.Item>
+                        <Space className="w-full justify-end">
+                            <Button onClick={() => {
+                                setIsAuctionModalVisible(false);
+                                auctionForm.resetFields();
+                            }}>
+                                Hủy
+                            </Button>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                loading={creatingAuction}
+                                icon={<FireOutlined />}
+                            >
+                                Tạo đấu giá
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
 
             <FloatButton.BackTop />
         </div>

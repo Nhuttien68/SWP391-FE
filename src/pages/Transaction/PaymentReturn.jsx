@@ -127,7 +127,7 @@ const PaymentReturn = () => {
                             <Button
                                 size="large"
                                 icon={<WalletOutlined />}
-                                onClick={() => navigate('/profile/wallet')}
+                                onClick={() => navigate('/wallet')}
                                 className="h-12 font-semibold"
                             >
                                 Quản lý ví
@@ -136,7 +136,7 @@ const PaymentReturn = () => {
                                 type="primary"
                                 size="large"
                                 icon={<ShoppingOutlined />}
-                                onClick={() => navigate('/')}
+                                onClick={() => navigate('/market')}
                                 className="h-12 font-semibold bg-gradient-to-r from-blue-500 to-blue-600 border-0"
                             >
                                 Khám phá sản phẩm
