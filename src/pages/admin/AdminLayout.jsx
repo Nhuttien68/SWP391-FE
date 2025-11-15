@@ -11,6 +11,11 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import UsersPage from "./UserPage";
 import AdminPostsPage from "./AdminPostsPage";
+import BrandsPage from "./BrandsPage";
+import VehiclesPage from "./VehiclesPage";
+import BatteriesPage from "./BatteriesPage";
+import AdminAuctionsPage from "./AdminAuctionsPage";
+import AdminTransactionsPage from "./AdminTransactionsPage";
 import { useAuth } from "../../context/AuthContext";
 
 const { Header, Sider, Content } = Layout;
@@ -165,9 +170,11 @@ export default function AdminLayout() {
                     {selectedKey === "users_list" && <UsersPage />}
                     {selectedKey === "wallets" && <div>💳 Quản lý Wallets</div>}
                     {selectedKey === "posts_list" && <AdminPostsPage />}
-                    {selectedKey === "vehicles" && <div>🚗 Quản lý Vehicles</div>}
-                    {selectedKey === "auctions_list" && <div>🏷️ Quản lý Auctions</div>}
-                    {selectedKey === "transactions" && <div>💰 Quản lý Transactions</div>}
+                    {selectedKey === "vehicles" && <VehiclesPage />}
+                    {selectedKey === "batteries" && <BatteriesPage />}
+                    {selectedKey === "brands" && <BrandsPage />}
+                    {selectedKey === "auctions_list" && <AdminAuctionsPage />}
+                    {selectedKey === "transactions" && <AdminTransactionsPage />}
                     {selectedKey === "revenue" && <div>📊 Báo cáo doanh thu</div>}
                     {selectedKey === "trends" && <div>📈 Xu hướng</div>}
                 </Content>

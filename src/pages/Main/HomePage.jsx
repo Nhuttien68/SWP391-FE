@@ -248,13 +248,28 @@ const HomePage = () => {
                                         <Text className="text-blue-50 text-base md:text-lg block mb-8">
                                             {slide.description}
                                         </Text>
-                                        <Button
-                                            type="primary"
-                                            size="large"
-                                            className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
-                                        >
-                                            {slide.cta}
-                                        </Button>
+                                        {(() => {
+                                            const ctaLink = slide.cta && slide.cta.toLowerCase().includes('khám') ? '/market' : null;
+                                            return ctaLink ? (
+                                                <Link to={ctaLink}>
+                                                    <Button
+                                                        type="primary"
+                                                        size="large"
+                                                        className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
+                                                    >
+                                                        {slide.cta}
+                                                    </Button>
+                                                </Link>
+                                            ) : (
+                                                <Button
+                                                    type="primary"
+                                                    size="large"
+                                                    className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
+                                                >
+                                                    {slide.cta}
+                                                </Button>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             ) : (
@@ -271,13 +286,28 @@ const HomePage = () => {
                                         <Text className="text-blue-50 text-base md:text-lg block mb-8">
                                             {slide.description}
                                         </Text>
-                                        <Button
-                                            type="primary"
-                                            size="large"
-                                            className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
-                                        >
-                                            {slide.cta}
-                                        </Button>
+                                        {(() => {
+                                            const ctaLink = slide.cta && slide.cta.toLowerCase().includes('khám') ? '/market' : null;
+                                            return ctaLink ? (
+                                                <Link to={ctaLink}>
+                                                    <Button
+                                                        type="primary"
+                                                        size="large"
+                                                        className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
+                                                    >
+                                                        {slide.cta}
+                                                    </Button>
+                                                </Link>
+                                            ) : (
+                                                <Button
+                                                    type="primary"
+                                                    size="large"
+                                                    className="!bg-white !text-blue-700 hover:!bg-blue-50 font-semibold"
+                                                >
+                                                    {slide.cta}
+                                                </Button>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             )}

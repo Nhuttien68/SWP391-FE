@@ -1,37 +1,65 @@
-import { Table, Tag, Button, Space, Select, Card, Statistic, Row, Col } from "antd";
-import { useState } from "react";
+import { Table, Tag, Button, Space, Select, Card, Statistic, Row, Col, message } from "antd";
+import { useState, useEffect } from "react";
 import { UserOutlined, TeamOutlined, CrownOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
+import { adminAPI } from '../../services/adminAPI';
 
 const { Option } = Select;
 
 export default function UsersPage() {
-    // Mock dữ liệu
-    const [users, setUsers] = useState([
-        { id: 1, name: "Nguyen Van A", email: "a@example.com", role: "Member", is_active: 1, balance: 500000 },
-        { id: 2, name: "Tran Thi B", email: "b@example.com", role: "Admin", is_active: 1, balance: 1200000 },
-        { id: 3, name: "Le Van C", email: "c@example.com", role: "Member", is_active: 0, balance: 0 },
-    ]);
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     // Tính toán thống kê
     const totalUsers = users.length;
-    const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
-    const adminUsers = users.filter(u => u.role === "ADMIN").length;
+    const activeUsers = users.filter(u => (u.status || '').toUpperCase() === 'ACTIVE').length;
+    const adminUsers = users.filter(u => (u.role || '').toUpperCase() === "ADMIN").length;
 
-    // Cập nhật trạng thái
+    useEffect(() => {
+        const loadUsers = async () => {
+            setLoading(true);
+            try {
+                const resp = await adminAPI.getAllUsers();
+                if (resp.success) {
+                    // resp.data should be an array thanks to adminAPI normalization
+                    const raw = resp.data ?? resp;
+                    const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.Data) ? raw.Data : []);
+                    if (!Array.isArray(list)) {
+                        console.error('Unexpected users payload', raw);
+                        message.error('Dữ liệu người dùng không hợp lệ');
+                    } else {
+                        const mapped = list.map(u => ({
+                            id: u.userId || u.UserId || (u.UserId ? u.UserId.toString() : undefined) || (u.userId ? u.userId.toString() : undefined),
+                            name: u.fullName || u.FullName || u.fullName || u.Fullname || u.FullName,
+                            email: u.email || u.Email,
+                            role: u.role || u.Role || 'USER',
+                            status: u.status || u.Status || 'INACTIVE',
+                            phone: u.phone || u.Phone,
+                            balance: u.walletBalance || 0
+                        }));
+                        setUsers(mapped);
+                    }
+                } else {
+                    message.error(resp.message || 'Không thể lấy danh sách người dùng');
+                }
+            } catch (error) {
+                console.error('Load users error:', error);
+                message.error('Có lỗi khi tải danh sách người dùng');
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadUsers();
+    }, []);
+
+    // NOTE: backend currently exposes only read endpoints for users under AdminController.
+    // Actions like toggling status or changing role are not available, so we keep UI read-only.
     const toggleActive = (id) => {
-        setUsers(users.map(u =>
-            u.id === id ? { ...u, status: u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : u
-        ));
-        toast.success("Cập nhật trạng thái thành công");
+        toast.info('Thao tác này không được hỗ trợ bởi API hiện tại');
     };
 
-    // Cập nhật role
     const changeRole = (id, role) => {
-        setUsers(users.map(u =>
-            u.id === id ? { ...u, role } : u
-        ));
-        toast.success("Cập nhật vai trò thành công");
+        toast.info('Thao tác này không được hỗ trợ bởi API hiện tại');
     };
 
     const columns = [
@@ -191,6 +219,7 @@ export default function UsersPage() {
                         columns={columns}
                         dataSource={users}
                         rowKey="id"
+                        loading={loading}
                         className="custom-table"
                         pagination={{
                             pageSize: 10,

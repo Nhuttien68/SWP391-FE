@@ -8,7 +8,11 @@ import apiClient from './apiClient';
 export const createAuction = async (auctionData) => {
     try {
         const response = await apiClient.post('/Auction/create', auctionData);
-        return response;
+        return {
+            success: true,
+            data: response?.Data ?? response,
+            message: response?.Message
+        };
     } catch (error) {
         console.error('Error creating auction:', error);
         throw error;
@@ -19,7 +23,11 @@ export const createAuction = async (auctionData) => {
 export const placeBid = async (bidData) => {
     try {
         const response = await apiClient.post('/Auction/bid', bidData);
-        return response;
+        return {
+            success: true,
+            data: response?.Data ?? response,
+            message: response?.Message
+        };
     } catch (error) {
         console.error('Error placing bid:', error);
         throw error;
@@ -30,7 +38,11 @@ export const placeBid = async (bidData) => {
 export const getAuctionById = async (auctionId) => {
     try {
         const response = await apiClient.get(`/Auction/${auctionId}`);
-        return response;
+        return {
+            success: true,
+            data: response?.Data ?? response,
+            message: response?.Message
+        };
     } catch (error) {
         console.error('Error fetching auction details:', error);
         throw error;
@@ -41,7 +53,11 @@ export const getAuctionById = async (auctionId) => {
 export const getActiveAuctions = async () => {
     try {
         const response = await apiClient.get('/Auction/active');
-        return response;
+        return {
+            success: true,
+            data: response?.Data ?? response,
+            message: response?.Message
+        };
     } catch (error) {
         console.error('Error fetching active auctions:', error);
         throw error;
@@ -52,7 +68,11 @@ export const getActiveAuctions = async () => {
 export const updateTransactionReceiver = async (transactionId, receiverData) => {
     try {
         const response = await apiClient.put(`/Auction/update-transaction/${transactionId}`, receiverData);
-        return response;
+        return {
+            success: true,
+            data: response?.Data ?? response,
+            message: response?.Message
+        };
     } catch (error) {
         console.error('Error updating receiver info:', error);
         throw error;
@@ -63,7 +83,11 @@ export const updateTransactionReceiver = async (transactionId, receiverData) => 
 export const closeExpiredAuctions = async () => {
     try {
         const response = await apiClient.post('/Auction/close-expired');
-        return response;
+        return {
+            success: true,
+            data: response?.Data ?? response,
+            message: response?.Message
+        };
     } catch (error) {
         console.error('Error closing expired auctions:', error);
         throw error;
