@@ -30,10 +30,11 @@ export const transactionAPI = {
                 }
             });
 
+            const payload = response?.Data ?? response;
             return {
                 success: true,
-                data: response.data,
-                message: 'Tạo đơn hàng thành công!'
+                data: payload,
+                message: response?.Message ?? 'Tạo đơn hàng thành công!'
             };
         } catch (error) {
             console.error('Create transaction error:', error);
@@ -71,10 +72,11 @@ export const transactionAPI = {
                 }
             });
 
+            const payload = response?.Data ?? response;
             return {
                 success: true,
-                data: response.data,
-                message: 'Thanh toán giỏ hàng thành công!'
+                data: payload,
+                message: response?.Message ?? 'Thanh toán giỏ hàng thành công!'
             };
         } catch (error) {
             console.error('Create cart transaction error:', error);
@@ -105,10 +107,11 @@ export const transactionAPI = {
                 }
             });
 
+            const payload = response?.Data ?? response;
             return {
                 success: true,
-                data: response.data,
-                message: 'Lấy thông tin giao dịch thành công'
+                data: payload,
+                message: response?.Message ?? 'Lấy thông tin giao dịch thành công'
             };
         } catch (error) {
             console.error('Get transaction error:', error);
@@ -139,10 +142,11 @@ export const transactionAPI = {
                 }
             });
 
+            const payload = response?.Data ?? response;
             return {
                 success: true,
-                data: response.data,
-                message: 'Lấy danh sách đơn mua thành công'
+                data: payload,
+                message: response?.Message ?? 'Lấy danh sách đơn mua thành công'
             };
         } catch (error) {
             console.error('Get my purchases error:', error);
@@ -173,10 +177,11 @@ export const transactionAPI = {
                 }
             });
 
+            const payload = response?.Data ?? response;
             return {
                 success: true,
-                data: response.data,
-                message: 'Lấy danh sách đơn bán thành công'
+                data: payload,
+                message: response?.Message ?? 'Lấy danh sách đơn bán thành công'
             };
         } catch (error) {
             console.error('Get my sales error:', error);
@@ -207,10 +212,11 @@ export const transactionAPI = {
                 }
             });
 
+            const payload = response?.Data ?? response;
             return {
                 success: true,
-                data: response.data,
-                message: 'Đã hủy giao dịch thành công'
+                data: payload,
+                message: response?.Message ?? 'Đã hủy giao dịch thành công'
             };
         } catch (error) {
             console.error('Cancel transaction error:', error);
@@ -241,10 +247,11 @@ export const transactionAPI = {
                 }
             });
 
+            const payload = response?.Data ?? response;
             return {
                 success: true,
-                data: response.data,
-                message: 'Lấy danh sách giao dịch thành công'
+                data: payload,
+                message: response?.Message ?? 'Lấy danh sách giao dịch thành công'
             };
         } catch (error) {
             console.error('Get all transactions error:', error);

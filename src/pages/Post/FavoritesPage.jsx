@@ -3,6 +3,7 @@ import { Card, Row, Col, Empty, Button, Typography, message, Spin } from 'antd';
 import { HeartOutlined, DeleteOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { favoriteAPI } from '../../services/favoriteAPI';
+import postAPI from '../../services/postAPI';
 
 const { Title, Text } = Typography;
 
@@ -21,7 +22,40 @@ const FavoritesPage = () => {
             const response = await favoriteAPI.getAllFavorites();
 
             if (response.success) {
-                setFavorites(response.data || []);
+                const raw = response.data || [];
+
+                // Enrich favorites: ensure we have a `post` object when possible.
+                const enriched = await Promise.all((raw || []).map(async (fav) => {
+                    // If favorite already includes post, check SOLD status
+                    const p = fav.post;
+                    const postIdFromFav = fav.postId || (p && (p.postId || p.id));
+                    if (p) {
+                        if (String(p.status || p.Status || '').toUpperCase() === 'SOLD') {
+                            return { ...fav, _postDeleted: true };
+                        }
+                        return fav;
+                    }
+
+                    if (!postIdFromFav) {
+                        return { ...fav, _postDeleted: true };
+                    }
+
+                    try {
+                        const postRes = await postAPI.getPostById(postIdFromFav);
+                        if (postRes && postRes.success && postRes.data) {
+                            const fetched = postRes.data;
+                            if (String(fetched.status || fetched.Status || '').toUpperCase() === 'SOLD') {
+                                return { ...fav, _postDeleted: true };
+                            }
+                            return { ...fav, post: fetched };
+                        }
+                        return { ...fav, _postDeleted: true };
+                    } catch (err) {
+                        return { ...fav, _postDeleted: true };
+                    }
+                }));
+
+                setFavorites(enriched);
             } else {
                 console.error('Get favorites failed:', response);
                 // Không hiển thị error nếu là lỗi 404 (chưa có yêu thích)
@@ -62,13 +96,24 @@ const FavoritesPage = () => {
         }).format(amount || 0);
     };
 
-    const handleViewDetail = (post) => {
-        navigate(`/post/${post.postId}`);
+    const handleViewDetail = (favoriteOrPost) => {
+        const post = favoriteOrPost?.post || favoriteOrPost;
+        const id = post?.postId || post?.id;
+        if (!id) {
+            message.error('Không tìm thấy bài đăng');
+            return;
+        }
+        navigate(`/post/${id}`);
     };
 
-    const handleBuyNow = (post) => {
+    const handleBuyNow = (favoriteOrPost) => {
+        const post = favoriteOrPost?.post || favoriteOrPost;
+        if (!post) {
+            message.error('Không thể mua: bài đăng không tồn tại');
+            return;
+        }
         navigate('/checkout', {
-            state: { post: post.post }
+            state: { post }
         });
     };
 
@@ -111,7 +156,48 @@ const FavoritesPage = () => {
                     <Row gutter={[16, 16]}>
                         {favorites.map((favorite) => {
                             const post = favorite.post;
-                            if (!post) return null;
+
+                            if (favorite._postDeleted) {
+                                return (
+                                    <Col xs={24} sm={12} md={8} lg={6} key={favorite.favoriteId}>
+                                        <Card
+                                            hoverable
+                                            className="flex flex-col justify-between"
+                                            actions={[
+                                                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeFavorite(favorite.favoriteId)}>
+                                                    Xóa yêu thích
+                                                </Button>,
+                                                <Button type="link" onClick={() => navigate('/market')}>Khám phá</Button>
+                                            ]}
+                                        >
+                                            <div className="h-48 w-full bg-gray-100 flex items-center justify-center text-sm text-gray-500">
+                                                Sản phẩm đã bị xóa
+                                            </div>
+                                            <Card.Meta
+                                                title={<div className="truncate">Sản phẩm không còn tồn tại</div>}
+                                                description={<div className="text-sm text-gray-500">Người bán đã xóa bài đăng hoặc bài đăng đã bán.</div>}
+                                            />
+                                        </Card>
+                                    </Col>
+                                );
+                            }
+
+                            if (!post) {
+                                // Still no post and not marked deleted: show a placeholder
+                                return (
+                                    <Col xs={24} sm={12} md={8} lg={6} key={favorite.favoriteId}>
+                                        <Card hoverable>
+                                            <div className="h-48 w-full bg-gray-50 flex items-center justify-center">
+                                                <Spin />
+                                            </div>
+                                            <Card.Meta
+                                                title={<div className="truncate">Đang kiểm tra bài đăng...</div>}
+                                                description={<div className="text-sm text-gray-500">Vui lòng đợi</div>}
+                                            />
+                                        </Card>
+                                    </Col>
+                                );
+                            }
 
                             return (
                                 <Col xs={24} sm={12} md={8} lg={6} key={favorite.favoriteId}>
@@ -121,10 +207,10 @@ const FavoritesPage = () => {
                                             <div className="relative">
                                                 <img
                                                     alt={post.title}
-                                                    src={post.imageUrl || 'https://via.placeholder.com/300'}
+                                                    src={post.images?.[0]}
                                                     className="h-48 w-full object-cover"
                                                     onError={(e) => {
-                                                        e.target.src = 'https://via.placeholder.com/300?text=No+Image';
+                                                        e.target.src = 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg';
                                                     }}
                                                 />
                                                 <Button
@@ -163,9 +249,9 @@ const FavoritesPage = () => {
                                                     <div className="text-red-600 font-bold text-lg mb-2">
                                                         {formatCurrency(post.price)}
                                                     </div>
-                                                    <div className="text-sm text-gray-500 truncate">
+                                                    {/* <div className="text-sm text-gray-500 truncate">
                                                         {post.description || 'Không có mô tả'}
-                                                    </div>
+                                                    </div> */}
                                                 </div>
                                             }
                                         />

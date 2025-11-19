@@ -1,7 +1,8 @@
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { Layout, Menu, Button, Dropdown, Avatar, Badge, Tooltip } from "antd";
 import { UserOutlined, LogoutOutlined, WalletOutlined, HistoryOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined, HeartOutlined, FileTextOutlined, PlusOutlined, LoginOutlined, UserAddOutlined, MenuOutlined } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
+
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useState, useEffect, useRef } from "react";
 import { cartAPI } from "../../services/cartAPI.js";
@@ -11,6 +12,17 @@ const { Header } = Layout;
 const HeaderApp = () => {
     const { user, isAuthenticated, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determine active keys based on current pathname so header highlights follow navigation
+    const pathname = location.pathname || '/';
+    const getActiveMenuKey = () => {
+        if (pathname === '/' || pathname.startsWith('/home')) return '1';
+        if (pathname.startsWith('/market')) return 'market';
+        if (pathname.startsWith('/auction')) return 'auction';
+        return '';
+    };
+    const activeMenuKey = getActiveMenuKey();
     const [cartCount, setCartCount] = useState(0);
     // Whether header should use compact (mobile) layout. Determined by width/height ratio.
     const [isCompact, setIsCompact] = useState(false);
@@ -184,7 +196,7 @@ const HeaderApp = () => {
                 <div className="flex-1 ml-10">
                     <Menu
                         mode="horizontal"
-                        defaultSelectedKeys={["1"]}
+                        selectedKeys={[activeMenuKey]}
                         items={[
                             { key: "1", label: <Link to="/">Trang chủ</Link> },
                             { key: "market", label: <Link to="/market">Chợ</Link> },
@@ -211,21 +223,12 @@ const HeaderApp = () => {
             )}
             {/* Auth Section */}
             <div className="flex gap-2.5 items-center">
-                {/* Quản lý tin - hiện cho tất cả user đã đăng nhập */}
-                {isAuthenticated && (
-                    <Link to="/posts">
-                        <Button type="default" className="mr-3">
-                            Quản lý tin
-                        </Button>
-                    </Link>
-                )}
-
                 {/* Bài đăng yêu thích - chỉ hiện icon trái tim */}
                 {isAuthenticated && (
                     <Link to="/favorites">
                         <Tooltip title="Bài đăng yêu thích">
                             <Button
-                                type="text"
+                                type={pathname.startsWith('/favorites') ? 'primary' : 'text'}
                                 icon={<HeartOutlined style={{ fontSize: '20px', color: '#ff4d4f' }} />}
                                 className="mr-2"
                             />
@@ -239,7 +242,7 @@ const HeaderApp = () => {
                         <Tooltip title="Giỏ hàng">
                             <Badge count={cartCount} offset={[0, 0]} size="small">
                                 <Button
-                                    type="text"
+                                    type={pathname.startsWith('/cart') ? 'primary' : 'text'}
                                     icon={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
                                     className="mr-2"
                                 />
@@ -257,10 +260,19 @@ const HeaderApp = () => {
                     </Link>
                 )}
 
+                {/* Quản lý tin - hiện cho tất cả user đã đăng nhập */}
+                {isAuthenticated && (
+                    <Link to="/posts">
+                        <Button type={pathname.startsWith('/posts') ? 'primary' : 'default'} className="mr-3">
+                            Quản lý tin
+                        </Button>
+                    </Link>
+                )}
+
                 {/* Keep only admin and create-post visible in header; others live in dropdown */}
                 {isAuthenticated && (
                     <Link to={isAuthenticated ? "/createPost" : "/login"}>
-                        <Button type="primary" className="mr-3">Đăng tin</Button>
+                        <Button type={pathname.startsWith('/createPost') ? 'primary' : 'primary'} className="mr-3">Đăng tin</Button>
                     </Link>
                 )}
 

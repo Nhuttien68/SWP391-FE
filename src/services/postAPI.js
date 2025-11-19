@@ -267,7 +267,7 @@ export const postAPI = {
             }
 
             const response = await apiClient.put('/Posts/Approved-Post', null, {
-                params: { postId: postId }, // Sửa thành postId
+                params: { postid: postId }, // backend expects 'postid' query parameter
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -303,7 +303,7 @@ export const postAPI = {
             }
 
             const response = await apiClient.put('/Posts/Reject-Post', null, {
-                params: { postId: postId }, // Sửa thành postId
+                params: { postid: postId }, // backend expects 'postid' query parameter
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
