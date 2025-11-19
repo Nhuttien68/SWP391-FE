@@ -46,7 +46,6 @@ import { favoriteAPI } from '../../services/favoriteAPI';
 import { cartAPI } from '../../services/cartAPI';
 import { createAuction } from '../../services/auctionAPI';
 import { useAuth } from '../../context/AuthContext';
-import ReviewList from '../../components/ReviewList';
 import ReviewForm from '../../components/ReviewForm';
 
 const { Title, Text, Paragraph } = Typography;
@@ -371,7 +370,7 @@ const PostDetail = () => {
                 auctionForm.resetFields();
 
                 // Navigate to auction detail
-                const auctionId = response.data?.auctionId || response.auctionId;
+                const auctionId = response.data?.AuctionId || response.data?.auctionId || response.auctionId;
                 if (auctionId) {
                     navigate(`/auction/${auctionId}`);
                 } else {
@@ -602,10 +601,6 @@ const PostDetail = () => {
                                 )}
                             </Descriptions>
                         </Card>
-                        {/* Reviews - placed under specifications as requested */}
-                        <Card title="Đánh giá" className="mt-4">
-                            <ReviewList userId={post.user?.userId || post.user?.id || post.seller?.userId || post.seller?.id || id} />
-                        </Card>
                     </Col>
 
                     {/* Right Column - Details & Contact */}
@@ -768,6 +763,22 @@ const PostDetail = () => {
                                     {post.seller?.rating}/5 ⭐
                                 </Descriptions.Item>
                             </Descriptions>
+
+                            <div className="mt-4 text-center">
+                                <Button
+                                    type="primary"
+                                    ghost
+                                    onClick={() => {
+                                        const sellerObj = post.user || post.seller || {
+                                            userId: post.user?.userId || post.user?.id || post.seller?.id || id,
+                                            fullName: post.user?.fullName || post.seller?.name || 'Người bán'
+                                        };
+                                        navigate('/seller', { state: { user: sellerObj } });
+                                    }}
+                                >
+                                    Xem trang cá nhân & đánh giá
+                                </Button>
+                            </div>
                         </Card>
 
                         {/* Safety Tips */}

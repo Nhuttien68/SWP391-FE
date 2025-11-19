@@ -4,6 +4,7 @@ import { Card, Avatar, Button, Descriptions, Typography, Row, Col, Tag, Empty } 
 import { UserOutlined } from '@ant-design/icons';
 import userAPI from '../../services/userAPI';
 import postAPI from '../../services/postAPI';
+import ReviewList from '../../components/ReviewList';
 
 const { Title, Text } = Typography;
 
@@ -35,8 +36,6 @@ const SellerProfile = () => {
       if (res && res.success) {
         setSeller(res.data);
       }
-      // Fetch all posts and filter by seller id (backend doesn't expose public posts by user)
-      const all = await postAPI.getAllPosts();
       const list = (all.data || all.data?.data || all.data) || [];
       const filtered = (Array.isArray(list) ? list : []).filter(p => {
         const pid = p.user?.userId || p.userId || p.user?.id || p.postedBy || p.ownerId || p.sellerId;
@@ -108,6 +107,15 @@ const SellerProfile = () => {
                       </Card>
                     ))}
                   </div>
+                )}
+              </Card>
+
+              {/* Reviews Section */}
+              <Card title="Đánh giá từ khách hàng" className="mt-6">
+                {seller && (seller.userId || seller.id) ? (
+                  <ReviewList userId={seller.userId || seller.id} />
+                ) : (
+                  <Empty description="Chưa có thông tin người bán" />
                 )}
               </Card>
             </Col>

@@ -16,8 +16,10 @@ const MarketPage = () => {
     const [posts, setPosts] = useState([]);
     const [searchText, setSearchText] = useState('');
     const [selectedBrand, setSelectedBrand] = useState('');
+    const [selectedPriceRange, setSelectedPriceRange] = useState('');
     const [postType, setPostType] = useState('vehicle');
-    const [brands, setBrands] = useState([]);
+    const [vehicleBrands, setVehicleBrands] = useState([]);
+    const [batteryBrands, setBatteryBrands] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 12;
     const [pendingModalVisible, setPendingModalVisible] = useState(false);
@@ -26,9 +28,10 @@ const MarketPage = () => {
         const loadInitialData = async () => {
             setLoading(true);
             try {
-                const [postRes, brandRes] = await Promise.all([
+                const [postRes, vehicleBrandRes, batteryBrandRes] = await Promise.all([
                     postAPI.getAllPosts({ page: 1, pageSize: 200 }),
                     brandAPI.getVehicleBrands(),
+                    brandAPI.getBatteryBrands(),
                 ]);
 
                 const postsData = postRes?.data?.data || postRes?.data || [];
@@ -37,7 +40,8 @@ const MarketPage = () => {
                     id: p.id ?? p.postId ?? p.postID,
                 }));
                 setPosts(normalized);
-                setBrands(brandRes?.data || []);
+                setVehicleBrands(vehicleBrandRes?.data || []);
+                setBatteryBrands(batteryBrandRes?.data || []);
             } catch (err) {
                 console.error('Fetch posts error', err);
             } finally {
@@ -94,8 +98,28 @@ const MarketPage = () => {
             });
         }
 
+        if (selectedPriceRange) {
+            result = result.filter((p) => {
+                const price = parseFloat(p.price || p.Price || 0);
+                const priceInMillions = price / 1000000; // Convert to millions
+
+                switch (selectedPriceRange) {
+                    case '0-100':
+                        return priceInMillions < 100;
+                    case '100-300':
+                        return priceInMillions >= 100 && priceInMillions < 300;
+                    case '300-500':
+                        return priceInMillions >= 300 && priceInMillions < 500;
+                    case '500+':
+                        return priceInMillions >= 500;
+                    default:
+                        return true;
+                }
+            });
+        }
+
         return result;
-    }, [posts, postType, searchText, selectedBrand]);
+    }, [posts, postType, searchText, selectedBrand, selectedPriceRange]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -103,6 +127,15 @@ const MarketPage = () => {
 
     const startIndex = (currentPage - 1) * pageSize;
     const current = filteredPosts.slice(startIndex, startIndex + pageSize);
+
+    // Get brands list based on current tab
+    const currentBrands = postType === 'vehicle' ? vehicleBrands : batteryBrands;
+
+    // Handler for switching post type - reset brand filter
+    const handlePostTypeChange = (type) => {
+        setPostType(type);
+        setSelectedBrand(''); // Clear brand filter when switching tabs
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-white to-blue-50 py-10">
@@ -119,13 +152,19 @@ const MarketPage = () => {
                                     onChange={setSelectedBrand}
                                     suffixIcon={<CarOutlined />}
                                 >
-                                    {brands.map((b) => (
+                                    {currentBrands.map((b) => (
                                         <Option key={b.brandId ?? b.id} value={b.brandName ?? b.BrandName}>
                                             {b.brandName ?? b.BrandName}
                                         </Option>
                                     ))}
                                 </Select>
-                                <Select placeholder="Khoảng giá" allowClear style={{ width: 180 }}>
+                                <Select
+                                    placeholder="Khoảng giá"
+                                    allowClear
+                                    style={{ width: 180 }}
+                                    value={selectedPriceRange || undefined}
+                                    onChange={setSelectedPriceRange}
+                                >
                                     <Option value="0-100">Dưới 100tr</Option>
                                     <Option value="100-300">100tr - 300tr</Option>
                                     <Option value="300-500">300tr - 500tr</Option>
@@ -150,8 +189,8 @@ const MarketPage = () => {
                         {postType === 'vehicle' ? 'Xe điện đang bán' : 'Pin xe điện nổi bật'}
                     </Title>
                     <div className="space-x-2">
-                        <Button type={postType === 'vehicle' ? 'primary' : 'default'} onClick={() => setPostType('vehicle')}>Xe</Button>
-                        <Button type={postType === 'battery' ? 'primary' : 'default'} onClick={() => setPostType('battery')}>Pin</Button>
+                        <Button type={postType === 'vehicle' ? 'primary' : 'default'} onClick={() => handlePostTypeChange('vehicle')}>Xe</Button>
+                        <Button type={postType === 'battery' ? 'primary' : 'default'} onClick={() => handlePostTypeChange('battery')}>Pin</Button>
                     </div>
                 </div>
 

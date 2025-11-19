@@ -212,7 +212,6 @@ const AuctionList = () => {
                                                 size="large"
                                                 icon={<EyeOutlined />}
                                                 onClick={() => navigate(`/auction/${auction.auctionId}`)}
-                                                disabled={hasEnded}
                                             >
                                                 {hasEnded ? 'Xem kết quả' : 'Tham gia đấu giá'}
                                             </Button>

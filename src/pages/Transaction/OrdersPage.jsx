@@ -56,18 +56,14 @@ const OrdersPage = () => {
             if (activeTab === 'purchases') {
                 const response = await transactionAPI.getMyPurchases();
                 if (response.success) {
-                    const orders = response.data?.data || response.data || [];
-                    console.log('[OrdersPage] Fetched purchases:', orders);
-                    setPurchases(orders);
+                    setPurchases(response.data?.data || response.data || []);
                 } else {
                     message.error(response.message);
                 }
             } else {
                 const response = await transactionAPI.getMySales();
                 if (response.success) {
-                    const orders = response.data?.data || response.data || [];
-                    console.log('[OrdersPage] Fetched sales:', orders);
-                    setSales(orders);
+                    setSales(response.data?.data || response.data || []);
                 } else {
                     message.error(response.message);
                 }
@@ -134,25 +130,6 @@ const OrdersPage = () => {
     };
 
     const OrderCard = ({ order, isPurchase }) => {
-        // Helper to extract postId from postImageUrl if postId is not provided
-        const getPostId = (o) => {
-            // Try direct fields first
-            if (o.postId || o.PostId) {
-                console.log('[OrdersPage] Found postId directly:', o.postId || o.PostId);
-                return o.postId || o.PostId;
-            }
-            if (o.post?.postId || o.post?.id) {
-                console.log('[OrdersPage] Found postId in post object:', o.post.postId || o.post.id);
-                return o.post.postId || o.post.id;
-            }
-            
-            // Cannot reliably extract postId from Firebase URL
-            // Backend needs to include PostId in transaction response
-            console.error('[OrdersPage] PostId not found in transaction response. Backend needs to add PostId field.');
-            console.log('[OrdersPage] Order object:', o);
-            return null;
-        };
-        
         // Resolve image and seller name defensively because backend DTOs vary.
         const resolvePostImage = (o) => {
             const candidates = [
@@ -201,36 +178,17 @@ const OrdersPage = () => {
                         <Image
                             src={firstImage}
                             alt={order.postTitle || 'product image'}
-                            className="rounded-lg object-cover cursor-pointer"
+                            className="rounded-lg object-cover"
                             width="100%"
                             height={120}
                             preview={false}
-                            onClick={() => {
-                                const postId = getPostId(order);
-                                if (postId) {
-                                    navigate(`/post/${postId}`);
-                                } else {
-                                    message.error('Backend chưa trả về PostId. Vui lòng liên hệ admin để sửa API.');
-                                }
-                            }}
                         />
                     </Col>
                     <Col xs={24} sm={18}>
                         <Space direction="vertical" className="w-full" size="small">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <Title 
-                                        level={5} 
-                                        className="!mb-1 cursor-pointer hover:text-blue-600"
-                                        onClick={() => {
-                                            const postId = getPostId(order);
-                                            if (postId) {
-                                                navigate(`/post/${postId}`);
-                                            } else {
-                                                message.error('Backend chưa trả về PostId. Vui lòng liên hệ admin để sửa API.');
-                                            }
-                                        }}
-                                    >
+                                    <Title level={5} className="!mb-1">
                                         {order.postTitle || 'Không có tiêu đề'}
                                     </Title>
                                     <Text type="secondary" className="text-sm">
