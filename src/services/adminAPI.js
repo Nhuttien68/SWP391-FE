@@ -51,6 +51,101 @@ export const adminAPI = {
                 error: error.response?.data
             };
         }
+    },
+
+    /**
+     * Khóa/Mở khóa user
+     * @param {string} userId - ID của user
+     * @param {string} status - ACTIVE hoặc INACTIVE
+     */
+    updateUserStatus: async (userId, status) => {
+        try {
+            const response = await apiClient.put(`/Admin/users/${userId}/status?status=${status}`);
+            return {
+                success: true,
+                data: response?.Data ?? response?.data ?? response,
+                message: response?.Message || `Đã cập nhật trạng thái user thành ${status}`
+            };
+        } catch (error) {
+            console.error('Update user status error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể cập nhật trạng thái user'
+            };
+        }
+    },
+
+    // Transaction APIs for statistics
+    getTransactionsByDate: async (day, month, year) => {
+        try {
+            const response = await apiClient.get(`/Admin/transactions/date?day=${day}&month=${month}&year=${year}`);
+            return {
+                success: true,
+                data: response?.Data ?? response?.data ?? response,
+                message: response?.Message || 'Lấy giao dịch theo ngày thành công'
+            };
+        } catch (error) {
+            console.error('Get transactions by date error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể lấy giao dịch',
+                error: error.response?.data
+            };
+        }
+    },
+
+    getTransactionsByMonth: async (month, year) => {
+        try {
+            const response = await apiClient.get(`/Admin/transactions/month?month=${month}&year=${year}`);
+            return {
+                success: true,
+                data: response?.Data ?? response?.data ?? response,
+                message: response?.Message || 'Lấy giao dịch theo tháng thành công'
+            };
+        } catch (error) {
+            console.error('Get transactions by month error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể lấy giao dịch',
+                error: error.response?.data
+            };
+        }
+    },
+
+    getTransactionsByYear: async (year) => {
+        try {
+            const response = await apiClient.get(`/Admin/transactions/year?year=${year}`);
+            return {
+                success: true,
+                data: response?.Data ?? response?.data ?? response,
+                message: response?.Message || 'Lấy giao dịch theo năm thành công'
+            };
+        } catch (error) {
+            console.error('Get transactions by year error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể lấy giao dịch',
+                error: error.response?.data
+            };
+        }
+    },
+
+    getTransactionsByRange: async (startDate, endDate) => {
+        try {
+            const response = await apiClient.get(`/Admin/transactions/range?startDate=${startDate}&endDate=${endDate}`);
+            return {
+                success: true,
+                data: response?.Data ?? response?.data ?? response,
+                message: response?.Message || 'Lấy giao dịch theo khoảng thành công'
+            };
+        } catch (error) {
+            console.error('Get transactions by range error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể lấy giao dịch',
+                error: error.response?.data
+            };
+        }
     }
 };
 

@@ -1,6 +1,6 @@
-import { Table, Tag, Button, Space, Select, Card, Statistic, Row, Col, message } from "antd";
+import { Table, Tag, Button, Space, Select, Card, Statistic, Row, Col, message, Popconfirm } from "antd";
 import { useState, useEffect } from "react";
-import { UserOutlined, TeamOutlined, CrownOutlined } from "@ant-design/icons";
+import { UserOutlined, TeamOutlined, CrownOutlined, LockOutlined, UnlockOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
 import { adminAPI } from '../../services/adminAPI';
 
@@ -21,24 +21,19 @@ export default function UsersPage() {
             try {
                 const resp = await adminAPI.getAllUsers();
                 if (resp.success) {
-                    // resp.data should be an array thanks to adminAPI normalization
-                    const raw = resp.data ?? resp;
-                    const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.Data) ? raw.Data : []);
-                    if (!Array.isArray(list)) {
-                        console.error('Unexpected users payload', raw);
-                        message.error('Dữ liệu người dùng không hợp lệ');
-                    } else {
-                        const mapped = list.map(u => ({
-                            id: u.userId || u.UserId || (u.UserId ? u.UserId.toString() : undefined) || (u.userId ? u.userId.toString() : undefined),
-                            name: u.fullName || u.FullName || u.fullName || u.Fullname || u.FullName,
-                            email: u.email || u.Email,
-                            role: u.role || u.Role || 'USER',
-                            status: u.status || u.Status || 'INACTIVE',
-                            phone: u.phone || u.Phone,
-                            balance: u.walletBalance || 0
-                        }));
-                        setUsers(mapped);
-                    }
+                    const list = Array.isArray(resp.data) ? resp.data : [];
+                    const mapped = list.map(u => ({
+                        id: u.userId || u.UserId,
+                        name: u.fullName || u.FullName || 'N/A',
+                        email: u.email || u.Email || 'N/A',
+                        phone: u.phone || u.Phone || 'N/A',
+                        role: u.role || u.Role || 'USER',
+                        status: u.status || u.Status || 'INACTIVE',
+                        createdAt: u.createdAt || u.CreatedAt,
+                        // Lấy balance từ wallet được include trong User entity
+                        balance: u.wallet?.balance || u.Wallet?.Balance || 0
+                    }));
+                    setUsers(mapped);
                 } else {
                     message.error(resp.message || 'Không thể lấy danh sách người dùng');
                 }
@@ -52,24 +47,34 @@ export default function UsersPage() {
         loadUsers();
     }, []);
 
-    // NOTE: backend currently exposes only read endpoints for users under AdminController.
-    // Actions like toggling status or changing role are not available, so we keep UI read-only.
-    const toggleActive = (id) => {
-        toast.info('Thao tác này không được hỗ trợ bởi API hiện tại');
-    };
 
-    const changeRole = (id, role) => {
-        toast.info('Thao tác này không được hỗ trợ bởi API hiện tại');
+    const toggleActive = async (userId, currentStatus) => {
+        const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        const action = newStatus === 'INACTIVE' ? 'khóa' : 'mở khóa';
+
+        try {
+            setLoading(true);
+            const response = await adminAPI.updateUserStatus(userId, newStatus);
+
+            if (response.success) {
+                message.success(`Đã ${action} người dùng thành công`);
+
+                // Cập nhật state local
+                setUsers(users.map(u =>
+                    u.id === userId ? { ...u, status: newStatus } : u
+                ));
+            } else {
+                message.error(response.message || `Không thể ${action} người dùng`);
+            }
+        } catch (error) {
+            console.error('Toggle user status error:', error);
+            message.error(`Có lỗi khi ${action} người dùng`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const columns = [
-        {
-            title: "ID",
-            dataIndex: "id",
-            key: "id",
-            className: "font-semibold text-gray-700",
-            width: 80
-        },
         {
             title: "Tên",
             dataIndex: "name",
@@ -97,40 +102,31 @@ export default function UsersPage() {
             title: "Vai trò",
             dataIndex: "role",
             key: "role",
-            render: (role, record) => (
-                <Select
-                    value={role}
-                    className="w-32"
-                    onChange={(val) => changeRole(record.id, val)}
-                    size="small"
-                >
-                    <Option value="Member">
-                        <div className="flex items-center space-x-1">
-                            <TeamOutlined className="text-blue-500" />
-                            <span>Member</span>
-                        </div>
-                    </Option>
-                    <Option value="Admin">
-                        <div className="flex items-center space-x-1">
-                            <CrownOutlined className="text-yellow-500" />
-                            <span>Admin</span>
-                        </div>
-                    </Option>
-                </Select>
+            render: (role) => (
+                <Tag color={role === 'ADMIN' ? 'gold' : 'blue'}>
+                    {role === 'ADMIN' ? (
+                        <><CrownOutlined /> {role}</>
+                    ) : (
+                        <><UserOutlined /> {role}</>
+                    )}
+                </Tag>
             )
         },
         {
             title: "Trạng thái",
-            dataIndex: "is_active",
-            key: "is_active",
-            render: (active) => (
-                <Tag
-                    color={active ? "green" : "red"}
-                    className={`font-medium ${active ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}
-                >
-                    {active ? "Active" : "Inactive"}
-                </Tag>
-            ),
+            dataIndex: "status",
+            key: "status",
+            render: (status) => {
+                const isActive = (status || '').toUpperCase() === 'ACTIVE';
+                return (
+                    <Tag
+                        color={isActive ? "green" : "red"}
+                        className={`font-medium ${isActive ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}
+                    >
+                        {isActive ? "Hoạt động" : "Không hoạt động"}
+                    </Tag>
+                );
+            },
         },
         {
             title: "Balance",
@@ -138,29 +134,45 @@ export default function UsersPage() {
             key: "balance",
             render: (bal) => (
                 <span className="font-semibold text-green-600">
-                    {bal.toLocaleString()} VND
+                    {bal?.toLocaleString() || 0} VND
                 </span>
             )
         },
         {
             title: "Hành động",
             key: "action",
-            render: (_, record) => (
-                <Space>
-                    <Button
-                        type={record.is_active ? "default" : "primary"}
-                        size="small"
-                        className={`font-medium transition-all duration-200 ${record.is_active
-                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-red-300"
-                            : "bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:border-green-300"
-                            }`}
-                        onClick={() => toggleActive(record.id)}
+            fixed: 'right',
+            width: 150,
+            render: (_, record) => {
+                const isActive = (record.status || '').toUpperCase() === 'ACTIVE';
+                const isAdmin = (record.role || '').toUpperCase() === 'ADMIN';
+
+                // Không cho phép khóa tài khoản admin
+                if (isAdmin) {
+                    return <Tag color="gold">Quản trị viên</Tag>;
+                }
+
+                return (
+                    <Popconfirm
+                        title={isActive ? "Khóa người dùng?" : "Mở khóa người dùng?"}
+                        description={isActive ? "Người dùng sẽ không thể đăng nhập sau khi bị khóa." : "Người dùng sẽ có thể đăng nhập lại."}
+                        onConfirm={() => toggleActive(record.id, record.status)}
+                        okText="Xác nhận"
+                        cancelText="Hủy"
+                        okButtonProps={{ danger: isActive }}
                     >
-                        {record.is_active ? "Khóa" : "Phê duyệt"}
-                    </Button>
-                </Space>
-            ),
-        },
+                        <Button
+                            type={isActive ? "default" : "primary"}
+                            danger={isActive}
+                            icon={isActive ? <LockOutlined /> : <UnlockOutlined />}
+                            size="small"
+                        >
+                            {isActive ? "Khóa" : "Mở khóa"}
+                        </Button>
+                    </Popconfirm>
+                );
+            }
+        }
     ];
 
     return (

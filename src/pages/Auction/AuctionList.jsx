@@ -39,12 +39,20 @@ const AuctionList = () => {
     const fetchActiveAuctions = async () => {
         setLoading(true);
         try {
-            const data = await getActiveAuctions();
-            console.log('Active auctions:', data);
-            setAuctions(data || []);
+            const response = await getActiveAuctions();
+            console.log('Active auctions response:', response);
+
+            // Xử lý response từ API
+            const auctionsData = response?.data || response || [];
+
+            // Đảm bảo auctionsData là array
+            const auctionsList = Array.isArray(auctionsData) ? auctionsData : [];
+
+            setAuctions(auctionsList);
         } catch (error) {
             console.error('Error fetching auctions:', error);
             toast.error('Không thể tải danh sách đấu giá');
+            setAuctions([]);
         } finally {
             setLoading(false);
         }

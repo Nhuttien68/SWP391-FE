@@ -54,7 +54,7 @@ export default function BrandsPage() {
     const openEdit = (t, record) => {
         setType(t);
         setEditing(record);
-        form.setFieldsValue({ name: record.name || record.Name || record.name });
+        form.setFieldsValue({ name: record.brandName || record.BrandName });
         setModalOpen(true);
     };
 
@@ -100,25 +100,27 @@ export default function BrandsPage() {
     };
 
     const vehicleCols = [
-        { title: 'ID', dataIndex: 'brandId', key: 'brandId' },
         { title: 'Tên', dataIndex: 'brandName', key: 'brandName', render: (_, r) => r.brandName || r.BrandName },
-        { title: 'Hành động', key: 'action', render: (_, r) => (
-            <Space>
-                <Button icon={<EditOutlined />} onClick={() => openEdit('vehicle', r)}>Sửa</Button>
-                <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete('vehicle', r.brandId || r.BrandId)}>Xóa</Button>
-            </Space>
-        ) }
+        {
+            title: 'Hành động', key: 'action', render: (_, r) => (
+                <Space>
+                    <Button icon={<EditOutlined />} onClick={() => openEdit('vehicle', r)}>Sửa</Button>
+                    <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete('vehicle', r.brandId || r.BrandId)}>Xóa</Button>
+                </Space>
+            )
+        }
     ];
 
     const batteryCols = [
-        { title: 'ID', dataIndex: 'brandBatteryId', key: 'brandBatteryId' },
         { title: 'Tên', dataIndex: 'brandName', key: 'brandName', render: (_, r) => r.brandName || r.BrandName },
-        { title: 'Hành động', key: 'action', render: (_, r) => (
-            <Space>
-                <Button icon={<EditOutlined />} onClick={() => openEdit('battery', r)}>Sửa</Button>
-                <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete('battery', r.brandId || r.BrandId)}>Xóa</Button>
-            </Space>
-        ) }
+        {
+            title: 'Hành động', key: 'action', render: (_, r) => (
+                <Space>
+                    <Button icon={<EditOutlined />} onClick={() => openEdit('battery', r)}>Sửa</Button>
+                    <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete('battery', r.brandBatteryId || r.BrandBatteryId || r.BrandId)}>Xóa</Button>
+                </Space>
+            )
+        }
     ];
 
     return (

@@ -94,25 +94,6 @@ export default function AdminLayout() {
                                     { key: "reviews", label: "Reviews" },
                                 ],
                             },
-                            {
-                                key: "favorites",
-                                icon: <ShoppingCartOutlined />,
-                                label: "Yêu thích & Giỏ hàng",
-                                children: [
-                                    { key: "favorites_list", label: "Favorites" },
-                                    { key: "cart", label: "Shopping Cart" },
-                                    { key: "cart_items", label: "Cart Items" },
-                                ],
-                            },
-                            {
-                                key: "statistics",
-                                icon: <BarChartOutlined />,
-                                label: "Thống kê",
-                                children: [
-                                    { key: "revenue", label: "Báo cáo doanh thu" },
-                                    { key: "trends", label: "Xu hướng" },
-                                ],
-                            },
                         ]}
 
                     />
@@ -140,16 +121,6 @@ export default function AdminLayout() {
                         className="border-none bg-gray-800"
                         items={[
                             {
-                                key: "profile",
-                                icon: <UserOutlined className="text-blue-400" />,
-                                label: (
-                                    <Link to="/profile" className="text-white hover:text-blue-300 transition-colors">
-                                        Hồ sơ cá nhân
-                                    </Link>
-                                ),
-                                className: "hover:bg-gray-700"
-                            },
-                            {
                                 key: "logout",
                                 icon: <LogoutOutlined className="text-red-400" />,
                                 label: (
@@ -175,8 +146,6 @@ export default function AdminLayout() {
                     {selectedKey === "brands" && <BrandsPage />}
                     {selectedKey === "auctions_list" && <AdminAuctionsPage />}
                     {selectedKey === "transactions" && <AdminTransactionsPage />}
-                    {selectedKey === "revenue" && <div>📊 Báo cáo doanh thu</div>}
-                    {selectedKey === "trends" && <div>📈 Xu hướng</div>}
                 </Content>
             </Layout>
         </Layout>

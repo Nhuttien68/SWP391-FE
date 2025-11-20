@@ -32,6 +32,7 @@ import {
     CalendarOutlined,
 } from '@ant-design/icons';
 import { getAuctionById, placeBid } from '../../services/auctionAPI';
+import authAPI from '../../services/authAPI';
 import { toast } from 'react-toastify';
 
 const { Title, Text, Paragraph } = Typography;
@@ -45,6 +46,7 @@ const AuctionDetail = () => {
     const [bidAmount, setBidAmount] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
+    const currentUserId = authAPI.getCurrentUserId();
 
     useEffect(() => {
         fetchAuctionDetails();
@@ -71,6 +73,13 @@ const AuctionDetail = () => {
 
     const handlePlaceBid = async () => {
         if (!auction) return;
+
+        // Kiểm tra không được đặt giá vào bài của chính mình
+        const postOwnerId = auction.post?.userId || auction.post?.user?.userId;
+        if (postOwnerId && String(postOwnerId) === String(currentUserId)) {
+            toast.error('Bạn không thể đặt giá vào bài đăng của chính mình!');
+            return;
+        }
 
         if (bidAmount <= auction.currentPrice) {
             toast.error('Giá đặt phải cao hơn giá hiện tại!');
@@ -316,45 +325,62 @@ const AuctionDetail = () => {
                         {/* Bidding Form */}
                         {isActive && (
                             <Card title={<><DollarOutlined className="mr-2" />Đặt giá của bạn</>}>
-                                <Space direction="vertical" className="w-full" size="large">
-                                    <div>
-                                        <Text type="secondary" className="block mb-2">
-                                            Nhập giá đặt (VNĐ)
-                                        </Text>
-                                        <InputNumber
-                                            size="large"
-                                            style={{ width: '100%' }}
-                                            min={auction.currentPrice + 100000}
-                                            step={100000}
-                                            value={bidAmount}
-                                            onChange={setBidAmount}
-                                            formatter={(value) =>
-                                                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                                            }
-                                            parser={(value) => value.replace(/,/g, '')}
-                                        />
-                                        <Text type="secondary" className="text-xs">
-                                            Giá tối thiểu: {formatPrice(auction.currentPrice + 100000)}
-                                        </Text>
-                                    </div>
+                                {(() => {
+                                    const postOwnerId = auction.post?.userId || auction.post?.user?.userId;
+                                    const isOwnAuction = postOwnerId && String(postOwnerId) === String(currentUserId);
 
-                                    <Button
-                                        type="primary"
-                                        size="large"
-                                        block
-                                        loading={submitting}
-                                        onClick={handlePlaceBid}
-                                        icon={<FireOutlined />}
-                                    >
-                                        Đặt giá ngay
-                                    </Button>
+                                    if (isOwnAuction) {
+                                        return (
+                                            <div className="text-center py-8">
+                                                <Text type="warning" className="text-base">
+                                                    ⚠️ Bạn không thể đặt giá vào phiên đấu giá của chính mình
+                                                </Text>
+                                            </div>
+                                        );
+                                    }
 
-                                    <div className="bg-blue-50 p-3 rounded">
-                                        <Text type="secondary" className="text-xs">
-                                            💡 <strong>Lưu ý:</strong> Số tiền sẽ được trừ từ ví của bạn nếu thắng đấu giá
-                                        </Text>
-                                    </div>
-                                </Space>
+                                    return (
+                                        <Space direction="vertical" className="w-full" size="large">
+                                            <div>
+                                                <Text type="secondary" className="block mb-2">
+                                                    Nhập giá đặt (VNĐ)
+                                                </Text>
+                                                <InputNumber
+                                                    size="large"
+                                                    style={{ width: '100%' }}
+                                                    min={auction.currentPrice + 100000}
+                                                    step={100000}
+                                                    value={bidAmount}
+                                                    onChange={setBidAmount}
+                                                    formatter={(value) =>
+                                                        `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                                                    }
+                                                    parser={(value) => value.replace(/,/g, '')}
+                                                />
+                                                <Text type="secondary" className="text-xs">
+                                                    Giá tối thiểu: {formatPrice(auction.currentPrice + 100000)}
+                                                </Text>
+                                            </div>
+
+                                            <Button
+                                                type="primary"
+                                                size="large"
+                                                block
+                                                loading={submitting}
+                                                onClick={handlePlaceBid}
+                                                icon={<FireOutlined />}
+                                            >
+                                                Đặt giá ngay
+                                            </Button>
+
+                                            <div className="bg-blue-50 p-3 rounded">
+                                                <Text type="secondary" className="text-xs">
+                                                    💡 <strong>Lưu ý:</strong> Số tiền sẽ được trừ từ ví của bạn nếu thắng đấu giá
+                                                </Text>
+                                            </div>
+                                        </Space>
+                                    );
+                                })()}
                             </Card>
                         )}
 
