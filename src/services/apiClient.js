@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // Base URL của backend API
-const BASE_URL = 'https://ev-marketplace-etabdkefebdghqfa.southeastasia-01.azurewebsites.net/api';
+// Production: https://ev-marketplace-etabdkefebdghqfa.southeastasia-01.azurewebsites.net/api
+// Local: http://localhost:5037/api
+const BASE_URL = 'http://localhost:5037/api';
 
 // Tạo axios instance với cấu hình cơ bản
 const apiClient = axios.create({

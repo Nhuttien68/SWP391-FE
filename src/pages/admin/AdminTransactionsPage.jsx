@@ -234,8 +234,8 @@ export default function AdminTransactionsPage() {
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">Thống kê Doanh thu</h1>
-                <p className="text-gray-600">Phân tích doanh thu và giao dịch của hệ thống</p>
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">Thống kê Giao dịch</h1>
+                <p className="text-gray-600">Phân tích số tiền giao dịch và giao dịch của hệ thống</p>
             </div>
 
             {/* Filter Controls */}
@@ -290,7 +290,7 @@ export default function AdminTransactionsPage() {
                     <Col xs={24} sm={12} lg={6}>
                         <Card>
                             <Statistic
-                                title="Tổng doanh thu"
+                                title="Tổng số tiền giao dịch"
                                 value={statistics.totalRevenue}
                                 precision={0}
                                 valueStyle={{ color: '#3f8600' }}
@@ -337,7 +337,7 @@ export default function AdminTransactionsPage() {
                 {/* Charts */}
                 <Row gutter={[16, 16]} className="mb-6">
                     <Col xs={24} lg={16}>
-                        <Card title="Doanh thu theo thời gian">
+                        <Card title="Số tiền giao dịch theo thời gian">
                             <Line {...lineConfig} />
                         </Card>
                     </Col>

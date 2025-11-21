@@ -16,10 +16,6 @@ import {
     Spin,
     Empty,
     Image,
-    Modal,
-    Form,
-    Input,
-    message,
 } from 'antd';
 import {
     FireOutlined,
@@ -28,15 +24,13 @@ import {
     UserOutlined,
     TrophyOutlined,
     HistoryOutlined,
-    EnvironmentOutlined,
-    CalendarOutlined,
 } from '@ant-design/icons';
 import { getAuctionById, placeBid } from '../../services/auctionAPI';
 import authAPI from '../../services/authAPI';
 import { toast } from 'react-toastify';
+import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
-const { Countdown } = Statistic;
 
 const AuctionDetail = () => {
     const { id } = useParams();
@@ -45,44 +39,71 @@ const AuctionDetail = () => {
     const [loading, setLoading] = useState(true);
     const [bidAmount, setBidAmount] = useState(0);
     const [submitting, setSubmitting] = useState(false);
-    const [form] = Form.useForm();
     const currentUserId = authAPI.getCurrentUserId();
 
     useEffect(() => {
-        fetchAuctionDetails();
-        // Auto refresh mỗi 10 giây
-        const interval = setInterval(fetchAuctionDetails, 10000);
-        return () => clearInterval(interval);
+        if (id) {
+            fetchAuctionDetails();
+            const interval = setInterval(fetchAuctionDetails, 10000);
+            return () => clearInterval(interval);
+        }
     }, [id]);
 
     const fetchAuctionDetails = async () => {
         try {
             const response = await getAuctionById(id);
-            if (response.status === '200' && response.data) {
-                setAuction(response.data);
-                // Set giá đặt mặc định cao hơn giá hiện tại
-                setBidAmount(response.data.currentPrice + 1000000);
+
+            if (response.success && response.data) {
+                const auctionData = response.data.data || response.data.Data || response.data;
+
+                const normalized = {
+                    auctionId: auctionData.auctionId || auctionData.AuctionId || id,
+                    postId: auctionData.postId || auctionData.PostId,
+                    startPrice: parseFloat(auctionData.startPrice || auctionData.StartPrice || 0),
+                    currentPrice: parseFloat(auctionData.currentPrice || auctionData.CurrentPrice || auctionData.startPrice || auctionData.StartPrice || 0),
+                    endTime: auctionData.endTime || auctionData.EndTime,
+                    status: auctionData.status || auctionData.Status || 'Active',
+                    winnerId: auctionData.winnerId || auctionData.WinnerId,
+                    post: auctionData.post || auctionData.Post || {},
+                    auctionBids: (auctionData.auctionBids || auctionData.AuctionBids || []).map(bid => ({
+                        bidId: bid.bidId || bid.BidId,
+                        auctionId: bid.auctionId || bid.AuctionId,
+                        userId: bid.userId || bid.UserId,
+                        bidAmount: parseFloat(bid.bidAmount || bid.BidAmount || 0),
+                        bidTime: bid.bidTime || bid.BidTime,
+                        user: bid.user || bid.User || {}
+                    }))
+                };
+
+                setAuction(normalized);
+                setBidAmount(normalized.currentPrice + 1000000);
+            } else {
+                toast.error('Không tìm thấy phiên đấu giá');
+                navigate('/auction');
             }
         } catch (error) {
-            console.error('Error fetching auction:', error);
             toast.error('Không thể tải thông tin đấu giá');
+            navigate('/auction');
         } finally {
             setLoading(false);
         }
     };
 
     const handlePlaceBid = async () => {
-        if (!auction) return;
+        if (!currentUserId) {
+            toast.error('Vui lòng đăng nhập để đặt giá');
+            navigate('/login');
+            return;
+        }
 
-        // Kiểm tra không được đặt giá vào bài của chính mình
-        const postOwnerId = auction.post?.userId || auction.post?.user?.userId;
+        const postOwnerId = auction.post?.userId || auction.post?.UserId;
         if (postOwnerId && String(postOwnerId) === String(currentUserId)) {
             toast.error('Bạn không thể đặt giá vào bài đăng của chính mình!');
             return;
         }
 
         if (bidAmount <= auction.currentPrice) {
-            toast.error('Giá đặt phải cao hơn giá hiện tại!');
+            toast.error(`Giá đặt phải cao hơn giá hiện tại (${formatPrice(auction.currentPrice)})`);
             return;
         }
 
@@ -93,55 +114,54 @@ const AuctionDetail = () => {
                 bidAmount: bidAmount,
             });
 
-            if (response.status === '200') {
+            if (response.success) {
                 toast.success('Đặt giá thành công!');
-                fetchAuctionDetails(); // Refresh data
+                await fetchAuctionDetails();
             } else {
                 toast.error(response.message || 'Đặt giá thất bại');
             }
         } catch (error) {
-            console.error('Error placing bid:', error);
-            if (error.response?.status === 401) {
-                toast.error('Vui lòng đăng nhập để tham gia đấu giá');
-                navigate('/login');
-            } else {
-                toast.error(error.response?.data?.message || 'Đặt giá thất bại');
-            }
+            toast.error(error.response?.data?.message || 'Đặt giá thất bại');
         } finally {
             setSubmitting(false);
         }
-    };
-
-    const getPostImage = (post) => {
-        if (!post) return '/images/placeholder.jpg';
-        if (post.imageUrls && post.imageUrls.length > 0) return post.imageUrls[0];
-        if (post.postImages && post.postImages.length > 0) {
-            return post.postImages[0].imageUrl || post.postImages[0];
-        }
-        return '/images/placeholder.jpg';
     };
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND',
-        }).format(price);
+        }).format(price || 0);
     };
 
     const formatDateTime = (dateString) => {
-        return new Date(dateString).toLocaleString('vi-VN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
+        if (!dateString) return 'N/A';
+        return dayjs(dateString).format('DD/MM/YYYY HH:mm:ss');
+    };
+
+    const parseEndTime = (dateString) => {
+        if (!dateString) return new Date();
+        const localDateString = dateString.replace('T', ' ');
+        return new Date(localDateString);
+    };
+
+    const getPostImage = (post) => {
+        if (!post) return '/images/placeholder.jpg';
+
+        const images = post.postImages || post.PostImages;
+        if (images && images.length > 0) {
+            return images[0].imageUrl || images[0].ImageUrl || '/images/placeholder.jpg';
+        }
+
+        return '/images/placeholder.jpg';
     };
 
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
-                <Spin size="large" tip="Đang tải thông tin đấu giá..." />
+                <Spin size="large">
+                    <div className="p-12">Đang tải thông tin đấu giá...</div>
+                </Spin>
             </div>
         );
     }
@@ -154,22 +174,24 @@ const AuctionDetail = () => {
         );
     }
 
-    const isActive = auction.status === 'Active' && new Date(auction.endTime) > new Date();
-    const highestBid = auction.auctionBids && auction.auctionBids.length > 0
-        ? [...auction.auctionBids].sort((a, b) => b.bidAmount - a.bidAmount)[0]
-        : null;
+    const endTime = parseEndTime(auction.endTime);
+    const isActive = auction.status === 'Active' && endTime > new Date();
+    const sortedBids = [...auction.auctionBids].sort((a, b) => b.bidAmount - a.bidAmount);
+    const highestBid = sortedBids[0] || null;
+    const isOwnPost = auction.post?.userId && String(auction.post.userId) === String(currentUserId);
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="max-w-7xl mx-auto px-4">
                 {/* Header */}
+                <Button onClick={() => navigate('/auction')} className="mb-4">
+                    ← Quay lại danh sách
+                </Button>
+
                 <div className="mb-6">
-                    <Button onClick={() => navigate('/auction')} className="mb-4">
-                        ← Quay lại danh sách
-                    </Button>
                     <Title level={2}>
                         <FireOutlined className="text-red-500 mr-3" />
-                        {auction.post?.title || 'Chi tiết đấu giá'}
+                        {auction.post?.title || auction.post?.Title || 'Chi tiết đấu giá'}
                     </Title>
                     <Tag color={isActive ? 'red' : 'gray'} className="text-base px-3 py-1">
                         {isActive ? 'Đang diễn ra' : 'Đã kết thúc'}
@@ -177,61 +199,44 @@ const AuctionDetail = () => {
                 </div>
 
                 <Row gutter={[24, 24]}>
-                    {/* Left Column - Product Info */}
+                    {/* Left Column */}
                     <Col xs={24} lg={14}>
+                        {/* Product Image */}
                         <Card>
                             <Image
                                 src={getPostImage(auction.post)}
-                                alt={auction.post?.title}
-                                style={{ width: '100%', maxHeight: '400px', objectFit: 'cover' }}
+                                alt={auction.post?.title || 'Auction'}
+                                style={{ width: '100%', maxHeight: '500px', objectFit: 'cover' }}
                                 fallback="/images/placeholder.jpg"
                             />
 
                             <Divider />
 
                             <Title level={4}>Thông tin sản phẩm</Title>
-                            <Space direction="vertical" className="w-full">
-                                {auction.post?.description && (
-                                    <Paragraph>{auction.post.description}</Paragraph>
-                                )}
-                                {auction.post?.location && (
-                                    <Text>
-                                        <EnvironmentOutlined className="mr-2" />
-                                        Địa điểm: {auction.post.location}
-                                    </Text>
-                                )}
-                                {auction.post?.createdAt && (
-                                    <Text type="secondary">
-                                        <CalendarOutlined className="mr-2" />
-                                        Đăng ngày: {formatDateTime(auction.post.createdAt)}
-                                    </Text>
-                                )}
-                            </Space>
+                            <Paragraph>
+                                {auction.post?.description || auction.post?.Description || 'Không có mô tả'}
+                            </Paragraph>
                         </Card>
 
                         {/* Bid History */}
                         <Card title={<><HistoryOutlined className="mr-2" />Lịch sử đặt giá</>} className="mt-4">
-                            {auction.auctionBids && auction.auctionBids.length > 0 ? (
+                            {auction.auctionBids.length > 0 ? (
                                 <List
                                     itemLayout="horizontal"
-                                    dataSource={[...auction.auctionBids].sort((a, b) =>
-                                        new Date(b.bidTime) - new Date(a.bidTime)
-                                    )}
+                                    dataSource={sortedBids}
                                     renderItem={(bid, index) => (
                                         <List.Item>
                                             <List.Item.Meta
                                                 avatar={
                                                     <Avatar
                                                         icon={<UserOutlined />}
-                                                        style={{
-                                                            backgroundColor: index === 0 ? '#52c41a' : '#1890ff'
-                                                        }}
+                                                        style={{ backgroundColor: index === 0 ? '#52c41a' : '#1890ff' }}
                                                     />
                                                 }
                                                 title={
                                                     <Space>
                                                         <Text strong>
-                                                            {bid.user?.fullName || bid.user?.email || 'Người dùng'}
+                                                            {bid.user?.fullName || bid.user?.FullName || bid.user?.email || 'Người dùng'}
                                                         </Text>
                                                         {index === 0 && (
                                                             <Tag color="green" icon={<TrophyOutlined />}>
@@ -240,11 +245,7 @@ const AuctionDetail = () => {
                                                         )}
                                                     </Space>
                                                 }
-                                                description={
-                                                    <Text type="secondary">
-                                                        {formatDateTime(bid.bidTime)}
-                                                    </Text>
-                                                }
+                                                description={formatDateTime(bid.bidTime)}
                                             />
                                             <Text strong className="text-lg text-red-500">
                                                 {formatPrice(bid.bidAmount)}
@@ -258,26 +259,25 @@ const AuctionDetail = () => {
                         </Card>
                     </Col>
 
-                    {/* Right Column - Auction Info & Bidding */}
+                    {/* Right Column */}
                     <Col xs={24} lg={10}>
                         {/* Countdown */}
                         <Card className="mb-4">
                             {isActive ? (
-                                <Countdown
+                                <Statistic.Countdown
                                     title={
                                         <Title level={4}>
                                             <ClockCircleOutlined className="mr-2" />
                                             Thời gian còn lại
                                         </Title>
                                     }
-                                    value={new Date(auction.endTime).getTime()}
+                                    value={endTime.getTime()}
                                     format="D ngày H giờ m phút s giây"
                                     valueStyle={{ color: '#cf1322', fontSize: '24px' }}
                                 />
                             ) : (
                                 <div className="text-center">
                                     <Title level={4} type="secondary">
-                                        <ClockCircleOutlined className="mr-2" />
                                         Đấu giá đã kết thúc
                                     </Title>
                                     <Text type="secondary">
@@ -296,7 +296,7 @@ const AuctionDetail = () => {
                                         {formatPrice(auction.startPrice)}
                                     </div>
                                 </div>
-                                <Divider style={{ margin: '8px 0' }} />
+                                <Divider style={{ margin: 0 }} />
                                 <div>
                                     <Text type="secondary">Giá hiện tại</Text>
                                     <div className="text-3xl font-bold text-red-500">
@@ -305,7 +305,7 @@ const AuctionDetail = () => {
                                 </div>
                                 {highestBid && (
                                     <>
-                                        <Divider style={{ margin: '8px 0' }} />
+                                        <Divider style={{ margin: 0 }} />
                                         <div>
                                             <Text type="secondary">
                                                 <TrophyOutlined className="mr-2" />
@@ -313,7 +313,7 @@ const AuctionDetail = () => {
                                             </Text>
                                             <div className="mt-2">
                                                 <Tag color="green" className="text-base px-3 py-1">
-                                                    {highestBid.user?.fullName || 'Người dùng'}
+                                                    {highestBid.user?.fullName || highestBid.user?.FullName || 'Người dùng'}
                                                 </Tag>
                                             </div>
                                         </div>
@@ -325,83 +325,56 @@ const AuctionDetail = () => {
                         {/* Bidding Form */}
                         {isActive && (
                             <Card title={<><DollarOutlined className="mr-2" />Đặt giá của bạn</>}>
-                                {(() => {
-                                    const postOwnerId = auction.post?.userId || auction.post?.user?.userId;
-                                    const isOwnAuction = postOwnerId && String(postOwnerId) === String(currentUserId);
+                                {isOwnPost ? (
+                                    <div className="text-center py-4">
+                                        <Text type="secondary">
+                                            Bạn không thể đặt giá vào bài đăng của chính mình
+                                        </Text>
+                                    </div>
+                                ) : (
+                                    <Space direction="vertical" className="w-full" size="large">
+                                        <div>
+                                            <Text type="secondary" className="block mb-2">
+                                                Số tiền đặt giá (VNĐ)
+                                            </Text>
+                                            <InputNumber
+                                                value={bidAmount}
+                                                onChange={setBidAmount}
+                                                min={auction.currentPrice + 1000}
+                                                step={100000}
+                                                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+                                                style={{ width: '100%' }}
+                                                size="large"
+                                            />
+                                            <Text type="secondary" className="block mt-2">
+                                                Tối thiểu: {formatPrice(auction.currentPrice + 1000)}
+                                            </Text>
+                                        </div>
 
-                                    if (isOwnAuction) {
-                                        return (
-                                            <div className="text-center py-8">
-                                                <Text type="warning" className="text-base">
-                                                    ⚠️ Bạn không thể đặt giá vào phiên đấu giá của chính mình
-                                                </Text>
-                                            </div>
-                                        );
-                                    }
+                                        <Button
+                                            type="primary"
+                                            size="large"
+                                            block
+                                            icon={<FireOutlined />}
+                                            onClick={handlePlaceBid}
+                                            loading={submitting}
+                                            disabled={!currentUserId}
+                                        >
+                                            {!currentUserId ? 'Vui lòng đăng nhập' : 'Đặt giá ngay'}
+                                        </Button>
 
-                                    return (
-                                        <Space direction="vertical" className="w-full" size="large">
-                                            <div>
-                                                <Text type="secondary" className="block mb-2">
-                                                    Nhập giá đặt (VNĐ)
-                                                </Text>
-                                                <InputNumber
-                                                    size="large"
-                                                    style={{ width: '100%' }}
-                                                    min={auction.currentPrice + 100000}
-                                                    step={100000}
-                                                    value={bidAmount}
-                                                    onChange={setBidAmount}
-                                                    formatter={(value) =>
-                                                        `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                                                    }
-                                                    parser={(value) => value.replace(/,/g, '')}
-                                                />
-                                                <Text type="secondary" className="text-xs">
-                                                    Giá tối thiểu: {formatPrice(auction.currentPrice + 100000)}
-                                                </Text>
-                                            </div>
-
+                                        {!currentUserId && (
                                             <Button
-                                                type="primary"
                                                 size="large"
                                                 block
-                                                loading={submitting}
-                                                onClick={handlePlaceBid}
-                                                icon={<FireOutlined />}
+                                                onClick={() => navigate('/login')}
                                             >
-                                                Đặt giá ngay
+                                                Đăng nhập để đặt giá
                                             </Button>
-
-                                            <div className="bg-blue-50 p-3 rounded">
-                                                <Text type="secondary" className="text-xs">
-                                                    💡 <strong>Lưu ý:</strong> Số tiền sẽ được trừ từ ví của bạn nếu thắng đấu giá
-                                                </Text>
-                                            </div>
-                                        </Space>
-                                    );
-                                })()}
-                            </Card>
-                        )}
-
-                        {/* Ended Auction Result */}
-                        {!isActive && highestBid && (
-                            <Card>
-                                <div className="text-center">
-                                    <TrophyOutlined style={{ fontSize: '48px', color: '#faad14' }} />
-                                    <Title level={4} className="mt-3">
-                                        Người thắng đấu giá
-                                    </Title>
-                                    <Text strong className="text-lg">
-                                        {highestBid.user?.fullName || 'Người dùng'}
-                                    </Text>
-                                    <div className="mt-3">
-                                        <Text type="secondary">Giá thắng</Text>
-                                        <div className="text-2xl font-bold text-red-500">
-                                            {formatPrice(highestBid.bidAmount)}
-                                        </div>
-                                    </div>
-                                </div>
+                                        )}
+                                    </Space>
+                                )}
                             </Card>
                         )}
                     </Col>

@@ -16,15 +16,21 @@ import VehiclesPage from "./VehiclesPage";
 import BatteriesPage from "./BatteriesPage";
 import AdminAuctionsPage from "./AdminAuctionsPage";
 import AdminTransactionsPage from "./AdminTransactionsPage";
+import AdminWalletPage from "./AdminWalletPage";
 import { useAuth } from "../../context/AuthContext";
 
 const { Header, Sider, Content } = Layout;
 
 export default function AdminLayout() {
     const navigate = useNavigate();
-    const { isLoading, isAuthenticated, isAdmin } = useAuth();
+    const { isLoading, isAuthenticated, isAdmin, logout } = useAuth();
 
     const [selectedKey, setSelectedKey] = useState("users");
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     useEffect(() => {
         if (isLoading) return;
@@ -119,15 +125,16 @@ export default function AdminLayout() {
                         theme="dark"
                         mode="inline"
                         className="border-none bg-gray-800"
+                        onClick={(e) => {
+                            if (e.key === 'logout') {
+                                handleLogout();
+                            }
+                        }}
                         items={[
                             {
                                 key: "logout",
                                 icon: <LogoutOutlined className="text-red-400" />,
-                                label: (
-                                    <Link to="/logout" className="text-white hover:text-red-300 transition-colors">
-                                        Đăng xuất
-                                    </Link>
-                                ),
+                                label: "Đăng xuất",
                                 className: "hover:bg-gray-700"
                             }
                         ]}
@@ -139,7 +146,7 @@ export default function AdminLayout() {
             <Layout>
                 <Content className="m-6 p-6 bg-white rounded-lg shadow">
                     {selectedKey === "users_list" && <UsersPage />}
-                    {selectedKey === "wallets" && <div>💳 Quản lý Wallets</div>}
+                    {selectedKey === "wallets" && <AdminWalletPage />}
                     {selectedKey === "posts_list" && <AdminPostsPage />}
                     {selectedKey === "vehicles" && <VehiclesPage />}
                     {selectedKey === "batteries" && <BatteriesPage />}

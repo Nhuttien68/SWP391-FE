@@ -25,7 +25,6 @@ import { getActiveAuctions } from '../../services/auctionAPI';
 import { toast } from 'react-toastify';
 
 const { Title, Text, Paragraph } = Typography;
-const { Countdown } = Statistic;
 
 const AuctionList = () => {
     const [auctions, setAuctions] = useState([]);
@@ -181,7 +180,8 @@ const AuctionList = () => {
                                             {/* Countdown or End Time */}
                                             {!hasEnded ? (
                                                 <Card size="small" className="bg-blue-50 mb-3">
-                                                    <Countdown
+                                                    <Statistic.Timer
+                                                        type="countdown"
                                                         title={
                                                             <span>
                                                                 <ClockCircleOutlined className="mr-2" />

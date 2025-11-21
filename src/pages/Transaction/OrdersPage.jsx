@@ -246,7 +246,7 @@ const OrdersPage = () => {
                                 >
                                     Chi tiết
                                 </Button>
-                                {isPurchase && String(order.status || '').toUpperCase() === 'COMPLETED' && (
+                                {isPurchase && ['COMPLETED', 'PAID'].includes(String(order.status || '').toUpperCase()) && (
                                     <>
                                         {reviewedTransactions.has(order.transactionId) ? (
                                             <Button disabled>

@@ -44,7 +44,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { postAPI } from '../../services/postAPI';
 import { favoriteAPI } from '../../services/favoriteAPI';
 import { cartAPI } from '../../services/cartAPI';
-import { createAuction } from '../../services/auctionAPI';
+import { createAuction, checkPostHasAuction } from '../../services/auctionAPI';
 import { useAuth } from '../../context/AuthContext';
 import ReviewForm from '../../components/ReviewForm';
 
@@ -64,6 +64,9 @@ const PostDetail = () => {
     const [isAuctionModalVisible, setIsAuctionModalVisible] = useState(false);
     const [auctionForm] = Form.useForm();
     const [creatingAuction, setCreatingAuction] = useState(false);
+    const [hasExistingAuction, setHasExistingAuction] = useState(false);
+    const [existingAuctionId, setExistingAuctionId] = useState(null);
+    const [checkingAuction, setCheckingAuction] = useState(false);
 
     // Robust owner detection to handle multiple API shapes
     const getOwnerId = (p) => {
@@ -86,8 +89,30 @@ const PostDetail = () => {
         if (id) {
             fetchPostDetail(id);
             checkFavoriteStatus();
+            checkAuctionStatus();
         }
     }, [id]);
+
+    const checkAuctionStatus = async () => {
+        if (!id) return;
+
+        setCheckingAuction(true);
+        try {
+            const result = await checkPostHasAuction(id);
+            if (result.success && result.hasAuction) {
+                setHasExistingAuction(true);
+                setExistingAuctionId(result.auctionId);
+            } else {
+                setHasExistingAuction(false);
+                setExistingAuctionId(null);
+            }
+        } catch (error) {
+            console.error('Error checking auction status:', error);
+            setHasExistingAuction(false);
+        } finally {
+            setCheckingAuction(false);
+        }
+    };
 
     const checkFavoriteStatus = async () => {
         if (!isAuthenticated) {
@@ -356,7 +381,8 @@ const PostDetail = () => {
             const auctionData = {
                 postId: post.id || post.postId,
                 startPrice: values.startPrice,
-                endTime: values.endTime.toISOString(),
+                // DatePicker đã ở local timezone, format thành ISO string cho backend
+                endTime: values.endTime.format('YYYY-MM-DDTHH:mm:ss'),
             };
 
             console.log('Creating auction with data:', auctionData);
@@ -669,13 +695,20 @@ const PostDetail = () => {
                                         block
                                         icon={<FireOutlined />}
                                         onClick={() => {
-                                            console.log('Opening auction modal, isAuthenticated:', isAuthenticated);
-                                            console.log('Token exists:', !!localStorage.getItem('token'));
-                                            setIsAuctionModalVisible(true);
+                                            if (hasExistingAuction && existingAuctionId) {
+                                                message.info('Sản phẩm đã có phiên đấu giá. Đang chuyển hướng...');
+                                                navigate(`/auction/${existingAuctionId}`);
+                                            } else {
+                                                console.log('Opening auction modal, isAuthenticated:', isAuthenticated);
+                                                console.log('Token exists:', !!localStorage.getItem('token'));
+                                                setIsAuctionModalVisible(true);
+                                            }
                                         }}
-                                        className="bg-red-500 hover:bg-red-600"
+                                        disabled={checkingAuction}
+                                        loading={checkingAuction}
+                                        className={hasExistingAuction ? 'bg-orange-500 hover:bg-orange-600' : 'bg-red-500 hover:bg-red-600'}
                                     >
-                                        Tạo đấu giá cho sản phẩm này
+                                        {checkingAuction ? 'Đang kiểm tra...' : hasExistingAuction ? 'Xem phiên đấu giá' : 'Tạo đấu giá cho sản phẩm này'}
                                     </Button>
                                 )}
 
@@ -749,18 +782,15 @@ const PostDetail = () => {
                                     </div>
                                     <Rate
                                         disabled
-                                        defaultValue={post.seller?.rating}
+                                        defaultValue={post.seller?.rating || 5}
                                         className="mb-1"
                                     />
                                 </div>
                             </div>
 
                             <Descriptions size="small">
-                                <Descriptions.Item label="Tham gia từ">
-                                    {post.seller?.joinDate}
-                                </Descriptions.Item>
                                 <Descriptions.Item label="Đánh giá">
-                                    {post.seller?.rating}/5 ⭐
+                                    {post.seller?.rating || 5}/5 ⭐
                                 </Descriptions.Item>
                             </Descriptions>
 
@@ -840,17 +870,18 @@ const PostDetail = () => {
                         name="endTime"
                         rules={[
                             { required: true, message: 'Vui lòng chọn thời gian kết thúc' },
-                            {
-                                validator: (_, value) => {
-                                    if (!value) return Promise.resolve();
-                                    const now = new Date();
-                                    const minEndTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
-                                    if (value.toDate() < minEndTime) {
-                                        return Promise.reject('Thời gian kết thúc phải ít nhất 1 giờ từ bây giờ');
-                                    }
-                                    return Promise.resolve();
-                                }
-                            }
+                            // ⚠️ COMMENTED FOR TESTING - Cho phép tạo đấu giá ngắn hạn
+                            // {
+                            //     validator: (_, value) => {
+                            //         if (!value) return Promise.resolve();
+                            //         const now = new Date();
+                            //         const minEndTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+                            //         if (value.toDate() < minEndTime) {
+                            //             return Promise.reject('Thời gian kết thúc phải ít nhất 1 giờ từ bây giờ');
+                            //         }
+                            //         return Promise.resolve();
+                            //     }
+                            // }
                         ]}
                     >
                         <DatePicker
@@ -859,7 +890,8 @@ const PostDetail = () => {
                             style={{ width: '100%' }}
                             placeholder="Chọn thời gian kết thúc"
                             disabledDate={(current) => {
-                                return current && current < new Date();
+                                // Cho phép chọn từ hôm nay trở đi (so sánh theo ngày, không theo giờ)
+                                return current && current.startOf('day') < new Date().setHours(0, 0, 0, 0);
                             }}
                         />
                     </Form.Item>
@@ -868,7 +900,7 @@ const PostDetail = () => {
                         <Text type="secondary" className="text-xs">
                             <strong>📌 Lưu ý:</strong>
                             <ul className="mt-2 space-y-1">
-                                <li>• Phiên đấu giá phải kéo dài ít nhất 1 giờ</li>
+                                <li>• <s>Phiên đấu giá phải kéo dài ít nhất 1 giờ</s> (TEST MODE: Có thể tạo đấu giá ngắn hạn)</li>
                                 <li>• Người thắng sẽ tự động bị trừ tiền từ ví</li>
                                 <li>• Bạn không thể hủy phiên đấu giá sau khi tạo</li>
                                 <li>• Giá khởi điểm nên hợp lý để thu hút người mua</li>
