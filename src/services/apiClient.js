@@ -2,9 +2,9 @@ import axios from 'axios';
 
 // Base URL của backend API
 
-const BASE_URL = 'https://ev-marketplace-etabdkefebdghqfa.southeastasia-01.azurewebsites.net/api';
+// const BASE_URL = 'https://ev-marketplace-etabdkefebdghqfa.southeastasia-01.azurewebsites.net/api';
 
-
+const BASE_URL = "http://localhost:5037/api"
 const apiClient = axios.create({
     baseURL: BASE_URL,
     headers: {

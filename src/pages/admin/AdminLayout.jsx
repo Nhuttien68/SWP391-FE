@@ -86,20 +86,11 @@ export default function AdminLayout() {
                                 icon: <DollarOutlined />,
                                 label: "Đấu giá & Giao dịch",
                                 children: [
-                                    { key: "auctions_list", label: "Auctions" },
-                                    { key: "bids", label: "Auction Bids" },
+
                                     { key: "transactions", label: "Transactions" },
                                 ],
                             },
-                            {
-                                key: "contracts",
-                                icon: <FileTextOutlined />,
-                                label: "Hợp đồng & Đánh giá",
-                                children: [
-                                    { key: "contracts_list", label: "Contracts" },
-                                    { key: "reviews", label: "Reviews" },
-                                ],
-                            },
+
                         ]}
 
                     />
