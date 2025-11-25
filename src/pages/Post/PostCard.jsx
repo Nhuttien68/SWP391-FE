@@ -11,6 +11,10 @@ import {
     CalendarOutlined,
     ClockCircleOutlined,
     SwapOutlined,
+    UserSwitchOutlined,
+    HighlightOutlined,
+    BlockOutlined,
+    BoxPlotOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -150,15 +154,10 @@ const PostCard = ({ post, onViewDetail }) => {
         return renderPrimitive(b.brandName ?? b.BrandName ?? b.model ?? b.Model ?? b.capacity ?? b.Capacity ?? b, 'N/A');
     };
 
-    const getModelOrCapacity = () => {
-        if (post.type === 'VEHICLE') {
-            const v = post.vehicle || post.Vehicle || null;
-            if (!v) return 'N/A';
-            return renderPrimitive(v.model ?? v.Model ?? v, 'N/A');
-        }
-        const b = post.battery || post.Battery || null;
-        if (!b) return 'N/A';
-        return renderPrimitive(b.capacity ?? b.Capacity ?? b.model ?? b.Model ?? b, 'N/A');
+    const getModel = () => {
+        const v = post.vehicle || post.Vehicle || null;
+        if (!v) return 'N/A';
+        return renderPrimitive(v.model ?? v.Model ?? v, 'N/A');
     };
 
     const getYear = () => {
@@ -471,23 +470,34 @@ const PostCard = ({ post, onViewDetail }) => {
                     </Text>
                 </div>
 
+                {/* Seller name (moved below title) */}
+                <div className="flex items-center gap-2">
+                    <UserSwitchOutlined className="text-blue-500 text-base"/>
+                    <Text className="font-medium text-gray-800">{getSellerName()}</Text>
+                </div>
+
                 {/* Thương hiệu và Model */}
                 <div className="flex items-center gap-2">
-                    <CarOutlined className="text-blue-500 text-base" />
+                    <BlockOutlined className="text-blue-500 text-base" />
                     <Text className="font-medium text-gray-800">{getBrand()}</Text>
-                    <Text type="secondary" className="text-xs">•</Text>
-                    <Text type="secondary" className="text-sm">{getModelOrCapacity()}</Text>
+                    {post.type === 'VEHICLE' && (
+                        <>
+                            <Text type="secondary" className="text-xs">•</Text>
+                            <CarOutlined className="text-blue-500 text-base" />
+                            <Text type="secondary" className="font-medium text-gray-800">{getModel()}</Text>
+                        </>
+                    )}
                 </div>
 
                 {/* Thông tin xe/pin */}
                 <div className="flex flex-wrap gap-2">
                     {post.type === 'VEHICLE' && (post.vehicle || post.Vehicle) && (
                         <>
-                            <Tag icon={<CalendarOutlined />} color="blue" className="!m-0">
-                                {getYear()}
-                            </Tag>
                             <Tag icon={<ThunderboltOutlined />} color="green" className="!m-0">
                                 {getMileage()} km
+                            </Tag>
+                            <Tag icon={<CalendarOutlined />} color="blue" className="!m-0">
+                                {getYear()}
                             </Tag>
                         </>
                     )}
@@ -495,7 +505,7 @@ const PostCard = ({ post, onViewDetail }) => {
                     {post.type === 'BATTERY' && (post.battery || post.Battery) && (
                         <>
                             <Tag color="orange" className="!m-0">
-                                🔋 {getCapacity()} kWh
+                                <BoxPlotOutlined /> {getCapacity()} kWh
                             </Tag>
                             <Tag color="cyan" className="!m-0">
                                 {getCondition()}
@@ -506,37 +516,13 @@ const PostCard = ({ post, onViewDetail }) => {
 
                 {/* Ngày đăng tin */}
                 {(post.createdAt || post.CreatedAt) && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 pt-3 border-t border-gray-100">
                         <ClockCircleOutlined className="text-gray-400 text-xs" />
                         <Text type="secondary" className="text-xs">
                             {formatDate(post.createdAt || post.CreatedAt)}
                         </Text>
                     </div>
                 )}
-
-                {/* Thống kê và người bán */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <Space size={12}>
-                        <Tooltip title="Lượt xem">
-                            <Space size={4} className="text-gray-500">
-                                <EyeOutlined />
-                                <Text className="text-xs">{Number(post.views ?? post.Views ?? 0)}</Text>
-                            </Space>
-                        </Tooltip>
-                        <Tooltip title="Lượt thích">
-                            <Space size={4} className="text-gray-500">
-                                <HeartOutlined />
-                                <Text className="text-xs">{Number(post.likes ?? post.Likes ?? 0)}</Text>
-                            </Space>
-                        </Tooltip>
-                    </Space>
-
-                    <Tooltip title={getSellerName()}>
-                        <Text type="secondary" className="text-xs truncate max-w-[100px]">
-                            📍 {getSellerName()}
-                        </Text>
-                    </Tooltip>
-                </div>
 
                 {/* Nút hành động */}
                 <div className="flex gap-2 pt-2">

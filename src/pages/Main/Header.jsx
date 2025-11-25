@@ -1,7 +1,7 @@
 
 import { Layout, Menu, Button, Dropdown, Avatar, Badge, Tooltip } from "antd";
 import { UserOutlined, LogoutOutlined, WalletOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined, HeartOutlined, FileTextOutlined, PlusOutlined, LoginOutlined, UserAddOutlined, MenuOutlined, DashboardOutlined } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useState, useEffect, useRef } from "react";
 import { cartAPI } from "../../services/cartAPI.js";
@@ -11,6 +11,7 @@ const { Header } = Layout;
 const HeaderApp = () => {
     const { user, isAuthenticated, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [cartCount, setCartCount] = useState(0);
     // Whether header should use compact (mobile) layout. Determined by width/height ratio.
     const [isCompact, setIsCompact] = useState(false);
@@ -169,6 +170,21 @@ const HeaderApp = () => {
         }
     ];
 
+    // derive active route flags from location so header highlights update on page change
+    const path = location?.pathname || '';
+    // Treat /compare as part of market so Compare page highlights Market nav
+    const navSelectedKey = path === '/' || path === ''
+        ? '1'
+        : (path.startsWith('/market') || path.startsWith('/post') || path.startsWith('/compare') ? 'market' 
+        : (path.startsWith('/auction') ? 'auction' : ''));
+
+    const isPostsActive = path.startsWith('/posts');
+    const isFavoritesActive = path.startsWith('/favorites');
+    const isCartActive = path.startsWith('/cart') || path.startsWith('/checkout');
+    const isWalletActive = path.startsWith('/wallet');
+    const isAdminActive = path.startsWith('/admin');
+    const isCreatePostActive = path.startsWith('/createPost');
+
     return (
         <Header
             className="flex items-center justify-between bg-white shadow-md px-6 py-0"
@@ -184,7 +200,7 @@ const HeaderApp = () => {
                 <div className="flex-1 ml-10">
                     <Menu
                         mode="horizontal"
-                        defaultSelectedKeys={["1"]}
+                        selectedKeys={navSelectedKey ? [navSelectedKey] : []}
                         items={[
                             { key: "1", label: <Link to="/">Trang chủ</Link> },
                             { key: "market", label: <Link to="/market">Chợ</Link> },
@@ -214,7 +230,7 @@ const HeaderApp = () => {
                 {/* Quản lý tin - hiện cho tất cả user đã đăng nhập */}
                 {isAuthenticated && (
                     <Link to="/posts">
-                        <Button type="default" className="mr-3">
+                        <Button type={isPostsActive ? 'primary' : 'default'} className="mr-3">
                             Quản lý tin
                         </Button>
                     </Link>
@@ -225,8 +241,8 @@ const HeaderApp = () => {
                     <Link to="/favorites">
                         <Tooltip title="Bài đăng yêu thích">
                             <Button
-                                type="text"
-                                icon={<HeartOutlined style={{ fontSize: '20px', color: '#ff4d4f' }} />}
+                                type={isFavoritesActive ? 'primary' : 'text'}
+                                icon={<HeartOutlined style={{ fontSize: '20px', color: isFavoritesActive ? undefined : '#ff4d4f' }} />}
                                 className="mr-2"
                             />
                         </Tooltip>
@@ -239,7 +255,7 @@ const HeaderApp = () => {
                         <Tooltip title="Giỏ hàng">
                             <Badge count={cartCount} offset={[0, 0]} size="small">
                                 <Button
-                                    type="text"
+                                    type={isCartActive ? 'primary' : 'text'}
                                     icon={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
                                     className="mr-2"
                                 />
@@ -251,7 +267,7 @@ const HeaderApp = () => {
                 {/* Admin button */}
                 {isAdmin && (
                     <Link to="/admin">
-                        <Button type="default" className="mr-3">
+                        <Button type={isAdminActive ? 'primary' : 'default'} className="mr-3">
                             Admin
                         </Button>
                     </Link>
@@ -260,7 +276,7 @@ const HeaderApp = () => {
 
                 {isAuthenticated && (
                     <Link to={isAuthenticated ? "/createPost" : "/login"}>
-                        <Button type="primary" className="mr-3">Đăng tin</Button>
+                        <Button type={isCreatePostActive ? 'primary' : 'primary'} className="mr-3">Đăng tin</Button>
                     </Link>
                 )}
 

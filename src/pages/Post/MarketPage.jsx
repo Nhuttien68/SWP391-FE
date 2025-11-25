@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Select, Button, Typography, Spin, Empty, Pagination, Space, Card, Modal } from 'antd';
+import { Row, Col, Select, Button, Typography, Spin, Empty, Pagination, Space, Card, Modal, Input } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ThunderboltOutlined, CarOutlined } from '@ant-design/icons';
 import PostCard from './PostCard';
@@ -83,7 +83,16 @@ const MarketPage = () => {
                     .toString()
                     .toLowerCase();
 
-                return title.includes(q) || desc.includes(q) || brandName.includes(q);
+                const sellerName = (
+                    p.user?.fullName || p.user?.name || p.seller?.name || p.seller?.fullName || p.user?.full_name || ''
+                ).toString().toLowerCase();
+
+                return (
+                    title.includes(q) ||
+                    desc.includes(q) ||
+                    brandName.includes(q) ||
+                    sellerName.includes(q)
+                );
             });
         }
 
@@ -142,41 +151,44 @@ const MarketPage = () => {
             <div className="max-w-7xl mx-auto px-4">
                 <Card className="mb-6 shadow-sm bg-white/90">
                     <Row gutter={[16, 16]} align="middle">
-                        <Col flex="auto">
-                            <Space wrap>
-                                <Select
-                                    placeholder="Thương hiệu"
-                                    allowClear
-                                    style={{ width: 200 }}
-                                    value={selectedBrand || undefined}
-                                    onChange={setSelectedBrand}
-                                    suffixIcon={<CarOutlined />}
-                                >
-                                    {currentBrands.map((b) => (
-                                        <Option key={b.brandId ?? b.id} value={b.brandName ?? b.BrandName}>
-                                            {b.brandName ?? b.BrandName}
-                                        </Option>
-                                    ))}
-                                </Select>
-                                <Select
-                                    placeholder="Khoảng giá"
-                                    allowClear
-                                    style={{ width: 180 }}
-                                    value={selectedPriceRange || undefined}
-                                    onChange={setSelectedPriceRange}
-                                >
-                                    <Option value="0-100">Dưới 100tr</Option>
-                                    <Option value="100-300">100tr - 300tr</Option>
-                                    <Option value="300-500">300tr - 500tr</Option>
-                                    <Option value="500+">Trên 500tr</Option>
-                                </Select>
-                                <Select placeholder="Khu vực" allowClear style={{ width: 180 }}>
-                                    <Option value="HN">Hà Nội</Option>
-                                    <Option value="HCM">TP.HCM</Option>
-                                    <Option value="DN">Đà Nẵng</Option>
-                                </Select>
-                            </Space>
-                        </Col>
+                                <Col flex="auto">
+                                    <Space wrap>
+                                        <Input.Search
+                                            placeholder="Tìm theo tên bài đăng, thương hiệu hoặc người bán"
+                                            allowClear
+                                            style={{ width: 360 }}
+                                            value={searchText}
+                                            onChange={(e) => setSearchText(e.target.value)}
+                                            onSearch={(val) => setSearchText(val)}
+                                        />
+                                        <Select
+                                            placeholder="Thương hiệu"
+                                            allowClear
+                                            style={{ width: 200 }}
+                                            value={selectedBrand || undefined}
+                                            onChange={setSelectedBrand}
+                                            suffixIcon={<CarOutlined />}
+                                        >
+                                            {currentBrands.map((b) => (
+                                                <Option key={b.brandId ?? b.id} value={b.brandName ?? b.BrandName}>
+                                                    {b.brandName ?? b.BrandName}
+                                                </Option>
+                                            ))}
+                                        </Select>
+                                        <Select
+                                            placeholder="Khoảng giá"
+                                            allowClear
+                                            style={{ width: 180 }}
+                                            value={selectedPriceRange || undefined}
+                                            onChange={setSelectedPriceRange}
+                                        >
+                                            <Option value="0-100">Dưới 100tr</Option>
+                                            <Option value="100-300">100tr - 300tr</Option>
+                                            <Option value="300-500">300tr - 500tr</Option>
+                                            <Option value="500+">Trên 500tr</Option>
+                                        </Select>
+                                    </Space>
+                                </Col>
                         <Col>
                             <Text type="secondary">Tìm thấy <strong>{filteredPosts.length}</strong> sản phẩm</Text>
                         </Col>

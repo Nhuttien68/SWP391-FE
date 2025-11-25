@@ -368,7 +368,7 @@ const HomePage = () => {
                 </div>
             </section>
 
-            <section className="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+            {/* <section className="bg-gradient-to-r from-blue-50 to-green-50 border-b">
                 <div className="max-w-7xl mx-auto px-4 py-6">
                     <Row gutter={[32, 16]} className="text-center">
                         <Col xs={12} sm={6}>
@@ -389,7 +389,7 @@ const HomePage = () => {
                         </Col>
                     </Row>
                 </div>
-            </section>
+            </section> */}
 
             <section className="bg-gradient-to-r from-white via-indigo-50 to-white py-8 mb-6">
                 <div className="max-w-7xl mx-auto px-4">

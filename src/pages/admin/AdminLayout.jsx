@@ -12,8 +12,6 @@ import { Link, useNavigate } from "react-router-dom";
 import UsersPage from "./UserPage";
 import AdminPostsPage from "./AdminPostsPage";
 import BrandsPage from "./BrandsPage";
-import VehiclesPage from "./VehiclesPage";
-import BatteriesPage from "./BatteriesPage";
 import AdminAuctionsPage from "./AdminAuctionsPage";
 import AdminTransactionsPage from "./AdminTransactionsPage";
 import AdminWalletPage from "./AdminWalletPage";
@@ -76,9 +74,7 @@ export default function AdminLayout() {
                                 label: "Tin đăng & Specs",
                                 children: [
                                     { key: "posts_list", label: "Posts" },
-                                    { key: "vehicles", label: "Vehicles" },
-                                    { key: "batteries", label: "Batteries" },
-                                    { key: "brands", label: "Brands" },
+                                    { key: "brands_list", label: "Brands" },
                                 ],
                             },
                             {
@@ -139,9 +135,7 @@ export default function AdminLayout() {
                     {selectedKey === "users_list" && <UsersPage />}
                     {selectedKey === "wallets" && <AdminWalletPage />}
                     {selectedKey === "posts_list" && <AdminPostsPage />}
-                    {selectedKey === "vehicles" && <VehiclesPage />}
-                    {selectedKey === "batteries" && <BatteriesPage />}
-                    {selectedKey === "brands" && <BrandsPage />}
+                    {selectedKey === "brands_list" && <BrandsPage />}
                     {selectedKey === "auctions_list" && <AdminAuctionsPage />}
                     {selectedKey === "transactions" && <AdminTransactionsPage />}
                 </Content>

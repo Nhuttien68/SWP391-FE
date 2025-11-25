@@ -72,7 +72,7 @@ function AppContent() {
         <Route path="/market" element={<MarketPage />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/post/:id" element={<PostDetail />} />
-        <Route path="/seller" element={<SellerProfile />} />
+        <Route path="/seller/:id" element={<SellerProfile />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/auction" element={<AuctionList />} />

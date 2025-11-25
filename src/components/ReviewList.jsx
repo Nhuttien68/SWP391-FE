@@ -69,6 +69,7 @@ const ReviewList = ({ userId }) => {
     <List
       itemLayout="horizontal"
       dataSource={reviews}
+      pagination={{ pageSize: 5 }}
       renderItem={(item) => (
         <List.Item>
           <List.Item.Meta

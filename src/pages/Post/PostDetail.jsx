@@ -28,9 +28,6 @@ import {
     EyeOutlined,
     HeartOutlined,
     HeartFilled,
-    ShareAltOutlined,
-    PhoneOutlined,
-    MessageOutlined,
     ShoppingCartOutlined,
     ShoppingOutlined,
     CalendarOutlined,
@@ -44,6 +41,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { postAPI } from '../../services/postAPI';
 import { favoriteAPI } from '../../services/favoriteAPI';
 import { cartAPI } from '../../services/cartAPI';
+import reviewAPI from '../../services/reviewAPI';
 import { createAuction, checkPostHasAuction } from '../../services/auctionAPI';
 import { useAuth } from '../../context/AuthContext';
 import ReviewForm from '../../components/ReviewForm';
@@ -59,6 +57,8 @@ const PostDetail = () => {
     const [liked, setLiked] = useState(false);
     const [favoriteId, setFavoriteId] = useState(null);
     const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+    const [reviews, setReviews] = useState([]);
+    const [avgRating, setAvgRating] = useState('...');
 
     // Auction modal state
     const [isAuctionModalVisible, setIsAuctionModalVisible] = useState(false);
@@ -92,6 +92,53 @@ const PostDetail = () => {
             checkAuctionStatus();
         }
     }, [id]);
+
+    // When post loads, fetch seller reviews to compute average rating
+    useEffect(() => {
+        const fetchSellerReviews = async () => {
+            if (!post) return;
+
+            // derive seller id robustly
+            const sellerId = post.user?.userId || post.user?.id || post.seller?.id || post.seller?.userId || post.userId || post.sellerId || post.ownerId || null;
+            if (!sellerId) return;
+
+            const normalizedId = sellerId.toString().toUpperCase();
+            try {
+                let res = null;
+                try {
+                    res = await reviewAPI.getReviewsByUserId(normalizedId);
+                } catch (e) {
+                    res = null;
+                }
+
+                const extractArray = (r) => {
+                    if (!r) return null;
+                    if (Array.isArray(r)) return r;
+                    if (Array.isArray(r.data)) return r.data;
+                    if (Array.isArray(r.Data)) return r.Data;
+                    if (r.data && Array.isArray(r.data.data)) return r.data.data;
+                    return null;
+                };
+
+                let list = extractArray(res) || [];
+                setReviews(list || []);
+
+                if (list.length > 0) {
+                    const ratings = list.map(it => Number(it.rating || it.Rating || 0)).filter(n => !Number.isNaN(n));
+                    const sum = ratings.reduce((s, v) => s + v, 0);
+                    const avg = ratings.length > 0 ? sum / ratings.length : null;
+                    setAvgRating(avg ? Math.round(avg * 10) / 10 : null);
+                } else {
+                    setAvgRating('...');
+                }
+            } catch (err) {
+                setReviews([]);
+                setAvgRating('...');
+            }
+        };
+
+        fetchSellerReviews();
+    }, [post]);
 
     const checkAuctionStatus = async () => {
         if (!id) return;
@@ -647,45 +694,81 @@ const PostDetail = () => {
 
                             <Divider />
 
-                            {/* Stats */}
-                            <div className="flex justify-around text-center mb-4">
-                                <div>
-                                    <div className="text-2xl font-bold text-blue-600">{post.views}</div>
-                                    <div className="text-sm text-gray-500">Lượt xem</div>
+                            {/* Seller Info */}
+                            <Card title="Thông tin người bán">
+                                <Descriptions size="medium" column={1} bordered>
+                                    <Descriptions.Item label="Tên người bán">
+                                        {post.user?.fullName || 'N/A'}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Số điện thoại">
+                                        {post.user?.phone || 'N/A'}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Đánh giá">
+                                        {avgRating}/5 ⭐ ({reviews.length} đánh giá)
+                                    </Descriptions.Item>
+                                </Descriptions>
+
+                                <div className="mt-4 text-center">
+                                    <Button
+                                        type="primary"
+                                        ghost
+                                        className="!h-10 !font-semibold mr-2 w-full"
+                                        onClick={() => {
+                                            const sellerId = post.user?.userId || post.user?.id || post.seller?.id || post.seller?.userId || post.userId || post.sellerId || post.ownerId || null;
+                                            const sellerObj = post.user || post.seller || {
+                                                userId: sellerId || post.user?.userId || post.user?.id || post.seller?.id || id,
+                                                fullName: post.user?.fullName || post.seller?.name || 'Người bán'
+                                            };
+                                            if (sellerId) {
+                                                navigate(`/seller/${sellerId}`, { state: { user: sellerObj } });
+                                            } else {
+                                                navigate('/seller', { state: { user: sellerObj } });
+                                            }
+                                        }}
+                                    >
+                                        Xem trang cá nhân & đánh giá
+                                    </Button>
+
+                                    {/* BUY and small actions moved here */}
+                                    <div className="mt-4">
+                                        <Button
+                                            type={isPostOwner ? 'default' : 'primary'}
+                                            onClick={handleBuyNow}
+                                            disabled={isPostOwner}
+                                            className="!h-10 !font-semibold mr-2 w-full"
+                                        >
+                                            {isPostOwner ? 'Bài đăng của bạn' : 'Mua ngay'}
+                                        </Button>
+
+                                        <div className="flex items-center justify-center mt-3 gap-2">
+                                            <Button
+                                                icon={<ShoppingCartOutlined />}
+                                                onClick={handleAddToCart}
+                                                disabled={isPostOwner}
+                                                className="!h-10 !w-12 !rounded-lg"
+                                            />
+                                            <Button
+                                                icon={liked ? <HeartFilled /> : <HeartOutlined />}
+                                                onClick={handleLike}
+                                                loading={isLoadingFavorite}
+                                                className={liked ? 'text-red-500 border-red-500' : ''}
+                                            />
+                                            <Button
+                                                icon={<SwapOutlined />}
+                                                onClick={handleCompare}
+                                            >
+                                                So sánh
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-2xl font-bold text-red-600">{post.likes}</div>
-                                    <div className="text-sm text-gray-500">Lượt thích</div>
-                                </div>
-                                <div>
-                                    <div className="text-2xl font-bold text-green-600">{post.range}</div>
-                                    <div className="text-sm text-gray-500">Km phạm vi</div>
-                                </div>
-                            </div>
+                            </Card>
 
                             <Divider />
 
                             {/* Action Buttons */}
                             <Space direction="vertical" className="w-full" size="middle">
-                                <Button
-                                    type="primary"
-                                    size="large"
-                                    block
-                                    icon={<PhoneOutlined />}
-                                    onClick={handleCall}
-                                    className="bg-green-600 hover:bg-green-700"
-                                >
-                                    Gọi điện: {post.user?.phone}
-                                </Button>
-                                <Button
-                                    type="default"
-                                    size="large"
-                                    block
-                                    icon={<MessageOutlined />}
-                                    onClick={handleContact}
-                                >
-                                    Nhắn tin cho người bán
-                                </Button>
+                                {/* Phone and message buttons removed - actions moved under seller profile */}
 
                                 {/* Create Auction Button - Only for post owner */}
                                 {isPostOwner && isAuthenticated && (
@@ -714,101 +797,9 @@ const PostDetail = () => {
 
                                 <Space className="w-full">
                                     {/* Buy and Add-to-cart buttons */}
-                                    <Button
-                                        type={isPostOwner ? 'default' : 'primary'}
-                                        danger={!isPostOwner}
-                                        onClick={handleBuyNow}
-                                        disabled={isPostOwner}
-                                        className="!h-10 !font-semibold mr-2"
-                                    >
-                                        {isPostOwner ? 'Bài đăng của bạn' : 'Mua ngay'}
-                                    </Button>
-                                    <Button
-                                        icon={<ShoppingCartOutlined />}
-                                        onClick={handleAddToCart}
-                                        disabled={isPostOwner}
-                                        className="!h-10 !w-10 !rounded-lg"
-                                    />
-                                    <Button
-                                        icon={liked ? <HeartFilled /> : <HeartOutlined />}
-                                        onClick={handleLike}
-                                        loading={isLoadingFavorite}
-                                        className={liked ? 'text-red-500 border-red-500' : ''}
-                                    >
-
-                                    </Button>
-                                    <Button
-                                        icon={<SwapOutlined />}
-                                        onClick={handleCompare}
-                                    >
-                                        So sánh
-                                    </Button>
-                                    <Button icon={<ShareAltOutlined />}>
-                                        Chia sẻ
-                                    </Button>
+                                {/* Buy / small actions moved to Seller Info area per request */}
                                 </Space>
                             </Space>
-                        </Card>
-
-                        {/* Seller Info */}
-                        <Card title="Thông tin người bán">
-                            <div className="flex items-center mb-4">
-                                <Avatar
-                                    size={64}
-                                    src={post.seller?.avatar}
-                                    className="mr-4"
-                                />
-                                <div>
-                                    <div className="flex items-center mb-1">
-                                        <Button
-                                            type="link"
-                                            onClick={() => {
-                                                // Prefer passing the full user object from post to avoid extra server fetch
-                                                const sellerObj = post.user || post.seller || {
-                                                    userId: post.user?.userId || post.user?.id || post.seller?.id || id,
-                                                    fullName: post.user?.fullName || post.seller?.name || 'Người bán'
-                                                };
-                                                navigate('/seller', { state: { user: sellerObj } });
-                                            }}
-                                            className="p-0 !text-lg"
-                                        >
-                                            {post.user?.fullName}
-                                        </Button>
-                                        {post.user?.status == 'ACTIVE' && (
-                                            <Tag color="blue" icon={<SafetyOutlined />}>
-                                                Đã xác minh
-                                            </Tag>
-                                        )}
-                                    </div>
-                                    <Rate
-                                        disabled
-                                        defaultValue={post.seller?.rating || 5}
-                                        className="mb-1"
-                                    />
-                                </div>
-                            </div>
-
-                            <Descriptions size="small">
-                                <Descriptions.Item label="Đánh giá">
-                                    {post.seller?.rating || 5}/5 ⭐
-                                </Descriptions.Item>
-                            </Descriptions>
-
-                            <div className="mt-4 text-center">
-                                <Button
-                                    type="primary"
-                                    ghost
-                                    onClick={() => {
-                                        const sellerObj = post.user || post.seller || {
-                                            userId: post.user?.userId || post.user?.id || post.seller?.id || id,
-                                            fullName: post.user?.fullName || post.seller?.name || 'Người bán'
-                                        };
-                                        navigate('/seller', { state: { user: sellerObj } });
-                                    }}
-                                >
-                                    Xem trang cá nhân & đánh giá
-                                </Button>
-                            </div>
                         </Card>
 
                         {/* Safety Tips */}

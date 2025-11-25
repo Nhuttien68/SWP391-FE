@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import {
     Card,
@@ -30,10 +31,21 @@ const AuctionList = () => {
     const [auctions, setAuctions] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+
+    // Redirect unauthenticated users to login
+    useEffect(() => {
+        if (isAuthenticated === false) {
+            navigate('/login', { replace: true });
+        }
+    }, [isAuthenticated, navigate]);
 
     useEffect(() => {
-        fetchActiveAuctions();
-    }, []);
+        // only fetch auctions for authenticated users
+        if (isAuthenticated) {
+            fetchActiveAuctions();
+        }
+    }, [isAuthenticated]);
 
     const fetchActiveAuctions = async () => {
         setLoading(true);
@@ -86,6 +98,15 @@ const AuctionList = () => {
         const end = new Date(endTime).getTime();
         return end - now;
     };
+
+    // while auth status unknown, show loading
+    if (isAuthenticated === null || isAuthenticated === undefined) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <Spin size="large" tip="Đang xác thực..." />
+            </div>
+        );
+    }
 
     if (loading) {
         return (

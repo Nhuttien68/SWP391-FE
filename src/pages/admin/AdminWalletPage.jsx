@@ -191,7 +191,7 @@ const AdminWalletPage = () => {
                         scroll={{ x: 1000 }}
                         columns={[
                             {
-                                title: 'Loại GD',
+                                title: 'Loại giao dịch',
                                 dataIndex: 'transactionType',
                                 key: 'transactionType',
                                 render: (type) => {
@@ -199,7 +199,8 @@ const AdminWalletPage = () => {
                                         TOPUP: 'green',
                                         WITHDRAW: 'red',
                                         DEDUCT: 'orange',
-                                        POSTING_FEE: 'blue',
+                                        POSTING: 'blue',
+                                        POST_APPROVAL_FEE: 'blue',
                                         REFUND: 'purple',
                                     };
                                     return <Tag color={colors[type] || 'default'}>{type}</Tag>;
@@ -210,7 +211,7 @@ const AdminWalletPage = () => {
                                 dataIndex: 'amount',
                                 key: 'amount',
                                 render: (amount, record) => {
-                                    const isIncome = ['TOPUP', 'REFUND'].includes(record.transactionType);
+                                    const isIncome = ['TOPUP', 'REFUND', 'POST_APPROVAL_FEE'].includes(record.transactionType);
                                     return (
                                         <Text strong className={isIncome ? 'text-green-600' : 'text-red-600'}>
                                             {isIncome ? '+' : '-'}{formatCurrency(Math.abs(amount))}
@@ -243,7 +244,7 @@ const AdminWalletPage = () => {
                                 render: (desc) => desc || 'N/A',
                             },
                             {
-                                title: 'Ngày GD',
+                                title: 'Ngày giao dịch',
                                 dataIndex: 'createdAt',
                                 key: 'createdAt',
                                 render: (date) => new Date(date).toLocaleString('vi-VN'),
