@@ -33,7 +33,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { walletAPI } from '../../services/walletAPI';
 import { paymentAPI } from '../../services/paymentAPI';
-import { transactionAPI } from '../../services/transactionAPI';
+import { withdrawalAPI } from '../../services/withdrawalAPI';
 
 const { Title, Text } = Typography;
 
@@ -56,8 +56,7 @@ const WalletManagement = () => {
     const [withdrawForm] = Form.useForm();
 
     // Transactions data
-    const [purchases, setPurchases] = useState([]);
-    const [sales, setSales] = useState([]);
+    const [walletTransactions, setWalletTransactions] = useState([]);
     const [statistics, setStatistics] = useState({
         totalIn: 0,
         totalOut: 0,
@@ -85,7 +84,7 @@ const WalletManagement = () => {
 
         if (user?.status === 'ACTIVE') {
             fetchWalletInfo();
-            fetchTransactions();
+            fetchWalletTransactions();
         }
     }, [isAuthenticated, isLoading, user, navigate]);
 
@@ -108,80 +107,19 @@ const WalletManagement = () => {
         }
     };
 
-    const fetchTransactions = async () => {
+    const fetchWalletTransactions = async () => {
         setTransactionsLoading(true);
         try {
-            const [purchasesRes, salesRes] = await Promise.all([
-                transactionAPI.getMyPurchases(),
-                transactionAPI.getMySales(),
-            ]);
-
-            if (purchasesRes.success) {
-                const purchasesData = purchasesRes.data?.data || purchasesRes.data || [];
-                setPurchases(purchasesData);
+            const response = await walletAPI.getTransactionHistory();
+            if (response.success) {
+                setWalletTransactions(response.data || []);
             }
-
-            if (salesRes.success) {
-                const salesData = salesRes.data?.data || salesRes.data || [];
-                setSales(salesData);
-            }
-
-            // Calculate statistics
-            calculateStatistics(
-                purchasesRes.data?.data || [],
-                salesRes.data?.data || []
-            );
         } catch (error) {
-            console.error('Fetch transactions error:', error);
-            toast.error('Không thể tải lịch sử giao dịch');
+            console.error('Fetch wallet transactions error:', error);
+            toast.error('Không thể tải lịch sử giao dịch ví');
         } finally {
             setTransactionsLoading(false);
         }
-    };
-
-    const calculateStatistics = (purchasesList, salesList) => {
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-
-        let totalOut = 0;
-        let totalIn = 0;
-        let monthlyOut = 0;
-        let monthlyIn = 0;
-
-        // Tính tiền chi (mua hàng)
-        purchasesList.forEach((transaction) => {
-            const amount = transaction.totalAmount || 0;
-            totalOut += amount;
-
-            const transactionDate = new Date(transaction.createdAt);
-            if (
-                transactionDate.getMonth() === currentMonth &&
-                transactionDate.getFullYear() === currentYear
-            ) {
-                monthlyOut += amount;
-            }
-        });
-
-        // Tính tiền thu (bán hàng)
-        salesList.forEach((transaction) => {
-            const amount = transaction.totalAmount || 0;
-            totalIn += amount;
-
-            const transactionDate = new Date(transaction.createdAt);
-            if (
-                transactionDate.getMonth() === currentMonth &&
-                transactionDate.getFullYear() === currentYear
-            ) {
-                monthlyIn += amount;
-            }
-        });
-
-        setStatistics({
-            totalIn,
-            totalOut,
-            monthlyIn,
-            monthlyOut,
-        });
     };
 
     const handleCreateWallet = async () => {
@@ -246,21 +184,30 @@ const WalletManagement = () => {
         try {
             if (values.amount > walletBalance) {
                 toast.error('Số dư không đủ!');
+                setLoading(false);
                 return;
             }
 
-            const response = await walletAPI.withdraw(values.amount);
+            // Tạo yêu cầu rút tiền có phê duyệt
+            const response = await withdrawalAPI.createWithdrawalRequest({
+                amount: values.amount,
+                bankName: values.bankName,
+                bankAccountNumber: values.bankAccountNumber,
+                bankAccountName: values.bankAccountName,
+                note: values.note || ''
+            });
+
             if (response.success) {
-                toast.success('Rút tiền thành công!');
+                toast.success('Đã gửi yêu cầu rút tiền! Vui lòng chờ admin phê duyệt.');
                 setIsWithdrawModalVisible(false);
                 withdrawForm.resetFields();
                 await fetchWalletInfo();
-                await fetchTransactions();
+                await fetchWalletTransactions();
             } else {
-                toast.error(response.message || 'Rút tiền thất bại');
+                toast.error(response.message || 'Tạo yêu cầu rút tiền thất bại');
             }
         } catch (error) {
-            toast.error('Có lỗi xảy ra khi rút tiền');
+            toast.error('Có lỗi xảy ra khi tạo yêu cầu rút tiền');
         } finally {
             setLoading(false);
         }
@@ -268,142 +215,9 @@ const WalletManagement = () => {
 
     const handleRefresh = async () => {
         await fetchWalletInfo();
-        await fetchTransactions();
+        await fetchWalletTransactions();
         toast.success('Đã làm mới dữ liệu');
     };
-
-    // Transaction columns
-    const purchaseColumns = [
-        {
-            title: 'Mã GD',
-            dataIndex: 'transactionId',
-            key: 'transactionId',
-            render: (id) => `#${id?.substring(0, 8)}...`,
-        },
-        {
-            title: 'Sản phẩm',
-            dataIndex: 'postTitle',
-            key: 'postTitle',
-            render: (title) => title || 'N/A',
-        },
-        {
-            title: 'Người bán',
-            dataIndex: 'sellerName',
-            key: 'sellerName',
-            render: (name) => name || 'N/A',
-        },
-        {
-            title: 'Số tiền',
-            dataIndex: 'amount',
-            key: 'amount',
-            render: (amount) => (
-                <Text strong className="text-red-600">
-                    {formatCurrency(amount)}
-                </Text>
-            ),
-        },
-        {
-            title: 'Phương thức',
-            dataIndex: 'paymentMethod',
-            key: 'paymentMethod',
-            render: (method) => {
-                const colors = {
-                    WALLET: 'blue',
-                    VNPAY: 'purple',
-                    BANK_TRANSFER: 'green',
-                    COD: 'orange',
-                };
-                return <Tag color={colors[method] || 'default'}>{method}</Tag>;
-            },
-        },
-        {
-            title: 'Trạng thái',
-            dataIndex: 'status',
-            key: 'status',
-            render: (status) => {
-                const statusMap = {
-                    COMPLETED: { text: 'Hoàn thành', color: 'success' },
-                    PENDING: { text: 'Đang xử lý', color: 'processing' },
-                    CANCELLED: { text: 'Đã hủy', color: 'error' },
-                    REFUNDED: { text: 'Đã hoàn tiền', color: 'warning' },
-                };
-                const statusInfo = statusMap[status] || { text: status, color: 'default' };
-                return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
-            },
-        },
-        {
-            title: 'Ngày GD',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-            render: (date) => new Date(date).toLocaleDateString('vi-VN'),
-        },
-    ];
-
-    const salesColumns = [
-        {
-            title: 'Mã GD',
-            dataIndex: 'transactionId',
-            key: 'transactionId',
-            render: (id) => `#${id?.substring(0, 8)}...`,
-        },
-        {
-            title: 'Sản phẩm',
-            dataIndex: 'postTitle',
-            key: 'postTitle',
-            render: (title) => title || 'N/A',
-        },
-        {
-            title: 'Người mua',
-            dataIndex: 'buyerName',
-            key: 'buyerName',
-            render: (name) => name || 'N/A',
-        },
-        {
-            title: 'Số tiền',
-            dataIndex: 'amount',
-            key: 'amount',
-            render: (amount) => (
-                <Text strong className="text-green-600">
-                    {formatCurrency(amount)}
-                </Text>
-            ),
-        },
-        {
-            title: 'Phương thức',
-            dataIndex: 'paymentMethod',
-            key: 'paymentMethod',
-            render: (method) => {
-                const colors = {
-                    WALLET: 'blue',
-                    VNPAY: 'purple',
-                    BANK_TRANSFER: 'green',
-                    COD: 'orange',
-                };
-                return <Tag color={colors[method] || 'default'}>{method}</Tag>;
-            },
-        },
-        {
-            title: 'Trạng thái',
-            dataIndex: 'status',
-            key: 'status',
-            render: (status) => {
-                const statusMap = {
-                    COMPLETED: { text: 'Hoàn thành', color: 'success' },
-                    PENDING: { text: 'Đang xử lý', color: 'processing' },
-                    CANCELLED: { text: 'Đã hủy', color: 'error' },
-                    REFUNDED: { text: 'Đã hoàn tiền', color: 'warning' },
-                };
-                const statusInfo = statusMap[status] || { text: status, color: 'default' };
-                return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
-            },
-        },
-        {
-            title: 'Ngày GD',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-            render: (date) => new Date(date).toLocaleDateString('vi-VN'),
-        },
-    ];
 
     if (!isAccountActive) {
         return (
@@ -498,73 +312,82 @@ const WalletManagement = () => {
                 </Row>
             </Card>
 
-            {/* Statistics */}
-            <Row gutter={[16, 16]} className="mb-6">
-                <Col xs={12} md={12}>
-                    <Card>
-                        <Statistic
-                            title="Đơn mua"
-                            value={purchases.length}
-                            prefix={<ShoppingCartOutlined />}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={12} md={12}>
-                    <Card>
-                        <Statistic
-                            title="Đơn bán"
-                            value={sales.length}
-                            prefix={<TagOutlined />}
-                        />
-                    </Card>
-                </Col>
-            </Row>
-
             {/* Transaction History */}
-            <Card title="Lịch sử giao dịch" className="shadow-lg">
-                <Tabs
-                    defaultActiveKey="purchases"
-                    items={[
-                        {
-                            key: 'purchases',
-                            label: `Đơn mua (${purchases.length})`,
-                            children: transactionsLoading ? (
-                                <div className="text-center py-12">
-                                    <Spin size="large" />
-                                </div>
-                            ) : purchases.length > 0 ? (
-                                <Table
-                                    dataSource={purchases}
-                                    columns={purchaseColumns}
-                                    rowKey="transactionId"
-                                    pagination={{ pageSize: 10 }}
-                                    scroll={{ x: 1000 }}
-                                />
-                            ) : (
-                                <Empty description="Chưa có giao dịch mua nào" />
-                            )
-                        },
-                        {
-                            key: 'sales',
-                            label: `Đơn bán (${sales.length})`,
-                            children: transactionsLoading ? (
-                                <div className="text-center py-12">
-                                    <Spin size="large" />
-                                </div>
-                            ) : sales.length > 0 ? (
-                                <Table
-                                    dataSource={sales}
-                                    columns={salesColumns}
-                                    rowKey="transactionId"
-                                    pagination={{ pageSize: 10 }}
-                                    scroll={{ x: 1000 }}
-                                />
-                            ) : (
-                                <Empty description="Chưa có giao dịch bán nào" />
-                            )
-                        }
-                    ]}
-                />
+            <Card title="Lịch sử giao dịch ví" className="shadow-lg">
+                {transactionsLoading ? (
+                    <div className="text-center py-12">
+                        <Spin size="large" />
+                    </div>
+                ) : walletTransactions.length > 0 ? (
+                    <Table
+                        dataSource={walletTransactions}
+                        rowKey="walletTransactionId"
+                        pagination={{ pageSize: 10 }}
+                        scroll={{ x: 1000 }}
+                        columns={[
+                            {
+                                title: 'Loại GD',
+                                dataIndex: 'transactionType',
+                                key: 'transactionType',
+                                render: (type) => {
+                                    const colors = {
+                                        TOPUP: 'green',
+                                        WITHDRAW: 'red',
+                                        DEDUCT: 'orange',
+                                        POSTING_FEE: 'blue',
+                                        REFUND: 'purple',
+                                    };
+                                    return <Tag color={colors[type] || 'default'}>{type}</Tag>;
+                                },
+                            },
+                            {
+                                title: 'Số tiền',
+                                dataIndex: 'amount',
+                                key: 'amount',
+                                render: (amount, record) => {
+                                    const isIncome = ['TOPUP', 'REFUND'].includes(record.transactionType);
+                                    return (
+                                        <Text strong className={isIncome ? 'text-green-600' : 'text-red-600'}>
+                                            {isIncome ? '+' : '-'}{formatCurrency(Math.abs(amount))}
+                                        </Text>
+                                    );
+                                },
+                            },
+                            {
+                                title: 'Số dư trước',
+                                dataIndex: 'balanceBefore',
+                                key: 'balanceBefore',
+                                render: (bal) => formatCurrency(bal),
+                            },
+                            {
+                                title: 'Số dư sau',
+                                dataIndex: 'balanceAfter',
+                                key: 'balanceAfter',
+                                render: (bal) => <Text strong>{formatCurrency(bal)}</Text>,
+                            },
+                            {
+                                title: 'Phương thức',
+                                dataIndex: 'paymentMethod',
+                                key: 'paymentMethod',
+                                render: (method) => method || 'N/A',
+                            },
+                            {
+                                title: 'Mô tả',
+                                dataIndex: 'description',
+                                key: 'description',
+                                render: (desc) => desc || 'N/A',
+                            },
+                            {
+                                title: 'Ngày GD',
+                                dataIndex: 'createdAt',
+                                key: 'createdAt',
+                                render: (date) => new Date(date).toLocaleString('vi-VN'),
+                            },
+                        ]}
+                    />
+                ) : (
+                    <Empty description="Chưa có giao dịch nào" />
+                )}
             </Card>
 
             {/* Deposit Modal */}
@@ -603,13 +426,14 @@ const WalletManagement = () => {
 
             {/* Withdraw Modal */}
             <Modal
-                title="Rút tiền từ ví"
+                title="Yêu cầu rút tiền"
                 open={isWithdrawModalVisible}
                 onCancel={() => {
                     setIsWithdrawModalVisible(false);
                     withdrawForm.resetFields();
                 }}
                 footer={null}
+                width={600}
             >
                 <Form form={withdrawForm} onFinish={handleWithdraw} layout="vertical">
                     <Form.Item
@@ -627,9 +451,44 @@ const WalletManagement = () => {
                             size="large"
                         />
                     </Form.Item>
+                    <Form.Item
+                        label="Tên ngân hàng"
+                        name="bankName"
+                        rules={[{ required: true, message: 'Vui lòng nhập tên ngân hàng!' }]}
+                    >
+                        <Input placeholder="VD: Vietcombank, Techcombank, ..." size="large" />
+                    </Form.Item>
+                    <Form.Item
+                        label="Số tài khoản"
+                        name="bankAccountNumber"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập số tài khoản!' },
+                            { pattern: /^[0-9]+$/, message: 'Số tài khoản phải là số!' }
+                        ]}
+                    >
+                        <Input placeholder="Nhập số tài khoản ngân hàng" size="large" />
+                    </Form.Item>
+                    <Form.Item
+                        label="Tên chủ tài khoản"
+                        name="bankAccountName"
+                        rules={[{ required: true, message: 'Vui lòng nhập tên chủ tài khoản!' }]}
+                    >
+                        <Input placeholder="Nhập tên chủ tài khoản (viết hoa không dấu)" size="large" />
+                    </Form.Item>
+                    <Form.Item
+                        label="Ghi chú (tùy chọn)"
+                        name="note"
+                    >
+                        <Input.TextArea rows={3} placeholder="Ghi chú thêm về yêu cầu rút tiền..." />
+                    </Form.Item>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
+                        <Text className="text-sm text-yellow-800">
+                            ⚠️ Yêu cầu rút tiền cần được admin phê duyệt. Tiền sẽ được chuyển vào tài khoản ngân hàng của bạn sau khi được duyệt.
+                        </Text>
+                    </div>
                     <Form.Item>
                         <Button type="primary" htmlType="submit" loading={loading} block size="large" danger>
-                            Rút tiền
+                            Gửi yêu cầu rút tiền
                         </Button>
                     </Form.Item>
                 </Form>
