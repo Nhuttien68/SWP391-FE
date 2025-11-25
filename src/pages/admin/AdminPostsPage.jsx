@@ -33,31 +33,24 @@ const AdminPostsPage = () => {
     const [batteryBrands, setBatteryBrands] = useState([]);
     const [form] = Form.useForm();
 
+    // Controlled reject modal state (mirror approve)
+    const [rejectModalVisible, setRejectModalVisible] = useState(false);
+    const [rejectTargetPostId, setRejectTargetPostId] = useState(null);
+
     // Prefetch brands once to reduce perceived latency and ensure selects populate
     useEffect(() => {
         let mounted = true;
         const load = async () => {
             try {
                 const vb = await brandAPI.getVehicleBrands();
-                if (mounted && vb && vb.success && Array.isArray(vb.data)) {
-                    const norm = vb.data.map(b => ({
-                        brandId: b.brandId || b.BrandId || b.id || b.Id,
-                        brandName: b.brandName || b.BrandName || b.name || b.Name
-                    }));
-                    setVehicleBrands(norm);
-                }
+                console.warn(vb)
+                if (mounted && vb && vb.success) setVehicleBrands(vb.data || []);
             } catch (e) {
                 console.error('[AdminPostsPage] prefetch vehicle brands error', e);
             }
             try {
                 const bb = await brandAPI.getBatteryBrands();
-                if (mounted && bb && bb.success && Array.isArray(bb.data)) {
-                    const normb = bb.data.map(b => ({
-                        brandId: b.brandId || b.BrandId || b.id || b.Id,
-                        brandName: b.brandName || b.BrandName || b.name || b.Name
-                    }));
-                    setBatteryBrands(normb);
-                }
+                if (mounted && bb && bb.success) setBatteryBrands(bb.data || []);
             } catch (e) {
                 console.error('[AdminPostsPage] prefetch battery brands error', e);
             }
@@ -65,6 +58,7 @@ const AdminPostsPage = () => {
         load();
         return () => { mounted = false; };
     }, []);
+
     const navigate = useNavigate();
     const { isLoading, isAuthenticated, isAdmin } = useAuth();
 
@@ -147,22 +141,13 @@ const AdminPostsPage = () => {
         setEditModalVisible(true);
         try {
             // fetch latest brands first (defensive)
-            let vbNorm = [];
             try {
                 const vb = await brandAPI.getVehicleBrands();
-                if (vb && vb.success && Array.isArray(vb.data)) {
-                    vbNorm = vb.data.map(b => ({ brandId: b.brandId || b.BrandId || b.id || b.Id, brandName: b.brandName || b.BrandName || b.name || b.Name }));
-                    setVehicleBrands(vbNorm);
-                }
+                if (vb && vb.success) setVehicleBrands(vb.data || []);
             } catch (e) { console.error('[AdminPostsPage] load vehicle brands error', e); }
-
-            let bbNorm = [];
             try {
                 const bb = await brandAPI.getBatteryBrands();
-                if (bb && bb.success && Array.isArray(bb.data)) {
-                    bbNorm = bb.data.map(b => ({ brandId: b.brandId || b.BrandId || b.id || b.Id, brandName: b.brandName || b.BrandName || b.name || b.Name }));
-                    setBatteryBrands(bbNorm);
-                }
+                if (bb && bb.success) setBatteryBrands(bb.data || []);
             } catch (e) { console.error('[AdminPostsPage] load battery brands error', e); }
 
             // prepare initial form values based on type
@@ -174,29 +159,14 @@ const AdminPostsPage = () => {
             };
 
             if (post.type === 'VEHICLE' && post.vehicle) {
-                // prefer GUID brandId when available; otherwise try to resolve by brandName from fetched brands
-                const postBrandId = post.vehicle.brandId || post.vehicle.brandId || null;
-                let resolvedBrandId = postBrandId;
-                if (!resolvedBrandId && post.vehicle.brandName) {
-                    const found = vbNorm.find(b => b.brandName === post.vehicle.brandName);
-                    if (found) resolvedBrandId = found.brandId;
-                    else resolvedBrandId = post.vehicle.brandName; // fallback to name string for input
-                }
-                initial.brandId = resolvedBrandId;
+                initial.brandId = post.vehicle.brandId || post.vehicle.brandId || post.vehicle.brandId;
                 initial.model = post.vehicle.model;
                 initial.year = post.vehicle.year;
                 initial.mileage = post.vehicle.mileage;
             }
 
             if (post.type === 'BATTERY' && post.battery) {
-                const postBrandId = post.battery.brandId || post.battery.brandId || null;
-                let resolvedBrandId = postBrandId;
-                if (!resolvedBrandId && post.battery.brandName) {
-                    const found = bbNorm.find(b => b.brandName === post.battery.brandName);
-                    if (found) resolvedBrandId = found.brandId;
-                    else resolvedBrandId = post.battery.brandName;
-                }
-                initial.brandId = resolvedBrandId;
+                initial.brandId = post.battery.brandId || post.battery.brandId || post.battery.brandId;
                 initial.capacity = post.battery.capacity;
                 initial.condition = post.battery.condition;
             }
@@ -363,71 +333,66 @@ const AdminPostsPage = () => {
         setApproveTargetPostId(null);
     };
 
+    // Open reject modal (controlled), confirm will call API
     const handleReject = (postId) => {
-        confirm({
-            title: 'Xác nhận từ chối',
-            icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
-            content: 'Khi từ chối bài đăng, hệ thống sẽ hoàn trả 100,000 VND về ví của người đăng. Bạn có chắc chắn muốn từ chối?',
-            onOk() {
-                return new Promise((resolve, reject) => {
-                    // Show loading notification
-                    notification.info({
-                        key: `reject-${postId}`,
-                        message: 'Đang xử lý',
-                        description: 'Vui lòng đợi trong giây lát...',
-                        icon: <InfoCircleOutlined style={{ color: '#1890ff' }} />,
-                        duration: 0
-                    });
+        setRejectTargetPostId(postId);
+        setRejectModalVisible(true);
+    };
 
-                    postAPI.rejectPost(postId)
-                        .then(response => {
-                            if (response.success) {
-                                notification.destroy();
-                                notification.success({
-                                    message: 'Từ chối thành công',
-                                    description: 'Bài đăng đã bị từ chối' +
-                                        (response.data?.UserNewBalance ?
-                                            `. Đã hoàn trả 100,000 VND. Số dư mới của người dùng: ${response.data.UserNewBalance.toLocaleString()} VND` :
-                                            ''),
-                                    icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-                                    duration: 4,
-                                    placement: 'topRight'
-                                });
-                                // Refresh data based on current tab
-                                if (activeTab === 'moderation') {
-                                    fetchPendingPosts();
-                                } else {
-                                    fetchAllPosts();
-                                }
-                                resolve();
-                            } else {
-                                notification.error({
-                                    message: 'Từ chối thất bại',
-                                    description: response.message || 'Không thể từ chối bài đăng',
-                                    icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
-                                    duration: 4,
-                                    placement: 'topRight'
-                                });
-                                reject();
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Reject error:', error);
-                            notification.error({
-                                message: 'Lỗi',
-                                description: 'Có lỗi xảy ra khi từ chối bài đăng',
-                                icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
-                                duration: 4,
-                                placement: 'topRight'
-                            });
-                            reject(error);
-                        });
-                });
-            },
-            okButtonProps: {
-                loading: false
-            }
+    const handleRejectConfirm = () => {
+        const postId = rejectTargetPostId;
+        notification.info({
+            key: `reject-${postId}`,
+            message: 'Đang xử lý',
+            description: 'Vui lòng đợi trong giây lát...',
+            icon: <InfoCircleOutlined style={{ color: '#1890ff' }} />,
+            duration: 0
         });
+
+        postAPI.rejectPost(postId)
+            .then(response => {
+                if (response.success) {
+                    notification.destroy();
+                    notification.success({
+                        message: 'Từ chối thành công',
+                        description: 'Bài đăng đã bị từ chối' +
+                            (response.data?.UserNewBalance ?
+                                `. Đã hoàn trả 100,000 VND. Số dư mới của người dùng: ${response.data.UserNewBalance.toLocaleString()} VND` :
+                                ''),
+                        icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+                        duration: 4,
+                        placement: 'topRight'
+                    });
+                    if (activeTab === 'moderation') fetchPendingPosts(); else fetchAllPosts();
+                } else {
+                    notification.error({
+                        message: 'Từ chối thất bại',
+                        description: response.message || 'Không thể từ chối bài đăng',
+                        icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
+                        duration: 4,
+                        placement: 'topRight'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Reject error:', error);
+                notification.error({
+                    message: 'Lỗi',
+                    description: 'Có lỗi xảy ra khi từ chối bài đăng',
+                    icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
+                    duration: 4,
+                    placement: 'topRight'
+                });
+            })
+            .finally(() => {
+                setRejectModalVisible(false);
+                setRejectTargetPostId(null);
+            });
+    };
+
+    const handleRejectCancel = () => {
+        setRejectModalVisible(false);
+        setRejectTargetPostId(null);
     };
 
     const handleDelete = async (postId) => {
@@ -699,6 +664,18 @@ const AdminPostsPage = () => {
                 <p>Bạn có chắc chắn muốn phê duyệt bài đăng này? Khi phê duyệt, admin sẽ được nhận 100,000 VND.</p>
             </Modal>
 
+            {/* Controlled reject confirmation modal (visible when user clicks Từ chối) */}
+            <Modal
+                title="Xác nhận từ chối"
+                open={rejectModalVisible}
+                onOk={handleRejectConfirm}
+                onCancel={handleRejectCancel}
+                okText="Từ chối"
+                cancelText="Hủy"
+            >
+                <p>Khi từ chối bài đăng, hệ thống sẽ hoàn trả 100,000 VND về ví của người đăng. Bạn có chắc chắn muốn từ chối?</p>
+            </Modal>
+
             <Modal
                 title="Chi tiết bài đăng"
                 open={detailVisible}
@@ -793,7 +770,7 @@ const AdminPostsPage = () => {
                             <>
                                 <Form.Item name="brandId" label="Thương hiệu" rules={[{ required: true }]}>
                                     {vehicleBrands && vehicleBrands.length > 0 ? (
-                                        <Select options={(vehicleBrands || []).map(b => ({ label: b.brandName, value: b.brandId }))} />
+                                        <Select options={(vehicleBrands || []).map(b => ({ label: b.brandName || b.BrandName || b.name || b.Name, value: b.brandId || b.BrandId }))} />
                                     ) : (
                                         <Input placeholder="Không có danh sách thương hiệu — nhập BrandId hoặc tên" />
                                     )}
@@ -814,7 +791,7 @@ const AdminPostsPage = () => {
                             <>
                                 <Form.Item name="brandId" label="Thương hiệu" rules={[{ required: true }]}>
                                     {batteryBrands && batteryBrands.length > 0 ? (
-                                        <Select options={(batteryBrands || []).map(b => ({ label: b.brandName, value: b.brandId }))} />
+                                        <Select options={(batteryBrands || []).map(b => ({ label: b.brandName || b.BrandName || b.name || b.Name, value: b.brandId || b.BrandId }))} />
                                     ) : (
                                         <Input placeholder="Không có danh sách thương hiệu — nhập BrandId hoặc tên" />
                                     )}
