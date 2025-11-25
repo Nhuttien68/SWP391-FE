@@ -15,6 +15,7 @@ import BrandsPage from "./BrandsPage";
 import AdminAuctionsPage from "./AdminAuctionsPage";
 import AdminTransactionsPage from "./AdminTransactionsPage";
 import AdminWalletPage from "./AdminWalletPage";
+import AdminWithdrawalPage from "./AdminWithdrawalPage";
 import { useAuth } from "../../context/AuthContext";
 
 const { Header, Sider, Content } = Layout;
@@ -65,7 +66,8 @@ export default function AdminLayout() {
                                 label: "Người dùng",
                                 children: [
                                     { key: "users_list", label: "Users" },
-                                    { key: "wallets", label: "Wallets" },
+                                    { key: "wallets", label: "Wallets of system" },
+
                                 ],
                             },
                             {
@@ -80,10 +82,10 @@ export default function AdminLayout() {
                             {
                                 key: "auctions",
                                 icon: <DollarOutlined />,
-                                label: "Đấu giá & Giao dịch",
+                                label: " Giao dịch",
                                 children: [
-
                                     { key: "transactions", label: "Transactions" },
+                                    { key: "withdraw", label: "Withdraw" },
                                 ],
                             },
 
@@ -134,6 +136,7 @@ export default function AdminLayout() {
                 <Content className="m-6 p-6 bg-white rounded-lg shadow">
                     {selectedKey === "users_list" && <UsersPage />}
                     {selectedKey === "wallets" && <AdminWalletPage />}
+                    {selectedKey === "withdraw" && <AdminWithdrawalPage />}
                     {selectedKey === "posts_list" && <AdminPostsPage />}
                     {selectedKey === "brands_list" && <BrandsPage />}
                     {selectedKey === "auctions_list" && <AdminAuctionsPage />}

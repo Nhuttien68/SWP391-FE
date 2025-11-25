@@ -10,10 +10,11 @@ const { Option } = Select;
 
 export default function AdminTransactionsPage() {
     const [loading, setLoading] = useState(false);
-    const [viewType, setViewType] = useState('month'); // 'day', 'month', 'year', 'range'
+    const [viewType, setViewType] = useState('all'); // 'all', 'day', 'month', 'year', 'range'
     const [selectedDate, setSelectedDate] = useState(dayjs());
     const [dateRange, setDateRange] = useState([dayjs().startOf('month'), dayjs()]);
     const [transactions, setTransactions] = useState([]);
+    const [allTransactions, setAllTransactions] = useState([]); // Store all transactions
     const [statistics, setStatistics] = useState({
         totalRevenue: 0,
         totalTransactions: 0,
@@ -23,8 +24,51 @@ export default function AdminTransactionsPage() {
     });
 
     useEffect(() => {
-        fetchTransactions();
-    }, [viewType, selectedDate, dateRange]);
+        fetchAllTransactions();
+    }, []);
+
+    useEffect(() => {
+        if (viewType === 'all') {
+            setTransactions(allTransactions);
+            calculateStatistics(allTransactions);
+        } else {
+            fetchTransactions();
+        }
+    }, [viewType, selectedDate, dateRange, allTransactions]);
+
+    const fetchAllTransactions = async () => {
+        setLoading(true);
+        try {
+            const response = await adminAPI.getAllTransactions();
+            if (response.success) {
+                const data = Array.isArray(response.data) ? response.data : [];
+                const normalized = data.map(item => ({
+                    transactionId: item.transactionId ?? item.TransactionId,
+                    amount: item.amount ?? item.Amount ?? 0,
+                    status: item.status ?? item.Status,
+                    paymentMethod: item.paymentMethod ?? item.PaymentMethod,
+                    createdAt: item.createdAt ?? item.CreatedAt,
+                    buyerName: item.buyerName ?? item.BuyerName,
+                    buyerId: item.buyerId ?? item.BuyerId,
+                    sellerName: item.sellerName ?? item.SellerName,
+                    sellerId: item.sellerId ?? item.SellerId,
+                    postTitle: item.postTitle ?? item.PostTitle,
+                    postId: item.postId ?? item.PostId
+                }));
+
+                setAllTransactions(normalized);
+                setTransactions(normalized);
+                calculateStatistics(normalized);
+            } else {
+                message.error(response.message || 'Không thể tải dữ liệu giao dịch');
+            }
+        } catch (error) {
+            console.error('Fetch all transactions error:', error);
+            message.error('Có lỗi khi tải dữ liệu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -70,8 +114,11 @@ export default function AdminTransactionsPage() {
                     paymentMethod: item.paymentMethod ?? item.PaymentMethod,
                     createdAt: item.createdAt ?? item.CreatedAt,
                     buyerName: item.buyerName ?? item.BuyerName,
+                    buyerId: item.buyerId ?? item.BuyerId,
                     sellerName: item.sellerName ?? item.SellerName,
-                    postTitle: item.postTitle ?? item.PostTitle
+                    sellerId: item.sellerId ?? item.SellerId,
+                    postTitle: item.postTitle ?? item.PostTitle,
+                    postId: item.postId ?? item.PostId
                 }));
 
                 setTransactions(normalized);
@@ -195,10 +242,46 @@ export default function AdminTransactionsPage() {
     };
 
     const tableColumns = [
-        { title: 'Mã GD', dataIndex: 'transactionId', key: 'id', render: (id) => `#${id?.substring(0, 8)}...` },
-        { title: 'Người mua', dataIndex: 'buyerName', key: 'buyer' },
-        { title: 'Người bán', dataIndex: 'sellerName', key: 'seller' },
-        { title: 'Sản phẩm', dataIndex: 'postTitle', key: 'post', render: (v) => v || '—' },
+        {
+            title: 'Mã GD',
+            dataIndex: 'transactionId',
+            key: 'id',
+            width: 120,
+            render: (id) => `#${id?.substring(0, 8)}...`
+        },
+        {
+            title: 'Người mua',
+            dataIndex: 'buyerName',
+            key: 'buyer',
+            render: (name, record) => (
+                <div>
+                    <div className="font-medium">{name || 'N/A'}</div>
+                    {record.buyerId && <div className="text-xs text-gray-500">ID: {record.buyerId.substring(0, 8)}</div>}
+                </div>
+            )
+        },
+        {
+            title: 'Người bán',
+            dataIndex: 'sellerName',
+            key: 'seller',
+            render: (name, record) => (
+                <div>
+                    <div className="font-medium">{name || 'N/A'}</div>
+                    {record.sellerId && <div className="text-xs text-gray-500">ID: {record.sellerId.substring(0, 8)}</div>}
+                </div>
+            )
+        },
+        {
+            title: 'Sản phẩm',
+            dataIndex: 'postTitle',
+            key: 'post',
+            render: (v, record) => (
+                <div>
+                    <div>{v || '—'}</div>
+                    {record.postId && <div className="text-xs text-gray-500">Post: {record.postId.substring(0, 8)}</div>}
+                </div>
+            )
+        },
         {
             title: 'Số tiền',
             dataIndex: 'amount',
@@ -242,6 +325,7 @@ export default function AdminTransactionsPage() {
             <Card className="mb-6">
                 <Space size="middle" wrap>
                     <Select value={viewType} onChange={setViewType} style={{ width: 150 }}>
+                        <Option value="all">Tất cả</Option>
                         <Option value="day">Theo ngày</Option>
                         <Option value="month">Theo tháng</Option>
                         <Option value="year">Theo năm</Option>

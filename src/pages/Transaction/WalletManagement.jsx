@@ -51,9 +51,14 @@ const WalletManagement = () => {
     const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
     const [isWithdrawModalVisible, setIsWithdrawModalVisible] = useState(false);
     const [isCreateWalletModalVisible, setIsCreateWalletModalVisible] = useState(false);
+    const [isWithdrawalRequestsModalVisible, setIsWithdrawalRequestsModalVisible] = useState(false);
 
     const [depositForm] = Form.useForm();
     const [withdrawForm] = Form.useForm();
+
+    // Withdrawal requests data
+    const [withdrawalRequests, setWithdrawalRequests] = useState([]);
+    const [withdrawalRequestsLoading, setWithdrawalRequestsLoading] = useState(false);
 
     // Transactions data
     const [walletTransactions, setWalletTransactions] = useState([]);
@@ -122,6 +127,26 @@ const WalletManagement = () => {
         }
     };
 
+    const fetchWithdrawalRequests = async () => {
+        setWithdrawalRequestsLoading(true);
+        try {
+            const response = await withdrawalAPI.getMyWithdrawalRequests();
+            if (response.success) {
+                setWithdrawalRequests(response.data || []);
+            }
+        } catch (error) {
+            console.error('Fetch withdrawal requests error:', error);
+            toast.error('Không thể tải danh sách yêu cầu rút tiền');
+        } finally {
+            setWithdrawalRequestsLoading(false);
+        }
+    };
+
+    const handleOpenWithdrawalRequests = () => {
+        setIsWithdrawalRequestsModalVisible(true);
+        fetchWithdrawalRequests();
+    };
+
     const handleCreateWallet = async () => {
         setLoading(true);
         try {
@@ -182,7 +207,17 @@ const WalletManagement = () => {
     const handleWithdraw = async (values) => {
         setLoading(true);
         try {
-            if (values.amount > walletBalance) {
+            const withdrawAmount = Number(values.amount);
+
+            // Validate số tiền tối thiểu
+            if (withdrawAmount < 100000) {
+                toast.error('Số tiền rút tối thiểu là 100,000 VNĐ');
+                setLoading(false);
+                return;
+            }
+
+            // Validate số dư
+            if (withdrawAmount > walletBalance) {
                 toast.error('Số dư không đủ!');
                 setLoading(false);
                 return;
@@ -307,6 +342,14 @@ const WalletManagement = () => {
                             >
                                 Rút tiền
                             </Button>
+                            <Button
+                                icon={<WalletOutlined />}
+                                onClick={handleOpenWithdrawalRequests}
+                                size="large"
+                                className="!bg-white !text-gray-700"
+                            >
+                                Xem yêu cầu rút tiền
+                            </Button>
                         </Space>
                     </Col>
                 </Row>
@@ -330,6 +373,13 @@ const WalletManagement = () => {
                                 dataIndex: 'transactionType',
                                 key: 'transactionType',
                                 render: (type) => {
+                                    const typeLabels = {
+                                        TOPUP: 'Nạp tiền',
+                                        WITHDRAW: 'Rút tiền',
+                                        DEDUCT: 'Trừ tiền',
+                                        POSTING_FEE: 'Phí đăng tin',
+                                        REFUND: 'Hoàn tiền',
+                                    };
                                     const colors = {
                                         TOPUP: 'green',
                                         WITHDRAW: 'red',
@@ -337,7 +387,7 @@ const WalletManagement = () => {
                                         POSTING_FEE: 'blue',
                                         REFUND: 'purple',
                                     };
-                                    return <Tag color={colors[type] || 'default'}>{type}</Tag>;
+                                    return <Tag color={colors[type] || 'default'}>{typeLabels[type] || type}</Tag>;
                                 },
                             },
                             {
@@ -442,15 +492,26 @@ const WalletManagement = () => {
                         rules={[
                             { required: true, message: 'Vui lòng nhập số tiền!' },
                             { pattern: /^[0-9]+$/, message: 'Số tiền phải là số!' },
+                            {
+                                validator: (_, value) => {
+                                    if (value && Number(value) < 100000) {
+                                        return Promise.reject('Số tiền rút tối thiểu là 100,000 VNĐ');
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
                         ]}
                     >
                         <Input
                             prefix={<DollarOutlined />}
                             suffix="VNĐ"
-                            placeholder={`Số dư: ${formatCurrency(walletBalance)}`}
+                            placeholder="Tối thiểu 100,000 VNĐ"
                             size="large"
                         />
                     </Form.Item>
+                    <div className="mb-4 text-sm text-gray-600">
+                        Số dư khả dụng: <Text strong>{formatCurrency(walletBalance)}</Text>
+                    </div>
                     <Form.Item
                         label="Tên ngân hàng"
                         name="bankName"
@@ -483,7 +544,7 @@ const WalletManagement = () => {
                     </Form.Item>
                     <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
                         <Text className="text-sm text-yellow-800">
-                            ⚠️ Yêu cầu rút tiền cần được admin phê duyệt. Tiền sẽ được chuyển vào tài khoản ngân hàng của bạn sau khi được duyệt.
+                            ⚠️ Yêu cầu rút tiền cần được hệ thống phê duyệt. Tiền sẽ được chuyển vào tài khoản ngân hàng của bạn sau khi được duyệt.
                         </Text>
                     </div>
                     <Form.Item>
@@ -492,6 +553,86 @@ const WalletManagement = () => {
                         </Button>
                     </Form.Item>
                 </Form>
+            </Modal>
+
+            {/* Withdrawal Requests Modal */}
+            <Modal
+                title="Yêu cầu rút tiền của tôi "
+                open={isWithdrawalRequestsModalVisible}
+                onCancel={() => setIsWithdrawalRequestsModalVisible(false)}
+                footer={null}
+                width={900}
+            >
+                {withdrawalRequestsLoading ? (
+                    <div className="text-center py-12">
+                        <Spin size="large" />
+                    </div>
+                ) : withdrawalRequests.length > 0 ? (
+                    <Table
+                        dataSource={withdrawalRequests}
+                        rowKey="withdrawalId"
+                        pagination={{ pageSize: 5 }}
+                        scroll={{ x: 800 }}
+                        columns={[
+                            {
+                                title: 'Mã yêu cầu',
+                                dataIndex: 'withdrawalId',
+                                key: 'withdrawalId',
+                                width: 80,
+                                render: (id) => `#${id}`,
+                            },
+                            {
+                                title: 'Số tiền',
+                                dataIndex: 'amount',
+                                key: 'amount',
+                                render: (amount) => (
+                                    <Text strong className="text-red-600">
+                                        {formatCurrency(amount)}
+                                    </Text>
+                                ),
+                            },
+                            {
+                                title: 'Ngân hàng',
+                                key: 'bank',
+                                render: (_, record) => (
+                                    <div>
+                                        <div><Text strong>{record.bankName}</Text></div>
+                                        <div className="text-xs text-gray-500">{record.bankAccountNumber}</div>
+                                        <div className="text-xs text-gray-500">{record.bankAccountName}</div>
+                                    </div>
+                                ),
+                            },
+                            {
+                                title: 'Trạng thái',
+                                dataIndex: 'status',
+                                key: 'status',
+                                render: (status) => {
+                                    const statusConfig = {
+                                        PENDING: { color: 'orange', text: 'Chờ duyệt' },
+                                        APPROVED: { color: 'green', text: 'Đã duyệt' },
+                                        REJECTED: { color: 'red', text: 'Từ chối' },
+                                    };
+                                    const config = statusConfig[status] || { color: 'default', text: status };
+                                    return <Tag color={config.color}>{config.text}</Tag>;
+                                },
+                            },
+                            {
+                                title: 'Ghi chú',
+                                dataIndex: 'note',
+                                key: 'note',
+                                render: (note) => note ? note : <Text type="secondary" className="italic">Trống</Text>,
+                            },
+                            {
+                                title: 'Ngày tạo',
+                                dataIndex: 'requestedAt',
+                                key: 'requestedAt',
+                                render: (date) => date ? new Date(date).toLocaleString('vi-VN') : 'N/A',
+                            },
+                        ]}
+                    />
+                ) : (
+                    <Empty description="Chưa có yêu cầu rút tiền nào" />
+                )}
             </Modal>
         </div>
     );

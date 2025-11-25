@@ -146,6 +146,25 @@ export const adminAPI = {
                 error: error.response?.data
             };
         }
+    },
+
+    // Lấy tất cả giao dịch (chi tiết đầy đủ)
+    getAllTransactions: async () => {
+        try {
+            const response = await apiClient.get('/Transactions/all');
+            return {
+                success: true,
+                data: response?.Data ?? response?.data ?? response,
+                message: response?.Message || 'Lấy tất cả giao dịch thành công'
+            };
+        } catch (error) {
+            console.error('Get all transactions error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể lấy danh sách giao dịch',
+                error: error.response?.data
+            };
+        }
     }
 };
 
