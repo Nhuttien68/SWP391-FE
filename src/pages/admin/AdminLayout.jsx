@@ -23,7 +23,7 @@ const { Header, Sider, Content } = Layout;
 
 export default function AdminLayout() {
     const navigate = useNavigate();
-    const { isLoading, isAuthenticated, isAdmin, logout } = useAuth();
+    const { isLoading, isAuthenticated, isAdmin, logout, user } = useAuth();
 
     const [selectedKey, setSelectedKey] = useState("users");
 
@@ -105,8 +105,8 @@ export default function AdminLayout() {
                                 <UserOutlined className="text-white text-lg" />
                             </div>
                             <div>
-                                <div className="text-white font-medium text-sm">Admin User</div>
-                                <div className="text-gray-400 text-xs">admin@example.com</div>
+                                <div className="text-white font-medium text-sm">{user?.fullName}</div>
+                                <div className="text-gray-400 text-xs">{user?.email}</div>
                             </div>
                         </div>
                     </div>

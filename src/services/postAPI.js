@@ -177,6 +177,46 @@ export const postAPI = {
         }
     },
 
+    // Cập nhật post xe (multipart form)
+    updateVehiclePost: async (formData) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return { success: false, message: 'Chưa đăng nhập' };
+
+            const response = await apiClient.put('/Posts/Update-Post-Vehicle', formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            return { success: true, data: response.data || response, message: response?.Message ?? 'Cập nhật post vehicle thành công' };
+        } catch (error) {
+            console.error('Update vehicle post error:', error);
+            return { success: false, message: error.response?.data?.Message || 'Cập nhật thất bại', error: error.response?.data };
+        }
+    },
+
+    // Cập nhật post pin (multipart form)
+    updateBatteryPost: async (formData) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return { success: false, message: 'Chưa đăng nhập' };
+
+            const response = await apiClient.put('/Posts/Update-Post-Battery', formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            return { success: true, data: response.data || response, message: response?.Message ?? 'Cập nhật post battery thành công' };
+        } catch (error) {
+            console.error('Update battery post error:', error);
+            return { success: false, message: error.response?.data?.Message || 'Cập nhật thất bại', error: error.response?.data };
+        }
+    },
+
     // Xóa post
     deletePost: async (postId) => {
         try {

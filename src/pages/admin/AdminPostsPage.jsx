@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, notification, Modal, Space, Badge, Card, Row, Col, Statistic, Typography, Tooltip, Image, Tabs, Popconfirm } from 'antd';
+import { Table, Button, notification, Modal, Space, Badge, Card, Row, Col, Statistic, Typography, Tooltip, Image, Tabs, Popconfirm, Form, Input, Select, Upload, message, Checkbox, Spin } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, WalletOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { postAPI } from '../../services/postAPI';
+import brandAPI from '../../services/brandAPI';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -22,6 +23,48 @@ const AdminPostsPage = () => {
         rejected: 0
     });
     const [activeTab, setActiveTab] = useState('moderation');
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editPost, setEditPost] = useState(null);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editPreparing, setEditPreparing] = useState(false);
+    const [newFiles, setNewFiles] = useState([]);
+    const [keepImageIds, setKeepImageIds] = useState([]);
+    const [vehicleBrands, setVehicleBrands] = useState([]);
+    const [batteryBrands, setBatteryBrands] = useState([]);
+    const [form] = Form.useForm();
+
+    // Prefetch brands once to reduce perceived latency and ensure selects populate
+    useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            try {
+                const vb = await brandAPI.getVehicleBrands();
+                if (mounted && vb && vb.success && Array.isArray(vb.data)) {
+                    const norm = vb.data.map(b => ({
+                        brandId: b.brandId || b.BrandId || b.id || b.Id,
+                        brandName: b.brandName || b.BrandName || b.name || b.Name
+                    }));
+                    setVehicleBrands(norm);
+                }
+            } catch (e) {
+                console.error('[AdminPostsPage] prefetch vehicle brands error', e);
+            }
+            try {
+                const bb = await brandAPI.getBatteryBrands();
+                if (mounted && bb && bb.success && Array.isArray(bb.data)) {
+                    const normb = bb.data.map(b => ({
+                        brandId: b.brandId || b.BrandId || b.id || b.Id,
+                        brandName: b.brandName || b.BrandName || b.name || b.Name
+                    }));
+                    setBatteryBrands(normb);
+                }
+            } catch (e) {
+                console.error('[AdminPostsPage] prefetch battery brands error', e);
+            }
+        };
+        load();
+        return () => { mounted = false; };
+    }, []);
     const navigate = useNavigate();
     const { isLoading, isAuthenticated, isAdmin } = useAuth();
 
@@ -49,7 +92,7 @@ const AdminPostsPage = () => {
                 const data = response.data || [];
                 setStats({
                     total: data.length,
-                    pending: data.filter(post => post.status === 'PENNDING').length,
+                    pending: data.filter(post => post.status === 'PENDING').length,
                     approved: data.filter(post => post.status === 'APPROVED').length,
                     rejected: data.filter(post => post.status === 'REJECTED').length
                 });
@@ -73,7 +116,7 @@ const AdminPostsPage = () => {
                 const data = response.data || [];
                 setStats({
                     total: data.length,
-                    pending: data.filter(post => post.status === 'PENNDING').length,
+                    pending: data.filter(post => post.status === 'PENDING').length,
                     approved: data.filter(post => post.status === 'APPROVED').length,
                     rejected: data.filter(post => post.status === 'REJECTED').length
                 });
@@ -97,6 +140,162 @@ const AdminPostsPage = () => {
     const showPostDetail = (post) => {
         setSelectedPost(post);
         setDetailVisible(true);
+    };
+
+    const openEditModal = async (post) => {
+        setEditPreparing(true);
+        setEditModalVisible(true);
+        try {
+            // fetch latest brands first (defensive)
+            let vbNorm = [];
+            try {
+                const vb = await brandAPI.getVehicleBrands();
+                if (vb && vb.success && Array.isArray(vb.data)) {
+                    vbNorm = vb.data.map(b => ({ brandId: b.brandId || b.BrandId || b.id || b.Id, brandName: b.brandName || b.BrandName || b.name || b.Name }));
+                    setVehicleBrands(vbNorm);
+                }
+            } catch (e) { console.error('[AdminPostsPage] load vehicle brands error', e); }
+
+            let bbNorm = [];
+            try {
+                const bb = await brandAPI.getBatteryBrands();
+                if (bb && bb.success && Array.isArray(bb.data)) {
+                    bbNorm = bb.data.map(b => ({ brandId: b.brandId || b.BrandId || b.id || b.Id, brandName: b.brandName || b.BrandName || b.name || b.Name }));
+                    setBatteryBrands(bbNorm);
+                }
+            } catch (e) { console.error('[AdminPostsPage] load battery brands error', e); }
+
+            // prepare initial form values based on type
+            const initial = {
+                postId: post.postId,
+                title: post.title,
+                description: post.description,
+                price: post.price,
+            };
+
+            if (post.type === 'VEHICLE' && post.vehicle) {
+                // prefer GUID brandId when available; otherwise try to resolve by brandName from fetched brands
+                const postBrandId = post.vehicle.brandId || post.vehicle.brandId || null;
+                let resolvedBrandId = postBrandId;
+                if (!resolvedBrandId && post.vehicle.brandName) {
+                    const found = vbNorm.find(b => b.brandName === post.vehicle.brandName);
+                    if (found) resolvedBrandId = found.brandId;
+                    else resolvedBrandId = post.vehicle.brandName; // fallback to name string for input
+                }
+                initial.brandId = resolvedBrandId;
+                initial.model = post.vehicle.model;
+                initial.year = post.vehicle.year;
+                initial.mileage = post.vehicle.mileage;
+            }
+
+            if (post.type === 'BATTERY' && post.battery) {
+                const postBrandId = post.battery.brandId || post.battery.brandId || null;
+                let resolvedBrandId = postBrandId;
+                if (!resolvedBrandId && post.battery.brandName) {
+                    const found = bbNorm.find(b => b.brandName === post.battery.brandName);
+                    if (found) resolvedBrandId = found.brandId;
+                    else resolvedBrandId = post.battery.brandName;
+                }
+                initial.brandId = resolvedBrandId;
+                initial.capacity = post.battery.capacity;
+                initial.condition = post.battery.condition;
+            }
+
+            // collect existing image ids if available
+            const existingIds = [];
+            const imgs = post.postImages || post.post_images || post.imageUrls || [];
+            if (Array.isArray(imgs) && imgs.length > 0) {
+                imgs.forEach(i => {
+                    const id = i.imageId || i.ImageId || i.id || (typeof i === 'string' ? null : null);
+                    if (id) existingIds.push(id);
+                });
+            }
+            // fallback: if response only has imgId array
+            if (post.imgId && Array.isArray(post.imgId)) {
+                post.imgId.forEach(id => existingIds.push(id));
+            }
+
+            setKeepImageIds(existingIds.map(i => i.toString()));
+            setNewFiles([]);
+            setEditPost(post);
+            form.setFieldsValue(initial);
+        } catch (err) {
+            console.error('[AdminPostsPage] openEditModal error', err);
+            message.error('Không thể mở form chỉnh sửa — kiểm tra console');
+            setEditPost(null);
+            setNewFiles([]);
+            setKeepImageIds([]);
+        } finally {
+            setEditPreparing(false);
+        }
+    };
+
+    const handleRemoveExistingImage = (id) => {
+        setKeepImageIds(prev => prev.filter(x => x !== id));
+    };
+
+    const uploadProps = {
+        beforeUpload: (file) => {
+            setNewFiles(prev => [...prev, file]);
+            return false; // prevent auto upload
+        },
+        onRemove: (file) => {
+            setNewFiles(prev => prev.filter(f => f !== file));
+        },
+        multiple: true,
+        fileList: newFiles
+    };
+
+    const handleEditSubmit = async () => {
+        try {
+            const values = await form.validateFields();
+            if (!editPost) return;
+            setEditLoading(true);
+
+            const fd = new FormData();
+            fd.append('postId', values.postId || editPost.postId);
+            fd.append('title', values.title || '');
+            fd.append('description', values.description || '');
+            fd.append('price', values.price != null ? String(values.price) : '0');
+
+            if (editPost.type === 'VEHICLE') {
+                fd.append('brandId', values.brandId || '');
+                fd.append('model', values.model || '');
+                fd.append('year', values.year != null ? String(values.year) : '0');
+                fd.append('mileage', values.mileage != null ? String(values.mileage) : '0');
+            } else {
+                fd.append('brandId', values.brandId || '');
+                fd.append('capacity', values.capacity != null ? String(values.capacity) : '0');
+                fd.append('condition', values.condition || '');
+            }
+
+            // keepImageIds - append multiple entries
+            (keepImageIds || []).forEach(id => fd.append('keepImageIds', id));
+
+            // new images
+            (newFiles || []).forEach(file => fd.append('newImages', file));
+
+            let resp;
+            if (editPost.type === 'VEHICLE') {
+                resp = await postAPI.updateVehiclePost(fd);
+            } else {
+                resp = await postAPI.updateBatteryPost(fd);
+            }
+
+            if (resp && resp.success) {
+                notification.success({ message: 'Cập nhật thành công' });
+                setEditModalVisible(false);
+                setEditPost(null);
+                if (activeTab === 'moderation') fetchPendingPosts(); else fetchAllPosts();
+            } else {
+                message.error(resp?.message || 'Cập nhật thất bại');
+            }
+        } catch (err) {
+            console.error('Edit submit error', err);
+            message.error(err?.message || 'Có lỗi khi cập nhật');
+        } finally {
+            setEditLoading(false);
+        }
     };
 
     const handleApprove = (postId) => {
@@ -321,7 +520,7 @@ const AdminPostsPage = () => {
                 let text = 'Không xác định';
 
                 switch (status) {
-                    case 'PENNDING':
+                    case 'PENDING':
                         color = 'warning';
                         text = 'Chờ duyệt';
                         break;
@@ -349,7 +548,7 @@ const AdminPostsPage = () => {
                             onClick={() => showPostDetail(record)}
                         />
                     </Tooltip>
-                    {activeTab === 'moderation' && record.status === 'PENNDING' && (
+                    {activeTab === 'moderation' && record.status === 'PENDING' && (
                         <>
                             <Tooltip title="Phê duyệt và nhận 100,000 VND">
                                 <Button
@@ -374,7 +573,7 @@ const AdminPostsPage = () => {
 
                     {activeTab === 'manage' && (
                         <>
-                            <Button onClick={() => navigate(`/posts/edit/${record.postId}`)}>Sửa</Button>
+                            <Button onClick={() => openEditModal(record)}>Sửa</Button>
                             <Popconfirm
                                 title="Bạn có chắc muốn xóa bài đăng này?"
                                 onConfirm={() => {
@@ -439,7 +638,7 @@ const AdminPostsPage = () => {
                                                         <Row gutter={16} className="mb-4">
                                                             <Col span={6}>
                                                                 <Statistic
-                                                                    title="Tổng số bài chờ"
+                                                                    title="Tổng số bài chờ duyệt"
                                                                     value={stats.pending}
                                                                     prefix={<WalletOutlined />}
                                                                 />
@@ -460,9 +659,13 @@ const AdminPostsPage = () => {
                                                 label: 'Quản lý bài',
                                                 children: (
                                                     <>
-                                                        <Row justify="space-between" align="middle" className="mb-4">
-                                                            <Col>
-                                                                <Button type="primary" onClick={() => navigate('/posts/create')}>Thêm bài</Button>
+                                                        <Row gutter={16} className="mb-4">
+                                                            <Col span={6}>
+                                                                <Statistic
+                                                                    title="Tổng số bài đã duyệt"
+                                                                    value={stats.approved}
+                                                                    prefix={<WalletOutlined />}
+                                                                />
                                                             </Col>
                                                         </Row>
 
@@ -513,7 +716,7 @@ const AdminPostsPage = () => {
                                     <p><strong>Giá:</strong> {selectedPost.price?.toLocaleString('vi-VN')} VND</p>
                                     <p><strong>Loại:</strong> {selectedPost.type === 'VEHICLE' ? 'Xe điện' : 'Pin xe điện'}</p>
                                     <p><strong>Trạng thái:</strong> {
-                                        selectedPost.status === 'PENNDING' ? 'Chờ duyệt' :
+                                        selectedPost.status === 'PENDING' ? 'Chờ duyệt' :
                                             selectedPost.status === 'APPROVED' ? 'Đã duyệt' :
                                                 'Đã từ chối'
                                     }</p>
@@ -555,6 +758,109 @@ const AdminPostsPage = () => {
                             </Card>
                         )}
                     </div>
+                )}
+            </Modal>
+            {/* Edit modal for admin */}
+            <Modal
+                title="Chỉnh sửa bài đăng"
+                open={editModalVisible}
+                onCancel={() => { setEditModalVisible(false); setEditPost(null); }}
+                onOk={handleEditSubmit}
+                okText="Lưu"
+                confirmLoading={editLoading}
+                width={800}
+            >
+                {editPreparing || !editPost ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                        <Spin tip="Đang tải..." />
+                    </div>
+                ) : (
+                    <Form form={form} layout="vertical" initialValues={{}}>
+                        <Form.Item name="postId" label="PostId" hidden>
+                            <Input />
+                        </Form.Item>
+                        <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
+                            <Input />
+                        </Form.Item>
+                        <Form.Item name="description" label="Mô tả" rules={[{ required: true }]}>
+                            <Input.TextArea rows={4} />
+                        </Form.Item>
+                        <Form.Item name="price" label="Giá" rules={[{ required: true }]}>
+                            <Input type="number" />
+                        </Form.Item>
+
+                        {editPost.type === 'VEHICLE' && (
+                            <>
+                                <Form.Item name="brandId" label="Thương hiệu" rules={[{ required: true }]}>
+                                    {vehicleBrands && vehicleBrands.length > 0 ? (
+                                        <Select options={(vehicleBrands || []).map(b => ({ label: b.brandName, value: b.brandId }))} />
+                                    ) : (
+                                        <Input placeholder="Không có danh sách thương hiệu — nhập BrandId hoặc tên" />
+                                    )}
+                                </Form.Item>
+                                <Form.Item name="model" label="Model" rules={[{ required: true }]}>
+                                    <Input />
+                                </Form.Item>
+                                <Form.Item name="year" label="Năm" rules={[{ required: true }]}>
+                                    <Input type="number" />
+                                </Form.Item>
+                                <Form.Item name="mileage" label="Số km">
+                                    <Input type="number" />
+                                </Form.Item>
+                            </>
+                        )}
+
+                        {editPost.type === 'BATTERY' && (
+                            <>
+                                <Form.Item name="brandId" label="Thương hiệu" rules={[{ required: true }]}>
+                                    {batteryBrands && batteryBrands.length > 0 ? (
+                                        <Select options={(batteryBrands || []).map(b => ({ label: b.brandName, value: b.brandId }))} />
+                                    ) : (
+                                        <Input placeholder="Không có danh sách thương hiệu — nhập BrandId hoặc tên" />
+                                    )}
+                                </Form.Item>
+                                <Form.Item name="capacity" label="Dung lượng" rules={[{ required: true }]}>
+                                    <Input type="number" />
+                                </Form.Item>
+                                <Form.Item name="condition" label="Tình trạng" rules={[{ required: true }]}>
+                                    <Input />
+                                </Form.Item>
+                            </>
+                        )}
+
+                        <Form.Item label="Hình ảnh hiện có">
+                            {(editPost.postImages || editPost.imageUrls || []).length > 0 ? (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {(editPost.postImages || editPost.imageUrls || []).map((img, idx) => {
+                                        const url = img.imageUrl || img.ImageUrl || img || img.url;
+                                        const id = img.imageId || img.ImageId || img.id || null;
+                                        const keep = id ? keepImageIds.includes(id.toString()) : true;
+                                        return (
+                                            <div key={idx} style={{ position: 'relative' }}>
+                                                <Image src={url} width={120} height={80} />
+                                                {id && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                                                        <Checkbox checked={keep} onChange={() => {
+                                                            if (keep) handleRemoveExistingImage(id.toString());
+                                                            else setKeepImageIds(prev => [...prev, id.toString()]);
+                                                        }}>Giữ</Checkbox>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div>Không có hình ảnh</div>
+                            )}
+                        </Form.Item>
+
+                        <Form.Item label="Thêm ảnh mới">
+                            <Upload {...uploadProps} listType="picture">
+                                <Button>Chọn ảnh</Button>
+                            </Upload>
+                        </Form.Item>
+                    </Form>
                 )}
             </Modal>
         </div>
