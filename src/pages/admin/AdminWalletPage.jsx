@@ -37,10 +37,14 @@ const AdminWalletPage = () => {
     const [wallet, setWallet] = useState(null);
     const [walletBalance, setWalletBalance] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [isCreateWalletModalVisible, setIsCreateWalletModalVisible] = useState(false);
+    const [transactions, setTransactions] = useState([]);
+    const [transactionsLoading, setTransactionsLoading] = useState(false);
 
     useEffect(() => {
         if (isLoading || !isAuthenticated) return;
         fetchWalletInfo();
+        fetchTransactionHistory();
     }, [isAuthenticated, isLoading]);
 
     const fetchWalletInfo = async () => {
@@ -70,6 +74,45 @@ const AdminWalletPage = () => {
         }).format(amount || 0);
     };
 
+    const fetchTransactionHistory = async () => {
+        setTransactionsLoading(true);
+        try {
+            const response = await walletAPI.getTransactionHistory();
+            if (response.success) {
+                setTransactions(response.data || []);
+            }
+        } catch (error) {
+            console.error('Fetch transaction history error:', error);
+        } finally {
+            setTransactionsLoading(false);
+        }
+    };
+
+    const handleCreateWallet = async () => {
+        setLoading(true);
+        try {
+            const result = await walletAPI.createWallet();
+            if (result.success) {
+                toast.success('Tạo ví thành công!');
+                setIsCreateWalletModalVisible(false);
+                await fetchWalletInfo();
+                await fetchTransactionHistory();
+            } else {
+                toast.error(result.message || 'Tạo ví thất bại');
+            }
+        } catch (error) {
+            toast.error('Có lỗi xảy ra khi tạo ví');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRefresh = async () => {
+        await fetchWalletInfo();
+        await fetchTransactionHistory();
+        toast.success('Đã làm mới dữ liệu');
+    };
+
     if (loading) {
         return <Spin size="large" className="flex justify-center items-center min-h-screen" />;
     }
@@ -82,10 +125,32 @@ const AdminWalletPage = () => {
                     description={
                         <div>
                             <Title level={4}>Chưa có ví điện tử</Title>
-                            <Text>Admin chưa có ví. Vui lòng liên hệ kỹ thuật để tạo ví.</Text>
+                            <Text>Tạo ví để bắt đầu quản lý tài chính nền tảng.</Text>
                         </div>
                     }
-                />
+                >
+                    <Button
+                        type="primary"
+                        size="large"
+                        icon={<PlusOutlined />}
+                        onClick={() => setIsCreateWalletModalVisible(true)}
+                    >
+                        Tạo ví ngay
+                    </Button>
+                </Empty>
+
+                <Modal
+                    title="Tạo ví điện tử cho Admin"
+                    open={isCreateWalletModalVisible}
+                    onOk={handleCreateWallet}
+                    onCancel={() => setIsCreateWalletModalVisible(false)}
+                    confirmLoading={loading}
+                    okText="Tạo ví"
+                    cancelText="Hủy"
+                >
+                    <p>Bạn có chắc chắn muốn tạo ví điện tử cho tài khoản admin không?</p>
+                    <p className="text-gray-500 text-sm">Ví sẽ được tạo với số dư ban đầu là 0 VNĐ.</p>
+                </Modal>
             </Card>
         );
     }
@@ -94,9 +159,9 @@ const AdminWalletPage = () => {
         <div className="p-6 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
             <div className="flex justify-between items-center mb-6">
                 <Title level={2} className="!mb-0">
-                    <WalletOutlined className="mr-2" /> Ví điện tử của nền tảng
+                    <WalletOutlined className="mr-2" /> Ví điện tử nền tảng
                 </Title>
-                <Button icon={<ReloadOutlined />} onClick={fetchWalletInfo}>
+                <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
                     Làm mới
                 </Button>
             </div>
@@ -113,6 +178,82 @@ const AdminWalletPage = () => {
                 </Row>
             </Card>
 
+            <Card title="Lịch sử giao dịch" className="shadow-lg">
+                {transactionsLoading ? (
+                    <div className="text-center py-12">
+                        <Spin size="large" />
+                    </div>
+                ) : transactions.length > 0 ? (
+                    <Table
+                        dataSource={transactions}
+                        rowKey="walletTransactionId"
+                        pagination={{ pageSize: 10 }}
+                        scroll={{ x: 1000 }}
+                        columns={[
+                            {
+                                title: 'Loại GD',
+                                dataIndex: 'transactionType',
+                                key: 'transactionType',
+                                render: (type) => {
+                                    const colors = {
+                                        TOPUP: 'green',
+                                        WITHDRAW: 'red',
+                                        DEDUCT: 'orange',
+                                        POSTING_FEE: 'blue',
+                                        REFUND: 'purple',
+                                    };
+                                    return <Tag color={colors[type] || 'default'}>{type}</Tag>;
+                                },
+                            },
+                            {
+                                title: 'Số tiền',
+                                dataIndex: 'amount',
+                                key: 'amount',
+                                render: (amount, record) => {
+                                    const isIncome = ['TOPUP', 'REFUND'].includes(record.transactionType);
+                                    return (
+                                        <Text strong className={isIncome ? 'text-green-600' : 'text-red-600'}>
+                                            {isIncome ? '+' : '-'}{formatCurrency(Math.abs(amount))}
+                                        </Text>
+                                    );
+                                },
+                            },
+                            {
+                                title: 'Số dư trước',
+                                dataIndex: 'balanceBefore',
+                                key: 'balanceBefore',
+                                render: (bal) => formatCurrency(bal),
+                            },
+                            {
+                                title: 'Số dư sau',
+                                dataIndex: 'balanceAfter',
+                                key: 'balanceAfter',
+                                render: (bal) => <Text strong>{formatCurrency(bal)}</Text>,
+                            },
+                            {
+                                title: 'Phương thức',
+                                dataIndex: 'paymentMethod',
+                                key: 'paymentMethod',
+                                render: (method) => method || 'N/A',
+                            },
+                            {
+                                title: 'Mô tả',
+                                dataIndex: 'description',
+                                key: 'description',
+                                render: (desc) => desc || 'N/A',
+                            },
+                            {
+                                title: 'Ngày GD',
+                                dataIndex: 'createdAt',
+                                key: 'createdAt',
+                                render: (date) => new Date(date).toLocaleString('vi-VN'),
+                            },
+                        ]}
+                    />
+                ) : (
+                    <Empty description="Chưa có giao dịch nào" />
+                )}
+            </Card>
         </div>
     );
 };

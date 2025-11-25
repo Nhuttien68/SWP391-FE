@@ -1,84 +1,87 @@
 import apiClient from './apiClient';
 
-// Helper to normalize backend BaseResponse (backend returns { Status, Message, Data })
 const normalize = (resp) => {
-    // apiClient interceptor returns response.data already, so resp should be the BaseResponse
     const data = resp?.Data ?? resp?.data ?? resp;
     const message = resp?.Message ?? resp?.message ?? '';
     const status = resp?.Status ?? resp?.status ?? '';
     return { data, message, status };
 };
 
-export const walletAPI = {
-    getWallet: async () => {
+export const withdrawalAPI = {
+    // Tạo yêu cầu rút tiền
+    createWithdrawalRequest: async (requestData) => {
         try {
-            const resp = await apiClient.get('/Wallet/info');
+            const resp = await apiClient.post('/Withdrawal/create', requestData);
             const { data, message, status } = normalize(resp);
             return { success: true, data, message, status };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.Message || error.message || 'Không thể lấy thông tin ví',
+                message: error.response?.data?.Message || error.message || 'Không thể tạo yêu cầu rút tiền',
                 status: error.response?.data?.Status || error.response?.status
             };
         }
     },
 
-    createWallet: async () => {
+    // Lấy danh sách yêu cầu rút tiền của user
+    getMyWithdrawalRequests: async () => {
         try {
-            const resp = await apiClient.post('/Wallet/create');
+            const resp = await apiClient.get('/Withdrawal/my-requests');
             const { data, message, status } = normalize(resp);
             return { success: true, data, message, status };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.Message || error.message || 'Không thể tạo ví',
+                message: error.response?.data?.Message || error.message || 'Không thể lấy danh sách yêu cầu rút tiền',
                 status: error.response?.data?.Status || error.response?.status
             };
         }
     },
 
-    withdraw: async (amount) => {
+    // Admin: Lấy tất cả yêu cầu rút tiền
+    getAllWithdrawalRequests: async () => {
         try {
-            const resp = await apiClient.post(`/Wallet/withdraw?amount=${amount}`);
+            const resp = await apiClient.get('/Withdrawal/all');
             const { data, message, status } = normalize(resp);
             return { success: true, data, message, status };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.Message || error.message || 'Không thể rút tiền từ ví',
+                message: error.response?.data?.Message || error.message || 'Không thể lấy danh sách yêu cầu',
                 status: error.response?.data?.Status || error.response?.status
             };
         }
     },
 
-    getBalance: async () => {
+    // Admin: Duyệt yêu cầu rút tiền
+    approveWithdrawal: async (id, adminNote = '') => {
         try {
-            const resp = await apiClient.get('/Wallet/balance');
+            const resp = await apiClient.put(`/Withdrawal/approve/${id}`, { adminNote });
             const { data, message, status } = normalize(resp);
             return { success: true, data, message, status };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.Message || error.message || 'Không thể lấy số dư ví',
+                message: error.response?.data?.Message || error.message || 'Không thể duyệt yêu cầu',
                 status: error.response?.data?.Status || error.response?.status
             };
         }
     },
 
-    getTransactionHistory: async () => {
+    // Admin: Từ chối yêu cầu rút tiền
+    rejectWithdrawal: async (id, adminNote) => {
         try {
-            const resp = await apiClient.get('/Wallet/transaction-history');
+            const resp = await apiClient.put(`/Withdrawal/reject/${id}`, { adminNote });
             const { data, message, status } = normalize(resp);
             return { success: true, data, message, status };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.Message || error.message || 'Không thể lấy lịch sử giao dịch',
+                message: error.response?.data?.Message || error.message || 'Không thể từ chối yêu cầu',
                 status: error.response?.data?.Status || error.response?.status
             };
         }
     }
 };
 
-export default walletAPI;
+export default withdrawalAPI;
