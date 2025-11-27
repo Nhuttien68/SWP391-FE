@@ -10,9 +10,21 @@ export const systemSettingsAPI = {
     getCommissionRate: async () => {
         try {
             const response = await apiClient.get('/SystemSettings/commission-rate');
+
+            // Response có cấu trúc: { data: { commissionRate: 10, description: "..." } }
+            const rate = response?.data?.data?.commissionRate
+                || response?.data?.data?.CommissionRate
+                || response?.data?.commissionRate
+                || response?.data?.CommissionRate
+                || 0;
+
             return {
                 success: true,
-                data: response?.data ?? response?.Data ?? response,
+                data: {
+                    commissionRate: rate,
+                    CommissionRate: rate,
+                    description: response?.data?.data?.description || response?.data?.description || ''
+                },
                 message: response?.message ?? response?.Message ?? 'Lấy thông tin hoa hồng thành công'
             };
         } catch (error) {

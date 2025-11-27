@@ -20,7 +20,6 @@ const CommissionInfoPage = () => {
         setLoading(true);
         try {
             const response = await systemSettingsAPI.getCommissionRate();
-            console.log('Commission rate response:', response);
             if (response.success) {
                 setCommissionRate(response.data?.commissionRate ?? response.data?.CommissionRate ?? 0);
             }
