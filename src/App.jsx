@@ -28,6 +28,7 @@ import WalletManagement from "./pages/Transaction/WalletManagement.jsx";
 import FavoritesPage from "./pages/Post/FavoritesPage.jsx";
 import AuctionList from "./pages/Auction/AuctionList.jsx";
 import AuctionDetail from "./pages/Auction/AuctionDetail.jsx";
+import CommissionInfoPage from "./pages/CommissionInfoPage.jsx";
 
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import FooterApp from "./pages/Main/FooterApp.jsx"
@@ -77,6 +78,7 @@ function AppContent() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/auction" element={<AuctionList />} />
         <Route path="/auction/:id" element={<AuctionDetail />} />
+        <Route path="/commission-info" element={<CommissionInfoPage />} />
 
 
         {/* Payment return/callback route */}

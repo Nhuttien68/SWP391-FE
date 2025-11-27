@@ -472,7 +472,7 @@ const PostCard = ({ post, onViewDetail }) => {
 
                 {/* Seller name (moved below title) */}
                 <div className="flex items-center gap-2">
-                    <UserSwitchOutlined className="text-blue-500 text-base"/>
+                    <UserSwitchOutlined className="text-blue-500 text-base" />
                     <Text className="font-medium text-gray-800">{getSellerName()}</Text>
                 </div>
 
@@ -521,6 +521,37 @@ const PostCard = ({ post, onViewDetail }) => {
                         <Text type="secondary" className="text-xs">
                             {formatDate(post.createdAt || post.CreatedAt)}
                         </Text>
+                    </div>
+                )}
+
+                {/* Thời gian còn lại và gói đăng tin */}
+                {post.expireAt && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1">
+                            <ClockCircleOutlined className="text-orange-500 text-xs" />
+                            <Text className="text-xs font-medium text-orange-600">
+                                {(() => {
+                                    const now = new Date();
+                                    const expireDate = new Date(post.expireAt);
+                                    const diff = expireDate - now;
+                                    const daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+                                    if (daysLeft < 0) return 'Đã hết hạn';
+                                    if (daysLeft === 0) {
+                                        const hoursLeft = Math.floor(diff / (1000 * 60 * 60));
+                                        return hoursLeft > 0 ? `Còn ${hoursLeft} giờ` : 'Sắp hết hạn';
+                                    }
+                                    return daysLeft === 1 ? 'Còn 1 ngày' : `Còn ${daysLeft} ngày`;
+                                })()}
+                            </Text>
+                        </div>
+                        {post.postDetail && (
+                            <Tooltip title={`Gói: ${post.postDetail.packageName} - ${post.postDetail.durationInDays} ngày`}>
+                                <Tag color="blue" className="!m-0 !text-xs">
+                                    {post.postDetail.packageName}
+                                </Tag>
+                            </Tooltip>
+                        )}
                     </div>
                 )}
 

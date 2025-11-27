@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { postAPI } from '../../services/postAPI';
 import { walletAPI } from '../../services/walletAPI';
 import { brandAPI } from '../../services/brandAPI';
+import PostPackageSelector from './PostPackageSelector';
 import {
     Form,
     Input,
@@ -47,8 +48,9 @@ const CreatePost = () => {
     const [postType, setPostType] = useState('vehicle');
     const [currentStep, setCurrentStep] = useState(0);
     const [walletBalance, setWalletBalance] = useState(0);
+    const [selectedPackageId, setSelectedPackageId] = useState(null);
 
-    const POSTING_FEE = 100000;
+    const POSTING_FEE = 100000; // Giữ lại để hiển thị thông báo legacy
 
     useEffect(() => {
         // Wait until auth check completes to avoid race with AuthProvider
@@ -101,6 +103,13 @@ const CreatePost = () => {
         console.log('Form values:', values);
         console.log('Post type:', postType);
         console.log('Image list:', imageList);
+        console.log('Selected package ID:', selectedPackageId);
+
+        // Validate package selection
+        if (!selectedPackageId) {
+            message.error('Vui lòng chọn gói đăng tin!');
+            return;
+        }
 
         try {
             setLoading(true);
@@ -129,15 +138,8 @@ const CreatePost = () => {
                 return;
             }
 
-            const balance = walletResp.data?.Balance ?? walletResp.data?.balance ?? 0;
-            console.log('Current balance:', balance, 'Required:', POSTING_FEE);
-
-            if (balance < POSTING_FEE) {
-                console.log('Insufficient balance!');
-                message.error(`Số dư ví không đủ! Cần ${POSTING_FEE.toLocaleString('vi-VN')} VND để đăng tin. Số dư hiện tại: ${balance.toLocaleString('vi-VN')} VND`);
-                setLoading(false);
-                return;
-            }
+            // Note: Backend sẽ tự động trừ tiền từ ví dựa theo giá của gói đăng tin
+            // Không cần kiểm tra số dư cụ thể ở đây, backend sẽ xử lý
 
             // Tạo FormData
             console.log('Step 2: Creating FormData...');
@@ -145,6 +147,7 @@ const CreatePost = () => {
             postData.append('Title', values.title);
             postData.append('Description', values.description || '');
             postData.append('Price', Number(values.price));
+            postData.append('postPackgeID', selectedPackageId);
 
             // Upload images
             if (imageList && imageList.length > 0) {
@@ -166,7 +169,7 @@ const CreatePost = () => {
                 postData.append('vehicleCreateDto.Mileage', Number(values.mileage));
             } else {
                 console.log('Adding battery data...');
-                // Chú ý: Backend có lỗi chính tả "BranId" thay vì "BrandId"
+
                 postData.append('batteryCreateDto.BranId', values.brandId);
                 postData.append('batteryCreateDto.Capacity', Number(values.capacity));
                 postData.append('batteryCreateDto.Condition', values.condition);
@@ -178,15 +181,12 @@ const CreatePost = () => {
                 console.log(pair[0] + ':', pair[1]);
             }
 
-            console.log('Step 4: Calling API with type:', postType);
             const response = await postAPI.createPost(postData, postType);
-            console.log('Step 5: API Response:', response);
+
 
             if (response.success) {
                 console.log('✅ POST CREATED SUCCESSFULLY!');
-                // Ensure user sees feedback: show toast and render an explicit Modal component
                 message.success('Tạo bài đăng thành công! Bài đăng đang chờ phê duyệt.');
-                // Navigate to market and request the market page to show the pending modal
                 navigate('/market', { state: { showPendingModal: true } });
             } else {
                 console.error('❌ POST CREATION FAILED:', response);
@@ -256,24 +256,22 @@ const CreatePost = () => {
                             message={
                                 <Space>
                                     <DollarOutlined />
-                                    <Text strong>Phí đăng tin: {formatCurrency(POSTING_FEE)}</Text>
+                                    <Text strong>Thông tin ví</Text>
                                 </Space>
                             }
                             description={
                                 <Space direction="vertical" size="small">
                                     <Text>
-                                        Số dư ví hiện tại: <Text strong className={walletBalance >= POSTING_FEE ? 'text-green-600' : 'text-red-600'}>
+                                        Số dư ví hiện tại: <Text strong className="text-green-600">
                                             {formatCurrency(walletBalance)}
                                         </Text>
                                     </Text>
-                                    {walletBalance < POSTING_FEE && (
-                                        <Text type="danger">
-                                            ⚠️ Bạn cần nạp thêm {formatCurrency(POSTING_FEE - walletBalance)} để đăng tin
-                                        </Text>
-                                    )}
+                                    <Text type="secondary">
+                                        Phí đăng tin sẽ được tính dựa trên gói bạn chọn và tự động trừ từ ví.
+                                    </Text>
                                 </Space>
                             }
-                            type={walletBalance >= POSTING_FEE ? 'success' : 'warning'}
+                            type="info"
                             showIcon
                         />
                     </Space>
@@ -348,6 +346,20 @@ const CreatePost = () => {
                             </Radio.Group>
                         </Form.Item>
 
+                        {/* Step 1.5: Chọn gói đăng tin */}
+                        <Divider orientation="left">
+                            <Space>
+                                <DollarOutlined />
+                                <Text strong>Gói Đăng Tin</Text>
+                            </Space>
+                        </Divider>
+
+                        <PostPackageSelector
+                            value={selectedPackageId}
+                            onChange={setSelectedPackageId}
+                            disabled={loading}
+                        />
+
                         {/* Step 2: Thông tin cơ bản */}
                         <Divider orientation="left">
                             <Space>
@@ -401,8 +413,8 @@ const CreatePost = () => {
                                         { required: true, message: 'Vui lòng nhập giá!' },
                                         {
                                             type: 'number',
-                                            min: 1000000,
-                                            message: 'Giá phải lớn hơn 1.000.000 VND!'
+                                            min: 1000,
+                                            message: 'Giá phải lớn hơn 1.000 VND!'
                                         }
                                     ]}
                                 >
@@ -543,7 +555,6 @@ const CreatePost = () => {
                         </Divider>
 
                         <Form.Item
-                            name="images"
                             rules={[
                                 {
                                     validator: (_, value) => {
@@ -558,6 +569,7 @@ const CreatePost = () => {
                         >
                             <Upload
                                 listType="picture-card"
+                                fileList={imageList}
                                 maxCount={5}
                                 multiple
                                 accept="image/*"
@@ -598,35 +610,29 @@ const CreatePost = () => {
                                     loading={loading}
                                     size="large"
                                     block
-                                    disabled={walletBalance < POSTING_FEE}
+                                    disabled={!selectedPackageId}
                                     className="h-12 text-lg font-semibold"
                                     onClick={() => {
                                         console.log('Submit button clicked!');
                                         console.log('Current form values:', form.getFieldsValue());
                                         console.log('Image list:', imageList);
                                         console.log('Post type:', postType);
+                                        console.log('Selected package ID:', selectedPackageId);
                                     }}
                                 >
-                                    {walletBalance < POSTING_FEE
-                                        ? `Nạp tiền để đăng tin (Thiếu ${formatCurrency(POSTING_FEE - walletBalance)})`
-                                        : `Đăng Tin - Phí ${formatCurrency(POSTING_FEE)}`
+                                    {!selectedPackageId
+                                        ? 'Vui lòng chọn gói đăng tin'
+                                        : 'Đăng Tin Ngay'
                                     }
                                 </Button>
                             </Space>
                         </Form.Item>
 
-                        {walletBalance < POSTING_FEE && (
+                        {!selectedPackageId && (
                             <Alert
-                                message="Số dư không đủ"
-                                description={
-                                    <Space direction="vertical">
-                                        <Text>Vui lòng nạp tiền vào ví để đăng tin.</Text>
-                                        <Button type="link" onClick={() => navigate('/profile/wallet')}>
-                                            Đi đến trang ví
-                                        </Button>
-                                    </Space>
-                                }
-                                type="error"
+                                message="Chưa chọn gói đăng tin"
+                                description="Vui lòng chọn một gói đăng tin phù hợp trước khi tiếp tục."
+                                type="warning"
                                 showIcon
                             />
                         )}

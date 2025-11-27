@@ -1,6 +1,6 @@
 
 import { Layout, Menu, Button, Dropdown, Avatar, Badge, Tooltip } from "antd";
-import { UserOutlined, LogoutOutlined, WalletOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined, HeartOutlined, FileTextOutlined, PlusOutlined, LoginOutlined, UserAddOutlined, MenuOutlined, DashboardOutlined } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined, WalletOutlined, SettingOutlined, ShoppingCartOutlined, ShoppingOutlined, HeartOutlined, FileTextOutlined, PlusOutlined, LoginOutlined, UserAddOutlined, MenuOutlined, DashboardOutlined, PercentageOutlined } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useState, useEffect, useRef } from "react";
@@ -175,8 +175,8 @@ const HeaderApp = () => {
     // Treat /compare as part of market so Compare page highlights Market nav
     const navSelectedKey = path === '/' || path === ''
         ? '1'
-        : (path.startsWith('/market') || path.startsWith('/post') || path.startsWith('/compare') ? 'market' 
-        : (path.startsWith('/auction') ? 'auction' : ''));
+        : (path.startsWith('/market') || path.startsWith('/post') || path.startsWith('/compare') ? 'market'
+            : (path.startsWith('/auction') ? 'auction' : ''));
 
     const isPostsActive = path.startsWith('/posts');
     const isFavoritesActive = path.startsWith('/favorites');
@@ -205,6 +205,7 @@ const HeaderApp = () => {
                             { key: "1", label: <Link to="/">Trang chủ</Link> },
                             { key: "market", label: <Link to="/market">Chợ</Link> },
                             { key: "auction", label: <Link to="/auction">Đấu giá</Link> },
+                            { key: "commission", label: <Link to="/commission-info">Phí hoa hồng</Link> },
                         ]}
                     />
                 </div>
@@ -216,6 +217,7 @@ const HeaderApp = () => {
                                 { key: "1", label: <Link to="/">Trang chủ</Link> },
                                 { key: "market", label: <Link to="/market">Chợ xe điện</Link> },
                                 { key: "auction", label: <Link to="/auction">Đấu giá</Link> },
+                                { key: "commission", label: <Link to="/commission-info">Phí hoa hồng</Link> },
                             ]
                         }}
                         trigger={["click"]}

@@ -26,6 +26,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { transactionAPI } from '../../services/transactionAPI';
 import { walletAPI } from '../../services/walletAPI';
+import { systemSettingsAPI } from '../../services/systemSettingsAPI';
 import { useAuth } from '../../context/AuthContext';
 
 const { Title, Text } = Typography;
@@ -41,6 +42,7 @@ const CheckoutPage = () => {
     const [walletBalance, setWalletBalance] = useState(0);
     const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
     const [pendingFormValues, setPendingFormValues] = useState(null);
+    const [commissionRate, setCommissionRate] = useState(0);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -71,7 +73,7 @@ const CheckoutPage = () => {
         }).format(amount);
     };
 
-    // Load wallet balance
+    // Load wallet balance và commission rate
     React.useEffect(() => {
         const fetchWalletBalance = async () => {
             try {
@@ -84,9 +86,22 @@ const CheckoutPage = () => {
             }
         };
 
+        const fetchCommissionRate = async () => {
+            try {
+                const response = await systemSettingsAPI.getCommissionRate();
+                if (response.success) {
+                    const rate = response.data?.commissionRate || 0;
+                    setCommissionRate(rate);
+                }
+            } catch (error) {
+                console.error('Fetch commission rate error:', error);
+            }
+        };
+
         if (user) {
             fetchWalletBalance();
         }
+        fetchCommissionRate();
     }, [user]);
 
     // Hàm xử lý thanh toán thực tế
@@ -184,13 +199,13 @@ const CheckoutPage = () => {
                         title="Đặt Hàng Thành Công!"
                         subTitle={`Mã đơn hàng: ${orderId || 'N/A'}. Chúng tôi sẽ liên hệ với bạn sớm nhất.`}
                         extra={[
-                                    <Button type="primary" key="orders" onClick={() => navigate('/orders')}>
-                                        Xem Đơn Hàng
-                                    </Button>,
-                                    <Button key="home" onClick={() => navigate('/')}>
-                                        Về Trang Chủ
-                                    </Button>,
-                                ]}
+                            <Button type="primary" key="orders" onClick={() => navigate('/orders')}>
+                                Xem Đơn Hàng
+                            </Button>,
+                            <Button key="home" onClick={() => navigate('/')}>
+                                Về Trang Chủ
+                            </Button>,
+                        ]}
                     />
                 </div>
             </div>
@@ -389,16 +404,18 @@ const CheckoutPage = () => {
                                         <Text strong>{formatCurrency(calculateTotal())}</Text>
                                     </div>
                                     <div className="flex justify-between">
-                                        <Text>Phí vận chuyển:</Text>
-                                        <Text type="secondary">Miễn phí</Text>
+                                        <Text>Phí giao dịch:</Text>
+                                        <Text type="warning" strong>
+                                            {commissionRate}% - Số tiền: {formatCurrency((calculateTotal() * commissionRate) / 100)}
+                                        </Text>
                                     </div>
                                     <div className="flex justify-between">
-                                        <Text>Phí giao dịch:</Text>
-                                        <Text type="secondary">0đ</Text>
+                                        <Text>Số tiền người bán nhận:</Text>
+                                        <Text strong className="text-green-600">
+                                            {formatCurrency(calculateTotal() - (calculateTotal() * commissionRate) / 100)}
+                                        </Text>
                                     </div>
-
                                     <Divider className="my-2" />
-
                                     <div className="flex justify-between">
                                         <Title level={4} className="!mb-0">
                                             Tổng cộng:

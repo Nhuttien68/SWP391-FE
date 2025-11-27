@@ -195,15 +195,25 @@ const AdminWalletPage = () => {
                                 dataIndex: 'transactionType',
                                 key: 'transactionType',
                                 render: (type) => {
+                                    const typeLabels = {
+                                        TOPUP: 'Nạp tiền',
+                                        WITHDRAW: 'Rút tiền',
+                                        DEDUCT: 'Trừ tiền',
+                                        POSTING: 'Trừ phí đăng bài',
+                                        POST_APPROVAL_FEE: 'Nhận phí duyệt bài',
+                                        POST_REJECT_REFUND: 'Hoàn tiền bài bị từ chối',
+                                        REFUND: 'Hoàn tiền',
+                                    };
                                     const colors = {
                                         TOPUP: 'green',
                                         WITHDRAW: 'red',
                                         DEDUCT: 'orange',
                                         POSTING: 'blue',
-                                        POST_APPROVAL_FEE: 'blue',
+                                        POST_APPROVAL_FEE: 'green',
+                                        POST_REJECT_REFUND: 'purple',
                                         REFUND: 'purple',
                                     };
-                                    return <Tag color={colors[type] || 'default'}>{type}</Tag>;
+                                    return <Tag color={colors[type] || 'default'}>{typeLabels[type] || type}</Tag>;
                                 },
                             },
                             {
@@ -211,7 +221,7 @@ const AdminWalletPage = () => {
                                 dataIndex: 'amount',
                                 key: 'amount',
                                 render: (amount, record) => {
-                                    const isIncome = ['TOPUP', 'REFUND', 'POST_APPROVAL_FEE'].includes(record.transactionType);
+                                    const isIncome = ['TOPUP', 'REFUND', 'POST_APPROVAL_FEE', 'POST_REJECT_REFUND'].includes(record.transactionType);
                                     return (
                                         <Text strong className={isIncome ? 'text-green-600' : 'text-red-600'}>
                                             {isIncome ? '+' : '-'}{formatCurrency(Math.abs(amount))}
@@ -230,12 +240,6 @@ const AdminWalletPage = () => {
                                 dataIndex: 'balanceAfter',
                                 key: 'balanceAfter',
                                 render: (bal) => <Text strong>{formatCurrency(bal)}</Text>,
-                            },
-                            {
-                                title: 'Phương thức',
-                                dataIndex: 'paymentMethod',
-                                key: 'paymentMethod',
-                                render: (method) => method || 'N/A',
                             },
                             {
                                 title: 'Mô tả',

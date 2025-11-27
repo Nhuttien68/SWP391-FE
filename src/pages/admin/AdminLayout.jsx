@@ -6,6 +6,8 @@ import {
     DollarOutlined,
     BarChartOutlined,
     LogoutOutlined,
+    PercentageOutlined,
+    SettingOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -16,6 +18,7 @@ import AdminAuctionsPage from "./AdminAuctionsPage";
 import AdminTransactionsPage from "./AdminTransactionsPage";
 import AdminWalletPage from "./AdminWalletPage";
 import AdminWithdrawalPage from "./AdminWithdrawalPage";
+import CommissionSettingsPage from "./CommissionSettingsPage";
 import { useAuth } from "../../context/AuthContext";
 
 const { Header, Sider, Content } = Layout;
@@ -88,6 +91,14 @@ export default function AdminLayout() {
                                     { key: "withdraw", label: "Withdraw" },
                                 ],
                             },
+                            {
+                                key: "settings",
+                                icon: <SettingOutlined />,
+                                label: "Cài đặt",
+                                children: [
+                                    { key: "commission", label: "Hoa hồng" },
+                                ],
+                            },
 
                         ]}
 
@@ -141,6 +152,7 @@ export default function AdminLayout() {
                     {selectedKey === "brands_list" && <BrandsPage />}
                     {selectedKey === "auctions_list" && <AdminAuctionsPage />}
                     {selectedKey === "transactions" && <AdminTransactionsPage />}
+                    {selectedKey === "commission" && <CommissionSettingsPage />}
                 </Content>
             </Layout>
         </Layout>

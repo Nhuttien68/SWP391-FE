@@ -20,7 +20,10 @@ export default function AdminTransactionsPage() {
         totalTransactions: 0,
         completedTransactions: 0,
         pendingTransactions: 0,
-        avgTransactionValue: 0
+        avgTransactionValue: 0,
+        totalCommission: 0,
+        totalSellerReceived: 0,
+        avgCommissionRate: 0
     });
 
     useEffect(() => {
@@ -53,7 +56,10 @@ export default function AdminTransactionsPage() {
                     sellerName: item.sellerName ?? item.SellerName,
                     sellerId: item.sellerId ?? item.SellerId,
                     postTitle: item.postTitle ?? item.PostTitle,
-                    postId: item.postId ?? item.PostId
+                    postId: item.postId ?? item.PostId,
+                    commissionRate: item.commissionRate ?? item.CommissionRate ?? 0,
+                    commissionAmount: item.commissionAmount ?? item.CommissionAmount ?? 0,
+                    sellerReceived: item.sellerReceived ?? item.SellerReceived ?? 0
                 }));
 
                 setAllTransactions(normalized);
@@ -118,7 +124,10 @@ export default function AdminTransactionsPage() {
                     sellerName: item.sellerName ?? item.SellerName,
                     sellerId: item.sellerId ?? item.SellerId,
                     postTitle: item.postTitle ?? item.PostTitle,
-                    postId: item.postId ?? item.PostId
+                    postId: item.postId ?? item.PostId,
+                    commissionRate: item.commissionRate ?? item.CommissionRate ?? 0,
+                    commissionAmount: item.commissionAmount ?? item.CommissionAmount ?? 0,
+                    sellerReceived: item.sellerReceived ?? item.SellerReceived ?? 0
                 }));
 
                 setTransactions(normalized);
@@ -139,12 +148,22 @@ export default function AdminTransactionsPage() {
         const completed = data.filter(t => (t.status || '').toUpperCase() === 'COMPLETED' || (t.status || '').toUpperCase() === 'PAID');
         const pending = data.filter(t => (t.status || '').toUpperCase() === 'PENDING');
 
+        const totalCommission = data.reduce((sum, t) => sum + (t.commissionAmount || 0), 0);
+        const totalSellerReceived = data.reduce((sum, t) => sum + (t.sellerReceived || 0), 0);
+        const transactionsWithCommission = data.filter(t => (t.commissionRate || 0) > 0);
+        const avgCommissionRate = transactionsWithCommission.length > 0
+            ? transactionsWithCommission.reduce((sum, t) => sum + (t.commissionRate || 0), 0) / transactionsWithCommission.length
+            : 0;
+
         setStatistics({
             totalRevenue: total,
             totalTransactions: data.length,
             completedTransactions: completed.length,
             pendingTransactions: pending.length,
-            avgTransactionValue: data.length > 0 ? total / data.length : 0
+            avgTransactionValue: data.length > 0 ? total / data.length : 0,
+            totalCommission,
+            totalSellerReceived,
+            avgCommissionRate
         });
     };
 
@@ -289,6 +308,25 @@ export default function AdminTransactionsPage() {
             render: (v) => <span className="font-semibold text-green-600">{formatCurrency(v)}</span>,
             sorter: (a, b) => a.amount - b.amount
         },
+        {
+            title: 'Hoa hồng',
+            key: 'commission',
+            width: 150,
+            render: (_, record) => (
+                <div className="text-xs">
+                    <div className="text-orange-600 font-semibold">{formatCurrency(record.commissionAmount)}</div>
+                    <div className="text-gray-500">({record.commissionRate}%)</div>
+                </div>
+            ),
+            sorter: (a, b) => a.commissionAmount - b.commissionAmount
+        },
+        {
+            title: 'Seller nhận',
+            dataIndex: 'sellerReceived',
+            key: 'sellerReceived',
+            render: (v) => <span className="font-semibold text-blue-600">{formatCurrency(v)}</span>,
+            sorter: (a, b) => a.sellerReceived - b.sellerReceived
+        },
         { title: 'Thanh toán', dataIndex: 'paymentMethod', key: 'payment' },
         {
             title: 'Trạng thái',
@@ -413,6 +451,47 @@ export default function AdminTransactionsPage() {
                                 valueStyle={{ color: '#722ed1' }}
                                 suffix="VND"
                                 formatter={(value) => `${value.toLocaleString()}`}
+                            />
+                        </Card>
+                    </Col>
+                </Row>
+
+                {/* Commission Statistics */}
+                <Row gutter={[16, 16]} className="mb-6">
+                    <Col xs={24} sm={12} lg={8}>
+                        <Card className="bg-gradient-to-r from-orange-50 to-orange-100">
+                            <Statistic
+                                title="Tổng Hoa hồng"
+                                value={statistics.totalCommission}
+                                precision={0}
+                                valueStyle={{ color: '#fa8c16' }}
+                                prefix={<DollarOutlined />}
+                                suffix="VND"
+                                formatter={(value) => `${value.toLocaleString()}`}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={12} lg={8}>
+                        <Card className="bg-gradient-to-r from-blue-50 to-blue-100">
+                            <Statistic
+                                title="Seller nhận được"
+                                value={statistics.totalSellerReceived}
+                                precision={0}
+                                valueStyle={{ color: '#1890ff' }}
+                                prefix={<DollarOutlined />}
+                                suffix="VND"
+                                formatter={(value) => `${value.toLocaleString()}`}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={12} lg={8}>
+                        <Card className="bg-gradient-to-r from-purple-50 to-purple-100">
+                            <Statistic
+                                title="Tỷ lệ hoa hồng TB"
+                                value={statistics.avgCommissionRate}
+                                precision={2}
+                                valueStyle={{ color: '#722ed1' }}
+                                suffix="%"
                             />
                         </Card>
                     </Col>

@@ -377,14 +377,22 @@ const WalletManagement = () => {
                                         TOPUP: 'Nạp tiền',
                                         WITHDRAW: 'Rút tiền',
                                         DEDUCT: 'Trừ tiền',
+                                        POSTING: 'Trừ phí đăng bài',
                                         POSTING_FEE: 'Phí đăng tin',
+                                        POST_APPROVAL_FEE: 'Nhận phí duyệt bài',
+                                        POST_REJECT_REFUND: 'Hoàn tiền bài bị từ chối',
+                                        SALES_REVENUE: 'Nhận tiền từ bán hàng',
                                         REFUND: 'Hoàn tiền',
                                     };
                                     const colors = {
                                         TOPUP: 'green',
                                         WITHDRAW: 'red',
                                         DEDUCT: 'orange',
+                                        POSTING: 'blue',
                                         POSTING_FEE: 'blue',
+                                        POST_APPROVAL_FEE: 'green',
+                                        POST_REJECT_REFUND: 'purple',
+                                        SALES_REVENUE: 'green',
                                         REFUND: 'purple',
                                     };
                                     return <Tag color={colors[type] || 'default'}>{typeLabels[type] || type}</Tag>;
@@ -395,7 +403,7 @@ const WalletManagement = () => {
                                 dataIndex: 'amount',
                                 key: 'amount',
                                 render: (amount, record) => {
-                                    const isIncome = ['TOPUP', 'REFUND'].includes(record.transactionType);
+                                    const isIncome = ['TOPUP', 'REFUND', 'POST_APPROVAL_FEE', 'POST_REJECT_REFUND', 'SALES_REVENUE'].includes(record.transactionType);
                                     return (
                                         <Text strong className={isIncome ? 'text-green-600' : 'text-red-600'}>
                                             {isIncome ? '+' : '-'}{formatCurrency(Math.abs(amount))}

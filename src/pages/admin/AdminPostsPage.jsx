@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, notification, Modal, Space, Badge, Card, Row, Col, Statistic, Typography, Tooltip, Image, Tabs, Popconfirm, Form, Input, Select, Upload, message, Checkbox, Spin } from 'antd';
+import { Table, Button, notification, Modal, Space, Badge, Card, Row, Col, Statistic, Typography, Tooltip, Image, Tabs, Popconfirm, Form, Input, Select, Upload, message, Checkbox, Spin, Divider } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, WalletOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { postAPI } from '../../services/postAPI';
 import brandAPI from '../../services/brandAPI';
@@ -291,7 +291,7 @@ const AdminPostsPage = () => {
                     notification.destroy();
                     notification.success({
                         message: 'Phê duyệt thành công',
-                        description: 'Bài đăng đã được phê duyệt và đã thêm 100,000 VND vào ví admin',
+                        description: 'Bài đăng đã được phê duyệt và phí đăng tin đã được thêm vào ví admin',
                         icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
                         duration: 4,
                         placement: 'topRight'
@@ -357,7 +357,7 @@ const AdminPostsPage = () => {
                         message: 'Từ chối thành công',
                         description: 'Bài đăng đã bị từ chối' +
                             (response.data?.UserNewBalance ?
-                                `. Đã hoàn trả 100,000 VND. Số dư mới của người dùng: ${response.data.UserNewBalance.toLocaleString()} VND` :
+                                `. Đã hoàn trả phí đăng tin. Số dư mới của người dùng: ${response.data.UserNewBalance.toLocaleString()} VND` :
                                 ''),
                         icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
                         duration: 4,
@@ -515,7 +515,7 @@ const AdminPostsPage = () => {
                     </Tooltip>
                     {activeTab === 'moderation' && record.status === 'PENDING' && (
                         <>
-                            <Tooltip title="Phê duyệt và nhận 100,000 VND">
+                            <Tooltip title="Phê duyệt và nhận phí đăng tin">
                                 <Button
                                     type="primary"
                                     icon={<CheckCircleOutlined />}
@@ -524,7 +524,7 @@ const AdminPostsPage = () => {
                                     Phê duyệt
                                 </Button>
                             </Tooltip>
-                            <Tooltip title="Từ chối và hoàn trả 100,000 VND cho người đăng">
+                            <Tooltip title="Từ chối và hoàn trả phí đăng tin cho người đăng">
                                 <Button
                                     danger
                                     icon={<CloseCircleOutlined />}
@@ -661,7 +661,7 @@ const AdminPostsPage = () => {
                 okText="Phê duyệt"
                 cancelText="Hủy"
             >
-                <p>Bạn có chắc chắn muốn phê duyệt bài đăng này? Khi phê duyệt, admin sẽ được nhận 100,000 VND.</p>
+                <p>Bạn có chắc chắn muốn phê duyệt bài đăng này? Khi phê duyệt, admin sẽ được nhận phí đăng tin theo gói mà người dùng đã chọn.</p>
             </Modal>
 
             {/* Controlled reject confirmation modal (visible when user clicks Từ chối) */}
@@ -673,7 +673,7 @@ const AdminPostsPage = () => {
                 okText="Từ chối"
                 cancelText="Hủy"
             >
-                <p>Khi từ chối bài đăng, hệ thống sẽ hoàn trả 100,000 VND về ví của người đăng. Bạn có chắc chắn muốn từ chối?</p>
+                <p>Khi từ chối bài đăng, hệ thống sẽ hoàn trả phí đăng tin về ví của người đăng. Bạn có chắc chắn muốn từ chối?</p>
             </Modal>
 
             <Modal
@@ -697,6 +697,20 @@ const AdminPostsPage = () => {
                                             selectedPost.status === 'APPROVED' ? 'Đã duyệt' :
                                                 'Đã từ chối'
                                     }</p>
+                                    {selectedPost.postDetail && (
+                                        <>
+                                            <Divider style={{ margin: '12px 0' }} />
+                                            <p><strong>Gói đăng tin:</strong> {selectedPost.postDetail.packageName}</p>
+                                            <p><strong>Phí đăng tin:</strong> {selectedPost.postDetail.price?.toLocaleString('vi-VN')} VND</p>
+                                            <p><strong>Thời hạn:</strong> {selectedPost.postDetail.durationInDays} ngày</p>
+                                            {selectedPost.createdAt && (
+                                                <p><strong>Ngày đăng:</strong> {new Date(selectedPost.createdAt).toLocaleDateString('vi-VN')}</p>
+                                            )}
+                                            {selectedPost.expireAt && (
+                                                <p><strong>Hết hạn:</strong> {new Date(selectedPost.expireAt).toLocaleDateString('vi-VN')}</p>
+                                            )}
+                                        </>
+                                    )}
                                 </Card>
                             </Col>
                             <Col span={12}>

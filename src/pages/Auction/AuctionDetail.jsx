@@ -32,6 +32,23 @@ import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
 
+// Hàm dịch message từ backend sang tiếng Việt
+const translateErrorMessage = (message) => {
+    const translations = {
+        'You cannot bid on your own auction': 'Bạn không thể đặt giá vào phiên đấu giá của chính mình',
+        'Your wallet balance is not enough to place this bid': 'Số dư ví của bạn không đủ để đặt giá này',
+        'Auction not found': 'Không tìm thấy phiên đấu giá',
+        'Auction not active': 'Phiên đấu giá không còn hoạt động',
+        'Auction has ended': 'Phiên đấu giá đã kết thúc',
+        'Bid must be higher than current price': 'Giá đặt phải cao hơn giá hiện tại',
+        'Wallet not found': 'Không tìm thấy ví',
+        'Bid placed successfully': 'Đặt giá thành công!',
+        'An unexpected error occurred': 'Đã xảy ra lỗi không mong muốn'
+    };
+
+    return translations[message] || message;
+};
+
 const AuctionDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -115,13 +132,14 @@ const AuctionDetail = () => {
             });
 
             if (response.success) {
-                toast.success('Đặt giá thành công!');
+                toast.success(translateErrorMessage(response.message || 'Bid placed successfully'));
                 await fetchAuctionDetails();
             } else {
-                toast.error(response.message || 'Đặt giá thất bại');
+                toast.error(translateErrorMessage(response.message || 'Đặt giá thất bại'));
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Đặt giá thất bại');
+            const errorMessage = error.response?.data?.message || error.response?.data?.Message || error.message || 'Đặt giá thất bại';
+            toast.error(translateErrorMessage(errorMessage));
         } finally {
             setSubmitting(false);
         }
@@ -326,10 +344,12 @@ const AuctionDetail = () => {
                         {isActive && (
                             <Card title={<><DollarOutlined className="mr-2" />Đặt giá của bạn</>}>
                                 {isOwnPost ? (
-                                    <div className="text-center py-4">
-                                        <Text type="secondary">
-                                            Bạn không thể đặt giá vào bài đăng của chính mình
-                                        </Text>
+                                    <div className="text-center py-6">
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                            <Text type="danger" strong className="text-base">
+                                                ⚠️ Bạn không thể đặt giá vào phiên đấu giá của chính mình
+                                            </Text>
+                                        </div>
                                     </div>
                                 ) : (
                                     <Space direction="vertical" className="w-full" size="large">
@@ -348,7 +368,7 @@ const AuctionDetail = () => {
                                                 size="large"
                                             />
                                             <Text type="secondary" className="block mt-2">
-                                                Tối thiểu: {formatPrice(auction.currentPrice + 1000)}
+                                                Tối thiểu: {formatPrice(auction.currentPrice + 1000000)}
                                             </Text>
                                         </div>
 
