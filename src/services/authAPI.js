@@ -78,6 +78,7 @@ export const authAPI = {
                     userId: response.data.accountId,
                     email: response.data.email,
                     fullName: response.data.fullName,
+                    phone: response.data.phone,
                     role: response.data.role,
                     status: response.data.status
                 }));

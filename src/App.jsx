@@ -11,7 +11,6 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import HeaderApp from "./pages/Main/Header.jsx";
 import HomePage from "./pages/Main/HomePage.jsx";
 import MarketPage from "./pages/Post/MarketPage.jsx";
-import Profile from "./pages/Profile/Profile.jsx";
 import ProfileInfo from "./pages/Profile/ProfileInfo.jsx";
 import ProfilePosts from "./pages/Profile/ProfilePosts.jsx";
 import SellerProfile from "./pages/Profile/SellerProfile.jsx";
@@ -88,7 +87,6 @@ function AppContent() {
         <Route path="/posts" element={<ProfilePosts />} />
         <Route path="/wallet" element={<WalletManagement />} />
         <Route path="/favorites" element={<FavoritesPage />} />
-        <Route path="/settings" element={<Profile />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/admin" element={<AdminLayout />} />
 
