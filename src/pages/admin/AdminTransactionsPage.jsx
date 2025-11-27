@@ -308,25 +308,6 @@ export default function AdminTransactionsPage() {
             render: (v) => <span className="font-semibold text-green-600">{formatCurrency(v)}</span>,
             sorter: (a, b) => a.amount - b.amount
         },
-        {
-            title: 'Hoa hồng',
-            key: 'commission',
-            width: 150,
-            render: (_, record) => (
-                <div className="text-xs">
-                    <div className="text-orange-600 font-semibold">{formatCurrency(record.commissionAmount)}</div>
-                    <div className="text-gray-500">({record.commissionRate}%)</div>
-                </div>
-            ),
-            sorter: (a, b) => a.commissionAmount - b.commissionAmount
-        },
-        {
-            title: 'Seller nhận',
-            dataIndex: 'sellerReceived',
-            key: 'sellerReceived',
-            render: (v) => <span className="font-semibold text-blue-600">{formatCurrency(v)}</span>,
-            sorter: (a, b) => a.sellerReceived - b.sellerReceived
-        },
         { title: 'Thanh toán', dataIndex: 'paymentMethod', key: 'payment' },
         {
             title: 'Trạng thái',
@@ -418,7 +399,6 @@ export default function AdminTransactionsPage() {
                                 valueStyle={{ color: '#3f8600' }}
                                 prefix={<DollarOutlined />}
                                 suffix="VND"
-                                formatter={(value) => `${value.toLocaleString()}`}
                             />
                         </Card>
                     </Col>
@@ -450,48 +430,6 @@ export default function AdminTransactionsPage() {
                                 precision={0}
                                 valueStyle={{ color: '#722ed1' }}
                                 suffix="VND"
-                                formatter={(value) => `${value.toLocaleString()}`}
-                            />
-                        </Card>
-                    </Col>
-                </Row>
-
-                {/* Commission Statistics */}
-                <Row gutter={[16, 16]} className="mb-6">
-                    <Col xs={24} sm={12} lg={8}>
-                        <Card className="bg-gradient-to-r from-orange-50 to-orange-100">
-                            <Statistic
-                                title="Tổng Hoa hồng"
-                                value={statistics.totalCommission}
-                                precision={0}
-                                valueStyle={{ color: '#fa8c16' }}
-                                prefix={<DollarOutlined />}
-                                suffix="VND"
-                                formatter={(value) => `${value.toLocaleString()}`}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={12} lg={8}>
-                        <Card className="bg-gradient-to-r from-blue-50 to-blue-100">
-                            <Statistic
-                                title="Seller nhận được"
-                                value={statistics.totalSellerReceived}
-                                precision={0}
-                                valueStyle={{ color: '#1890ff' }}
-                                prefix={<DollarOutlined />}
-                                suffix="VND"
-                                formatter={(value) => `${value.toLocaleString()}`}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={12} lg={8}>
-                        <Card className="bg-gradient-to-r from-purple-50 to-purple-100">
-                            <Statistic
-                                title="Tỷ lệ hoa hồng TB"
-                                value={statistics.avgCommissionRate}
-                                precision={2}
-                                valueStyle={{ color: '#722ed1' }}
-                                suffix="%"
                             />
                         </Card>
                     </Col>

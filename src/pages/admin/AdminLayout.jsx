@@ -19,6 +19,7 @@ import AdminTransactionsPage from "./AdminTransactionsPage";
 import AdminWalletPage from "./AdminWalletPage";
 import AdminWithdrawalPage from "./AdminWithdrawalPage";
 import CommissionSettingsPage from "./CommissionSettingsPage";
+import PostPackagePage from "./PostPackagePage";
 import { useAuth } from "../../context/AuthContext";
 
 const { Header, Sider, Content } = Layout;
@@ -97,6 +98,7 @@ export default function AdminLayout() {
                                 label: "Cài đặt",
                                 children: [
                                     { key: "commission", label: "Hoa hồng" },
+                                    { key: "packages", label: "Gói đăng bài" },
                                 ],
                             },
 
@@ -153,6 +155,7 @@ export default function AdminLayout() {
                     {selectedKey === "auctions_list" && <AdminAuctionsPage />}
                     {selectedKey === "transactions" && <AdminTransactionsPage />}
                     {selectedKey === "commission" && <CommissionSettingsPage />}
+                    {selectedKey === "packages" && <PostPackagePage />}
                 </Content>
             </Layout>
         </Layout>

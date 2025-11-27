@@ -77,13 +77,17 @@ export default function CommissionSettingsPage() {
             const endDate = dateRange[1].format('YYYY-MM-DD');
 
             const response = await systemSettingsAPI.getCommissionReport(startDate, endDate);
+            console.log('Commission Report Response:', response);
+
             if (response.success) {
+                console.log('Report Data:', response.data);
                 setReportData(response.data);
                 message.success('Tải báo cáo thành công');
             } else {
                 message.error(response.message || 'Không thể tải báo cáo');
             }
         } catch (error) {
+            console.error('Fetch report error:', error);
             message.error('Lỗi khi tải báo cáo');
         } finally {
             setReportLoading(false);
@@ -119,7 +123,6 @@ export default function CommissionSettingsPage() {
                             value={currentRate}
                             precision={2}
                             suffix="%"
-
                             valueStyle={{ color: '#3f8600' }}
                         />
                     </Col>
@@ -199,7 +202,7 @@ export default function CommissionSettingsPage() {
                                     <Card>
                                         <Statistic
                                             title="Tổng giao dịch"
-                                            value={reportData.TotalTransactions || 0}
+                                            value={reportData.totalTransactions || reportData.TotalTransactions || 0}
                                             valueStyle={{ color: '#1890ff' }}
                                         />
                                     </Card>
@@ -208,7 +211,7 @@ export default function CommissionSettingsPage() {
                                     <Card>
                                         <Statistic
                                             title="Tổng doanh thu"
-                                            value={reportData.TotalRevenue || 0}
+                                            value={reportData.totalRevenue || reportData.TotalRevenue || 0}
                                             precision={0}
                                             suffix="VNĐ"
                                             valueStyle={{ color: '#52c41a' }}
@@ -219,7 +222,7 @@ export default function CommissionSettingsPage() {
                                     <Card>
                                         <Statistic
                                             title="Tổng hoa hồng"
-                                            value={reportData.TotalCommission || 0}
+                                            value={reportData.totalCommission || reportData.TotalCommission || 0}
                                             precision={0}
                                             suffix="VNĐ"
                                             prefix={<DollarOutlined />}
@@ -231,7 +234,7 @@ export default function CommissionSettingsPage() {
                                     <Card>
                                         <Statistic
                                             title="Seller nhận được"
-                                            value={reportData.TotalSellerReceived || 0}
+                                            value={reportData.totalSellerReceived || reportData.TotalSellerReceived || 0}
                                             precision={0}
                                             suffix="VNĐ"
                                             valueStyle={{ color: '#faad14' }}
@@ -245,7 +248,7 @@ export default function CommissionSettingsPage() {
                                     <Card>
                                         <Statistic
                                             title="Tỷ lệ hoa hồng TB"
-                                            value={reportData.AverageCommissionRate || 0}
+                                            value={reportData.averageCommissionRate || reportData.AverageCommissionRate || 0}
                                             precision={2}
                                             suffix="%"
                                             valueStyle={{ color: '#722ed1' }}
@@ -256,7 +259,7 @@ export default function CommissionSettingsPage() {
                                     <Card>
                                         <Statistic
                                             title="% Hoa hồng/Doanh thu"
-                                            value={reportData.CommissionPercentage || 0}
+                                            value={reportData.commissionPercentage || reportData.CommissionPercentage || 0}
                                             precision={2}
                                             suffix="%"
                                             valueStyle={{ color: '#13c2c2' }}
@@ -267,7 +270,7 @@ export default function CommissionSettingsPage() {
 
                             <div className="mt-4 p-4 bg-gray-50 rounded">
                                 <p className="text-sm text-gray-600">
-                                    <strong>Kỳ báo cáo:</strong> {reportData.Period}
+                                    <strong>Kỳ báo cáo:</strong> {reportData.period || reportData.Period}
                                 </p>
                             </div>
                         </>

@@ -131,9 +131,12 @@ export const systemSettingsAPI = {
                 }
             );
 
+            // Parse nested response structure
+            const reportData = response?.Data ?? response?.data ?? response;
+
             return {
                 success: true,
-                data: response?.Data ?? response,
+                data: reportData,
                 message: response?.Message ?? 'Lấy báo cáo hoa hồng thành công'
             };
         } catch (error) {

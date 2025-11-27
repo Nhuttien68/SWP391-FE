@@ -312,57 +312,6 @@ const CheckoutPage = () => {
                                                 </Space>
                                             </Radio>
                                         </Card>
-                                        <Card
-                                            hoverable
-                                            className={paymentMethod === 'VNPAY' ? 'border-blue-500 border-2' : ''}
-                                        >
-                                            <Radio value="VNPAY">
-                                                <Space>
-                                                    <CreditCardOutlined className="text-xl text-purple-600" />
-                                                    <div>
-                                                        <Text strong>VNPay</Text>
-                                                        <br />
-                                                        <Text type="secondary" className="text-sm">
-                                                            Thanh toán qua VNPay, an toàn và tiện lợi
-                                                        </Text>
-                                                    </div>
-                                                </Space>
-                                            </Radio>
-                                        </Card>
-                                        <Card
-                                            hoverable
-                                            className={paymentMethod === 'BANK_TRANSFER' ? 'border-blue-500 border-2' : ''}
-                                        >
-                                            <Radio value="BANK_TRANSFER">
-                                                <Space>
-                                                    <CreditCardOutlined className="text-xl text-green-600" />
-                                                    <div>
-                                                        <Text strong>Chuyển Khoản Ngân Hàng</Text>
-                                                        <br />
-                                                        <Text type="secondary" className="text-sm">
-                                                            Chuyển khoản trực tiếp qua ngân hàng
-                                                        </Text>
-                                                    </div>
-                                                </Space>
-                                            </Radio>
-                                        </Card>
-                                        <Card
-                                            hoverable
-                                            className={paymentMethod === 'COD' ? 'border-blue-500 border-2' : ''}
-                                        >
-                                            <Radio value="COD">
-                                                <Space>
-                                                    <ShoppingOutlined className="text-xl text-orange-600" />
-                                                    <div>
-                                                        <Text strong>Thanh Toán Khi Nhận Hàng (COD)</Text>
-                                                        <br />
-                                                        <Text type="secondary" className="text-sm">
-                                                            Thanh toán trực tiếp cho người bán
-                                                        </Text>
-                                                    </div>
-                                                </Space>
-                                            </Radio>
-                                        </Card>
                                     </Space>
                                 </Radio.Group>
                             </Card>
