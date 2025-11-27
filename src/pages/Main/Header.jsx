@@ -153,12 +153,12 @@ const HeaderApp = () => {
             label: 'Quản trị hệ thống',
             onClick: () => navigate('/admin')
         }] : []),
-        {
-            key: 'settings',
-            icon: <SettingOutlined />,
-            label: 'Cài đặt',
-            onClick: () => navigate('/settings')
-        },
+        // {
+        //     key: 'settings',
+        //     icon: <SettingOutlined />,
+        //     label: 'Cài đặt',
+        //     onClick: () => navigate('/settings')
+        // },
         {
             type: 'divider',
         },
