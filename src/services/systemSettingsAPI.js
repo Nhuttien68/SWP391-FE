@@ -12,9 +12,8 @@ export const systemSettingsAPI = {
             const response = await apiClient.get('/SystemSettings/commission-rate');
 
             // Response có cấu trúc: { data: { commissionRate: 10, description: "..." } }
-            const rate = response?.data?.data?.commissionRate
-                || response?.data?.data?.CommissionRate
-                || response?.data?.commissionRate
+            const rate =
+                response?.data?.commissionRate
                 || response?.data?.CommissionRate
                 || 0;
 

@@ -28,7 +28,6 @@ import {
     EditOutlined,
 } from '@ant-design/icons';
 import { transactionAPI } from '../../services/transactionAPI';
-import { updateTransactionReceiver } from '../../services/auctionAPI';
 import { useAuth } from '../../context/AuthContext';
 import ReviewForm from '../../components/ReviewForm';
 import { useNavigate } from 'react-router-dom';
@@ -136,7 +135,7 @@ const OrdersPage = () => {
         }
 
         try {
-            const response = await updateTransactionReceiver(
+            const response = await transactionAPI.updateDeliveryInfo(
                 selectedTransaction.transactionId,
                 receiverForm
             );

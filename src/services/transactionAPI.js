@@ -261,6 +261,46 @@ export const transactionAPI = {
                 error: error.response?.data
             };
         }
+    },
+
+    /**
+     * Cập nhật thông tin giao hàng cho đơn đấu giá
+     */
+    updateDeliveryInfo: async (transactionId, deliveryData) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Vui lòng đăng nhập'
+                };
+            }
+
+            const response = await apiClient.put(`/Transactions/${transactionId}/delivery-info`, {
+                ReceiverName: deliveryData.receiverName,
+                ReceiverPhone: deliveryData.receiverPhone,
+                ReceiverAddress: deliveryData.receiverAddress,
+                Note: deliveryData.note || ''
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const payload = response?.Data ?? response;
+            return {
+                success: true,
+                data: payload,
+                message: response?.Message ?? 'Cập nhật thông tin giao hàng thành công'
+            };
+        } catch (error) {
+            console.error('Update delivery info error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.Message || 'Không thể cập nhật thông tin giao hàng',
+                error: error.response?.data
+            };
+        }
     }
 };
 

@@ -119,7 +119,7 @@ export default function CommissionSettingsPage() {
                             value={currentRate}
                             precision={2}
                             suffix="%"
-                            prefix={<PercentageOutlined />}
+
                             valueStyle={{ color: '#3f8600' }}
                         />
                     </Col>
