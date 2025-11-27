@@ -99,19 +99,11 @@ const AuctionList = () => {
         return end - now;
     };
 
-    // while auth status unknown, show loading
-    if (isAuthenticated === null || isAuthenticated === undefined) {
-        return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Spin size="large" tip="Đang xác thực..." />
-            </div>
-        );
-    }
-
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Spin size="large" tip="Đang tải danh sách đấu giá..." />
+            <div className="flex flex-col justify-center items-center min-h-screen">
+                <Spin size="large" />
+                <div className="mt-4 text-gray-500">Đang tải danh sách đấu giá...</div>
             </div>
         );
     }

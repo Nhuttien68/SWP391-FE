@@ -797,7 +797,7 @@ const PostDetail = () => {
 
                                 <Space className="w-full">
                                     {/* Buy and Add-to-cart buttons */}
-                                {/* Buy / small actions moved to Seller Info area per request */}
+                                    {/* Buy / small actions moved to Seller Info area per request */}
                                 </Space>
                             </Space>
                         </Card>
@@ -843,7 +843,7 @@ const PostDetail = () => {
                         name="startPrice"
                         rules={[
                             { required: true, message: 'Vui lòng nhập giá khởi điểm' },
-                            { type: 'number', min: 1000000, message: 'Giá tối thiểu 1,000,000 VNĐ' }
+                            { type: 'number', min: 100000, message: 'Giá tối thiểu 100,000 VNĐ' }
                         ]}
                     >
                         <InputNumber
@@ -851,7 +851,7 @@ const PostDetail = () => {
                             placeholder="Nhập giá khởi điểm"
                             formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                             parser={(value) => value.replace(/,/g, '')}
-                            min={1000000}
+                            min={100000}
                             step={100000}
                         />
                     </Form.Item>

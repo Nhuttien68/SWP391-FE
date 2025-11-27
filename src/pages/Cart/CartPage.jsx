@@ -147,8 +147,9 @@ const CartPage = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Spin size="large" tip="Đang tải giỏ hàng..." />
+            <div className="flex flex-col justify-center items-center min-h-screen">
+                <Spin size="large" />
+                <div className="mt-4 text-gray-500">Đang tải giỏ hàng...</div>
             </div>
         );
     }

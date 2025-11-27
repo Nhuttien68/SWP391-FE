@@ -106,6 +106,29 @@ const PostCard = ({ post, onViewDetail }) => {
         }
     };
 
+    // Hàm xác định trạng thái và màu sắc
+    const getStatusDisplay = () => {
+        const status = post.status || post.Status;
+
+        switch (status) {
+            case 'SOLD':
+                return { text: 'Đã bán', color: '#ff4d4f' };
+            case 'Pending':
+                return { text: 'Chờ duyệt', color: '#faad14' };
+            case 'InAuction':
+                return { text: 'Đang đấu giá', color: '#722ed1' };
+            case 'APPROVED':
+            case 'Active':
+                return { text: 'Còn hàng', color: '#52c41a' };
+            case 'Rejected':
+                return { text: 'Bị từ chối', color: '#ff4d4f' };
+            default:
+                return { text: 'Còn hàng', color: '#52c41a' };
+        }
+    };
+
+    const statusDisplay = getStatusDisplay();
+
     // Helper to safely render values that might be objects coming from different API shapes
     const renderPrimitive = (val, fallback = 'N/A') => {
         // Always return a string to avoid React "object as child" errors
@@ -397,9 +420,9 @@ const PostCard = ({ post, onViewDetail }) => {
                     {/* Badge trạng thái góc trên phải */}
                     <div className="absolute top-3 right-3 z-10">
                         <Badge
-                            count={(post.status || post.Status) === 'SOLD' ? 'Đã bán' : 'Còn hàng'}
+                            count={statusDisplay.text}
                             style={{
-                                backgroundColor: (post.status || post.Status) === 'SOLD' ? '#ff4d4f' : '#52c41a',
+                                backgroundColor: statusDisplay.color,
                                 fontWeight: '600',
                                 fontSize: '12px',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.2)',

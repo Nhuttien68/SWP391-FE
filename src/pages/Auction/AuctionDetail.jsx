@@ -15,7 +15,7 @@ import {
     Space,
     Spin,
     Empty,
-    Image,
+    Descriptions,
 } from 'antd';
 import {
     FireOutlined,
@@ -26,6 +26,7 @@ import {
     HistoryOutlined,
 } from '@ant-design/icons';
 import { getAuctionById, placeBid } from '../../services/auctionAPI';
+import systemSettingsAPI from '../../services/systemSettingsAPI';
 import authAPI from '../../services/authAPI';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
@@ -56,7 +57,13 @@ const AuctionDetail = () => {
     const [loading, setLoading] = useState(true);
     const [bidAmount, setBidAmount] = useState(0);
     const [submitting, setSubmitting] = useState(false);
+    const [isFirstLoad, setIsFirstLoad] = useState(true);
+    const [commissionRate, setCommissionRate] = useState(0);
     const currentUserId = authAPI.getCurrentUserId();
+
+    useEffect(() => {
+        fetchCommissionRate();
+    }, []);
 
     useEffect(() => {
         if (id) {
@@ -65,6 +72,17 @@ const AuctionDetail = () => {
             return () => clearInterval(interval);
         }
     }, [id]);
+
+    const fetchCommissionRate = async () => {
+        try {
+            const response = await systemSettingsAPI.getCommissionRate();
+            if (response.success) {
+                setCommissionRate(response.data?.commissionRate || response.data?.CommissionRate || 0);
+            }
+        } catch (error) {
+            console.error('Failed to fetch commission rate:', error);
+        }
+    };
 
     const fetchAuctionDetails = async () => {
         try {
@@ -78,6 +96,7 @@ const AuctionDetail = () => {
                     postId: auctionData.postId || auctionData.PostId,
                     startPrice: parseFloat(auctionData.startPrice || auctionData.StartPrice || 0),
                     currentPrice: parseFloat(auctionData.currentPrice || auctionData.CurrentPrice || auctionData.startPrice || auctionData.StartPrice || 0),
+                    bidStep: parseFloat(auctionData.bidStep || auctionData.BidStep || 100000),
                     endTime: auctionData.endTime || auctionData.EndTime,
                     status: auctionData.status || auctionData.Status || 'Active',
                     winnerId: auctionData.winnerId || auctionData.WinnerId,
@@ -93,7 +112,11 @@ const AuctionDetail = () => {
                 };
 
                 setAuction(normalized);
-                setBidAmount(normalized.currentPrice + 1000000);
+                // Chỉ set bidAmount lần đầu tiên, không reset khi user đang nhập
+                if (isFirstLoad) {
+                    setBidAmount(normalized.currentPrice + normalized.bidStep);
+                    setIsFirstLoad(false);
+                }
             } else {
                 toast.error('Không tìm thấy phiên đấu giá');
                 navigate('/auction');
@@ -163,17 +186,6 @@ const AuctionDetail = () => {
         return new Date(localDateString);
     };
 
-    const getPostImage = (post) => {
-        if (!post) return '/images/placeholder.jpg';
-
-        const images = post.postImages || post.PostImages;
-        if (images && images.length > 0) {
-            return images[0].imageUrl || images[0].ImageUrl || '/images/placeholder.jpg';
-        }
-
-        return '/images/placeholder.jpg';
-    };
-
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -219,21 +231,59 @@ const AuctionDetail = () => {
                 <Row gutter={[24, 24]}>
                     {/* Left Column */}
                     <Col xs={24} lg={14}>
-                        {/* Product Image */}
-                        <Card>
-                            <Image
-                                src={getPostImage(auction.post)}
-                                alt={auction.post?.title || 'Auction'}
-                                style={{ width: '100%', maxHeight: '500px', objectFit: 'cover' }}
-                                fallback="/images/placeholder.jpg"
-                            />
-
-                            <Divider />
-
-                            <Title level={4}>Thông tin sản phẩm</Title>
+                        {/* Product Info */}
+                        <Card title="Mô tả chi tiết" className="mb-4">
                             <Paragraph>
                                 {auction.post?.description || auction.post?.Description || 'Không có mô tả'}
                             </Paragraph>
+                        </Card>
+
+                        {/* Specifications */}
+                        <Card title="Thông số kỹ thuật" className="mb-4">
+                            <Descriptions bordered column={1}>
+                                {(auction.post?.vehicle || auction.post?.Vehicle) ? (
+                                    <>
+                                        <Descriptions.Item label="Loại sản phẩm">
+                                            <Tag color="blue">Xe điện</Tag>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Thương hiệu">
+                                            {auction.post?.vehicle?.brandName || auction.post?.Vehicle?.BrandName || 'N/A'}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Model">
+                                            {auction.post?.vehicle?.model || auction.post?.Vehicle?.Model || 'N/A'}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Năm sản xuất">
+                                            {auction.post?.vehicle?.year || auction.post?.Vehicle?.Year || 'N/A'}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Số km đã đi">
+                                            {auction.post?.vehicle?.mileage || auction.post?.Vehicle?.Mileage
+                                                ? `${(auction.post?.vehicle?.mileage || auction.post?.Vehicle?.Mileage).toLocaleString('vi-VN')} km`
+                                                : 'N/A'}
+                                        </Descriptions.Item>
+                                    </>
+                                ) : (auction.post?.battery || auction.post?.Battery) ? (
+                                    <>
+                                        <Descriptions.Item label="Loại sản phẩm">
+                                            <Tag color="green">Pin xe điện</Tag>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Thương hiệu">
+                                            {auction.post?.battery?.brandName || auction.post?.Battery?.BrandName || 'N/A'}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Dung lượng">
+                                            {auction.post?.battery?.capacity || auction.post?.Battery?.Capacity
+                                                ? `${auction.post?.battery?.capacity || auction.post?.Battery?.Capacity} kWh`
+                                                : 'N/A'}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Tình trạng">
+                                            {auction.post?.battery?.condition || auction.post?.Battery?.Condition || 'N/A'}
+                                        </Descriptions.Item>
+                                    </>
+                                ) : (
+                                    <Descriptions.Item label="Thông tin">
+                                        Không có thông số kỹ thuật
+                                    </Descriptions.Item>
+                                )}
+                            </Descriptions>
                         </Card>
 
                         {/* Bid History */}
@@ -282,7 +332,8 @@ const AuctionDetail = () => {
                         {/* Countdown */}
                         <Card className="mb-4">
                             {isActive ? (
-                                <Statistic.Countdown
+                                <Statistic.Timer
+                                    type="countdown"
                                     title={
                                         <Title level={4}>
                                             <ClockCircleOutlined className="mr-2" />
@@ -321,6 +372,20 @@ const AuctionDetail = () => {
                                         {formatPrice(auction.currentPrice)}
                                     </div>
                                 </div>
+                                {commissionRate > 0 && (
+                                    <>
+                                        <Divider style={{ margin: 0 }} />
+                                        <div>
+                                            <Text type="secondary">Phí hoa hồng ({commissionRate}%)</Text>
+                                            <div className="text-lg font-semibold text-orange-600">
+                                                {formatPrice(auction.currentPrice * (commissionRate / 100))}
+                                            </div>
+                                            <Text type="secondary" className="text-sm">
+                                                Người bán sẽ nhận: {formatPrice(auction.currentPrice * (1 - commissionRate / 100))}
+                                            </Text>
+                                        </div>
+                                    </>
+                                )}
                                 {highestBid && (
                                     <>
                                         <Divider style={{ margin: 0 }} />
@@ -360,15 +425,20 @@ const AuctionDetail = () => {
                                             <InputNumber
                                                 value={bidAmount}
                                                 onChange={setBidAmount}
-                                                min={auction.currentPrice + 1000}
-                                                step={100000}
+                                                min={auction.currentPrice + (auction.bidStep || 100000)}
+                                                step={auction.bidStep || 100000}
                                                 formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                                 parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
                                                 style={{ width: '100%' }}
                                                 size="large"
+                                                keyboard={false}
+                                                controls
                                             />
                                             <Text type="secondary" className="block mt-2">
-                                                Tối thiểu: {formatPrice(auction.currentPrice + 1000000)}
+                                                Sử dụng mũi tên ▲▼ để tăng/giảm {formatPrice(auction.bidStep || 100000)} mỗi lần
+                                            </Text>
+                                            <Text type="secondary" className="block mt-1">
+                                                Tối thiểu: {formatPrice(auction.currentPrice + (auction.bidStep || 100000))}
                                             </Text>
                                         </div>
 

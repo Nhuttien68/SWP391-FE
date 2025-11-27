@@ -15,6 +15,7 @@ import {
     Divider,
     Popconfirm,
     Modal,
+    Input,
 } from 'antd';
 import {
     ShoppingOutlined,
@@ -23,8 +24,11 @@ import {
     CheckCircleOutlined,
     CloseCircleOutlined,
     EyeOutlined,
+    TrophyOutlined,
+    EditOutlined,
 } from '@ant-design/icons';
 import { transactionAPI } from '../../services/transactionAPI';
+import { updateTransactionReceiver } from '../../services/auctionAPI';
 import { useAuth } from '../../context/AuthContext';
 import ReviewForm from '../../components/ReviewForm';
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +39,16 @@ const OrdersPage = () => {
     const [loading, setLoading] = useState(false);
     const [purchases, setPurchases] = useState([]);
     const [sales, setSales] = useState([]);
+    const [auctionWins, setAuctionWins] = useState([]);
     const [activeTab, setActiveTab] = useState('purchases');
+    const [receiverModalVisible, setReceiverModalVisible] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [receiverForm, setReceiverForm] = useState({
+        receiverName: '',
+        receiverPhone: '',
+        receiverAddress: '',
+        note: ''
+    });
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [detailVisible, setDetailVisible] = useState(false);
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -60,10 +73,22 @@ const OrdersPage = () => {
                 } else {
                     message.error(response.message);
                 }
-            } else {
+            } else if (activeTab === 'sales') {
                 const response = await transactionAPI.getMySales();
                 if (response.success) {
                     setSales(response.data?.data || response.data || []);
+                } else {
+                    message.error(response.message);
+                }
+            } else if (activeTab === 'auctionWins') {
+                const response = await transactionAPI.getMyPurchases();
+                if (response.success) {
+                    const allPurchases = response.data?.data || response.data || [];
+                    // Lọc các transaction từ đấu giá (paymentMethod === 'Wallet' và có source từ auction)
+                    const wins = allPurchases.filter(tx =>
+                        tx.paymentMethod === 'Wallet' || tx.PaymentMethod === 'Wallet'
+                    );
+                    setAuctionWins(wins);
                 } else {
                     message.error(response.message);
                 }
@@ -88,6 +113,44 @@ const OrdersPage = () => {
         } catch (error) {
             console.error('Cancel order error:', error);
             message.error('Không thể hủy đơn hàng');
+        }
+    };
+
+    const showReceiverModal = (transaction) => {
+        setSelectedTransaction(transaction);
+        setReceiverForm({
+            receiverName: transaction.receiverName || user?.fullName || '',
+            receiverPhone: transaction.receiverPhone || user?.phoneNumber || '',
+            receiverAddress: transaction.receiverAddress || '',
+            note: transaction.note || ''
+        });
+        setReceiverModalVisible(true);
+    };
+
+    const handleUpdateReceiver = async () => {
+        if (!selectedTransaction) return;
+
+        if (!receiverForm.receiverName || !receiverForm.receiverPhone || !receiverForm.receiverAddress) {
+            message.error('Vui lòng điền đầy đủ thông tin người nhận');
+            return;
+        }
+
+        try {
+            const response = await updateTransactionReceiver(
+                selectedTransaction.transactionId,
+                receiverForm
+            );
+
+            if (response.success) {
+                message.success('Cập nhật thông tin người nhận thành công');
+                setReceiverModalVisible(false);
+                fetchOrders();
+            } else {
+                message.error(response.message || 'Cập nhật thất bại');
+            }
+        } catch (error) {
+            console.error('Update receiver error:', error);
+            message.error('Không thể cập nhật thông tin người nhận');
         }
     };
 
@@ -123,10 +186,133 @@ const OrdersPage = () => {
     const getPaymentMethodText = (method) => {
         const methodMap = {
             WALLET: 'Ví EV Marketplace',
+            Wallet: 'Ví EV Marketplace',
             BANKING: 'Chuyển khoản ngân hàng',
             COD: 'Thanh toán khi nhận hàng',
         };
         return methodMap[method] || method;
+    };
+
+    const AuctionWinCard = ({ order }) => {
+        const resolvePostImage = (o) => {
+            const candidates = [
+                o.postImageUrl,
+                o.PostImageUrl,
+                o.imageUrl,
+                o.ImageUrl,
+                o.post?.postImages?.[0]?.imageUrl,
+                o.post?.PostImages?.[0]?.ImageUrl,
+                o.post?.postImages?.[0]?.ImageUrl,
+            ];
+            for (const url of candidates) {
+                if (url) return url;
+            }
+            return 'https://via.placeholder.com/150';
+        };
+
+        const hasReceiverInfo = order.receiverName && order.receiverPhone && order.receiverAddress;
+
+        return (
+            <Card className="mb-4 hover:shadow-lg transition-shadow">
+                <Row gutter={[16, 16]} align="middle">
+                    <Col xs={24} sm={6}>
+                        <Image
+                            src={resolvePostImage(order)}
+                            alt={order.postTitle || order.PostTitle || 'Sản phẩm'}
+                            style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: '8px' }}
+                            fallback="https://via.placeholder.com/150"
+                        />
+                    </Col>
+                    <Col xs={24} sm={18}>
+                        <Space direction="vertical" className="w-full" size="middle">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <TrophyOutlined className="text-yellow-500 text-lg" />
+                                    <Text strong className="text-lg">
+                                        {order.postTitle || order.PostTitle || 'Đấu giá'}
+                                    </Text>
+                                </div>
+                                <Text type="secondary" className="text-sm">
+                                    Mã đơn: {order.transactionId?.substring(0, 8) || 'N/A'}
+                                </Text>
+                            </div>
+
+                            <Divider className="my-2" />
+
+                            <Row gutter={[16, 8]}>
+                                <Col xs={24} sm={12}>
+                                    <Text type="secondary" className="text-sm">Số tiền đã trả:</Text>
+                                    <br />
+                                    <Text strong className="text-lg text-red-600">
+                                        {formatCurrency(order.amount || 0)}
+                                    </Text>
+                                </Col>
+                                <Col xs={24} sm={12}>
+                                    <Text type="secondary" className="text-sm">Trạng thái:</Text>
+                                    <br />
+                                    {getStatusTag(order.status)}
+                                </Col>
+                                {(order.commissionRate || order.CommissionRate) && (
+                                    <>
+                                        <Col xs={24} sm={12}>
+                                            <Text type="secondary" className="text-sm">Phí hoa hồng ({order.commissionRate || order.CommissionRate}%):</Text>
+                                            <br />
+                                            <Text className="text-orange-600">
+                                                {formatCurrency(order.commissionAmount || order.CommissionAmount || 0)}
+                                            </Text>
+                                        </Col>
+                                        <Col xs={24} sm={12}>
+                                            <Text type="secondary" className="text-sm">Người bán nhận:</Text>
+                                            <br />
+                                            <Text strong className="text-green-600">
+                                                {formatCurrency((order.amount || 0) - (order.commissionAmount || order.CommissionAmount || 0))}
+                                            </Text>
+                                        </Col>
+                                    </>
+                                )}
+                                {hasReceiverInfo && (
+                                    <>
+                                        <Col xs={24} sm={12}>
+                                            <Text type="secondary" className="text-sm">Người nhận:</Text>
+                                            <br />
+                                            <Text>{order.receiverName}</Text>
+                                        </Col>
+                                        <Col xs={24} sm={12}>
+                                            <Text type="secondary" className="text-sm">SĐT:</Text>
+                                            <br />
+                                            <Text>{order.receiverPhone}</Text>
+                                        </Col>
+                                        <Col xs={24}>
+                                            <Text type="secondary" className="text-sm">Địa chỉ:</Text>
+                                            <br />
+                                            <Text>{order.receiverAddress}</Text>
+                                        </Col>
+                                    </>
+                                )}
+                            </Row>
+
+                            <Divider className="my-2" />
+
+                            <Space>
+                                <Button
+                                    icon={<EyeOutlined />}
+                                    onClick={() => showOrderDetail(order)}
+                                >
+                                    Chi tiết
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    icon={<EditOutlined />}
+                                    onClick={() => showReceiverModal(order)}
+                                >
+                                    {hasReceiverInfo ? 'Cập nhật thông tin nhận hàng' : 'Thêm thông tin nhận hàng'}
+                                </Button>
+                            </Space>
+                        </Space>
+                    </Col>
+                </Row>
+            </Card>
+        );
     };
 
     const OrderCard = ({ order, isPurchase }) => {
@@ -312,6 +498,28 @@ const OrdersPage = () => {
                         <Text strong className="text-lg text-red-600">
                             {formatCurrency(selectedOrder.amount || 0)}
                         </Text>
+                        {(selectedOrder.commissionRate || selectedOrder.CommissionRate) && (
+                            <>
+                                <br />
+                                <Divider style={{ margin: '12px 0' }} />
+                                <Space direction="vertical" size="small" className="w-full">
+                                    <div>
+                                        <Text type="secondary">Phí hoa hồng ({selectedOrder.commissionRate || selectedOrder.CommissionRate}%):</Text>
+                                        {' '}
+                                        <Text className="text-orange-600">
+                                            {formatCurrency(selectedOrder.commissionAmount || selectedOrder.CommissionAmount || 0)}
+                                        </Text>
+                                    </div>
+                                    <div>
+                                        <Text type="secondary">Người bán nhận:</Text>
+                                        {' '}
+                                        <Text strong className="text-green-600">
+                                            {formatCurrency((selectedOrder.amount || 0) - (selectedOrder.commissionAmount || selectedOrder.CommissionAmount || 0))}
+                                        </Text>
+                                    </div>
+                                </Space>
+                            </>
+                        )}
                     </Card>
 
 
@@ -362,7 +570,8 @@ const OrdersPage = () => {
                                 ),
                                 children: loading ? (
                                     <div className="text-center py-20">
-                                        <Spin size="large" tip="Đang tải đơn hàng..." />
+                                        <Spin size="large" />
+                                        <div className="mt-4 text-gray-500">Đang tải đơn hàng...</div>
                                     </div>
                                 ) : purchases.length === 0 ? (
                                     <Empty description="Chưa có đơn mua nào" />
@@ -382,13 +591,35 @@ const OrdersPage = () => {
                                 ),
                                 children: loading ? (
                                     <div className="text-center py-20">
-                                        <Spin size="large" tip="Đang tải đơn hàng..." />
+                                        <Spin size="large" />
+                                        <div className="mt-4 text-gray-500">Đang tải đơn hàng...</div>
                                     </div>
                                 ) : sales.length === 0 ? (
                                     <Empty description="Chưa có đơn bán nào" />
                                 ) : (
                                     sales.map((order) => (
                                         <OrderCard key={order.transactionId} order={order} isPurchase={false} />
+                                    ))
+                                )
+                            },
+                            {
+                                key: 'auctionWins',
+                                label: (
+                                    <span>
+                                        <TrophyOutlined />
+                                        Đấu giá đã thắng ({auctionWins.length})
+                                    </span>
+                                ),
+                                children: loading ? (
+                                    <div className="text-center py-20">
+                                        <Spin size="large" />
+                                        <div className="mt-4 text-gray-500">Đang tải đơn hàng...</div>
+                                    </div>
+                                ) : auctionWins.length === 0 ? (
+                                    <Empty description="Chưa có đơn thắng đấu giá nào" />
+                                ) : (
+                                    auctionWins.map((order) => (
+                                        <AuctionWinCard key={order.transactionId} order={order} />
                                     ))
                                 )
                             }
@@ -443,6 +674,60 @@ const OrdersPage = () => {
                         } catch (e) { console.error('[OrdersPage] navigation error', e); }
                     }}
                 />
+
+                {/* Modal cập nhật thông tin người nhận */}
+                <Modal
+                    title="Cập nhật thông tin người nhận"
+                    open={receiverModalVisible}
+                    onOk={handleUpdateReceiver}
+                    onCancel={() => setReceiverModalVisible(false)}
+                    okText="Cập nhật"
+                    cancelText="Hủy"
+                    width={600}
+                >
+                    <Space direction="vertical" className="w-full" size="large">
+                        <div>
+                            <Text strong>Tên người nhận <Text type="danger">*</Text></Text>
+                            <Input
+                                size="large"
+                                placeholder="Nhập tên người nhận"
+                                value={receiverForm.receiverName}
+                                onChange={(e) => setReceiverForm({ ...receiverForm, receiverName: e.target.value })}
+                                className="mt-2"
+                            />
+                        </div>
+                        <div>
+                            <Text strong>Số điện thoại <Text type="danger">*</Text></Text>
+                            <Input
+                                size="large"
+                                placeholder="Nhập số điện thoại"
+                                value={receiverForm.receiverPhone}
+                                onChange={(e) => setReceiverForm({ ...receiverForm, receiverPhone: e.target.value })}
+                                className="mt-2"
+                            />
+                        </div>
+                        <div>
+                            <Text strong>Địa chỉ nhận hàng <Text type="danger">*</Text></Text>
+                            <Input.TextArea
+                                rows={3}
+                                placeholder="Nhập địa chỉ nhận hàng"
+                                value={receiverForm.receiverAddress}
+                                onChange={(e) => setReceiverForm({ ...receiverForm, receiverAddress: e.target.value })}
+                                className="mt-2"
+                            />
+                        </div>
+                        <div>
+                            <Text strong>Ghi chú</Text>
+                            <Input.TextArea
+                                rows={2}
+                                placeholder="Ghi chú thêm (tùy chọn)"
+                                value={receiverForm.note}
+                                onChange={(e) => setReceiverForm({ ...receiverForm, note: e.target.value })}
+                                className="mt-2"
+                            />
+                        </div>
+                    </Space>
+                </Modal>
             </div>
         </div>
     );
